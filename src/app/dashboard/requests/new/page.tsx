@@ -5,12 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Figma 348:32210 (Desktop-20) — Property Owner / Post Property Request
-// Layout (positions inside content area at x:312 — sidebar 272 + 40 padding):
-//   Back link at y:0 (x:0 y:50357 in absolute, w:70 h:24, gap 12 row)
-//   Header row at y:64-128: title block (460x64) LEFT + Publish Request button (155x48) RIGHT
-//   Form fields at y:168+: column gap 24, 1088 wide, 2-col rows + Comments full
-
 const PROPERTY_TYPES = ["Flat/Apartment", "House", "Duplex", "Bungalow", "Office Space", "Land", "Other"];
 const CATEGORIES = ["For Rent", "For Sale", "Shortlet"];
 const REQUESTER_KINDS = ["Individual", "Corporate", "Real Estate Agent", "Family"];
@@ -47,7 +41,7 @@ export default function PostPropertyRequestPage() {
   return (
     <>
       <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
-        {/* Back — Figma 348:32807: 70x24 row gap 12, arrow-left + "Back" text. ON_CLICK = BACK */}
+        
         <button
           type="button"
           onClick={() => router.back()}
@@ -60,8 +54,7 @@ export default function PostPropertyRequestPage() {
           </span>
         </button>
 
-        {/* Header row — Figma: title block (460x64) on LEFT + Publish Request (155x48) on RIGHT,
-            both at ~y:64-128, justify-between. */}
+        
         <div className="flex items-start justify-between" style={{ gap: "16px" }}>
           <div className="flex flex-col" style={{ width: "460px", maxWidth: "100%", gap: "8px" }}>
             <h1 style={{ fontSize: "20px", lineHeight: "32px", fontWeight: 600, color: "#121212" }}>
@@ -72,8 +65,7 @@ export default function PostPropertyRequestPage() {
             </p>
           </div>
 
-          {/* Publish Request — Figma 348:32349: 155x48, padding 8/24, r:12, blue gradient.
-              ON_CLICK → OVERLAY success modal (348:32846). */}
+          
           <button
             type="button"
             onClick={() => setSubmitted(true)}
@@ -94,7 +86,7 @@ export default function PostPropertyRequestPage() {
           </button>
         </div>
 
-        {/* Form fields — Figma 348:32224: 1088x616 column gap 24 */}
+        
         <div className="flex flex-col" style={{ gap: "24px" }}>
           {/* Row 1: Seeking | I am a/an */}
           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
@@ -183,7 +175,7 @@ export default function PostPropertyRequestPage() {
         </div>
       </div>
 
-      {/* Success modal — Figma 348:32846: 503x462 r:24, same component family as create-password success */}
+      
       {submitted && (
         <div
           className="fixed inset-0 z-10000 flex items-center justify-center p-4"
@@ -244,7 +236,7 @@ export default function PostPropertyRequestPage() {
               </div>
             </div>
 
-            {/* View My Requests — Figma button x:40 y:374.5 w:423 h:48 blue gradient r:12 */}
+            
             <Link
               href="/dashboard/requests?tab=my"
               className="absolute flex items-center justify-center text-white hover:opacity-90 transition-opacity"

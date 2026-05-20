@@ -5,10 +5,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import StartVerificationModal from "./StartVerificationModal";
 
-// Client wrapper: renders the dashboard CTA's "Start Verification" link as a button
-// that opens StartVerificationModal (matching Figma Desktop-15 prototype:
-// Start Verification → overlay 465:24320 → Start Verification → /dashboard/verification).
-
 export default function StartVerificationCTA() {
   const [open, setOpen] = useState(false);
   const router = useRouter();

@@ -5,11 +5,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-// Figma 348:30376 (Desktop-19) — Property Owner / Property Requests
-// Top: tabs "All Requests" / "My Requests" at x:312 y:124
-// Right side of header: Filter: dropdowns + Post Request button at x:899 y:120 w:501
-// Body: 2-col grid of request cards (532 wide each, gap 16) at x:312 y:198
-
 type RequestType = "For Rent" | "For Sale" | "Shortlet";
 type RequesterKind = "Individual" | "Real Estate Agent" | "Corporate" | "Family";
 
@@ -38,7 +33,6 @@ const REQUESTS: SeekerRequest[] = [
   { id: "r8", seeking: "Bungalow for Rent", type: "For Rent", bedrooms: 3, area: "Ajah, Lagos", by: "Individual", budget: "₦1,200,000", budgetSuffix: "/year", listed: "19 Apr 2026", initials: "CO", name: "Chinwe Obi" },
 ];
 
-// My Requests — sample data per Figma Desktop-21 (348:32888): one published request
 type MyRequest = Omit<SeekerRequest, "initials" | "name">;
 const MY_REQUESTS: MyRequest[] = [
   {
@@ -68,8 +62,6 @@ export default function PropertyRequestsPage() {
   const [typeFilter, setTypeFilter] = useState<"All" | RequestType>("All");
   const [propTypeFilter, setPropTypeFilter] = useState<string>("Any");
 
-  // All Requests: feed from REQUESTS (other property seekers).
-  // My Requests: feed from MY_REQUESTS (property owner's own posts) — Figma Desktop-21.
   const visibleAll = REQUESTS.filter((r) => {
     if (typeFilter !== "All" && r.type !== typeFilter) return false;
     if (propTypeFilter !== "Any" && !r.seeking.toLowerCase().includes(propTypeFilter.toLowerCase())) return false;
@@ -85,9 +77,9 @@ export default function PropertyRequestsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
-      {/* Page title + toolbar — Figma: tabs at left + filter + Post Request on right */}
+      
       <div className="flex items-center justify-between">
-        {/* Tabs — Figma Frame 2147237068: row gap 16, each 120x40 padding 8 16 */}
+        
         <div className="flex items-center" style={{ gap: "0" }}>
           {TABS.map((t) => {
             const active = t === tab;
@@ -117,7 +109,7 @@ export default function PropertyRequestsPage() {
           })}
         </div>
 
-        {/* Filter + Post Request — Figma Frame 2147237139: row gap 16 */}
+        
         <div className="flex items-center" style={{ gap: "16px" }}>
           <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#807E7E", letterSpacing: "-0.02em" }}>
             Filter:
@@ -132,8 +124,7 @@ export default function PropertyRequestsPage() {
             onChange={setPropTypeFilter}
             options={PROPERTY_TYPES.map((t) => ({ label: t === "Any" ? "Select type" : t, value: t }))}
           />
-          {/* Post Request — Figma fill_4YDD5D: orange (bottom) + blue gradient (top).
-              Top wins → blue gradient. */}
+          
           <Link
             href="/dashboard/requests/new"
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
@@ -155,9 +146,7 @@ export default function PropertyRequestsPage() {
         </div>
       </div>
 
-      {/* Cards grid — Figma Frame 2147237160: 2-col layout (532 each), gap 16.
-          All Requests: seeker cards with avatar + Message button.
-          My Requests: owner's own cards with Delete + Edit Request buttons (Figma Desktop-21). */}
+      
       {visibleCount === 0 ? (
         <div
           className="bg-white flex items-center justify-center"
@@ -224,15 +213,13 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      {/* arrow-down — Figma 348:32095 / componentId 7:200. Already on disk as chevron-down.svg */}
+      
       <Image src="/icons/chevron-down.svg" alt="" width={16} height={16} className="shrink-0" />
     </div>
   );
 }
 
 function RequestCard({ request }: { request: SeekerRequest }) {
-  // Figma 348:31513 — 532x316 white r:20 with 1px #F6F6F6 stroke.
-  // Grid: 2 columns, 16px gap (2 cards = 1088 = 532*2 + 24 gap... actually 16 looks tighter).
   return (
     <div
       className="bg-white flex flex-col"
@@ -245,7 +232,7 @@ function RequestCard({ request }: { request: SeekerRequest }) {
         gap: "20px",
       }}
     >
-      {/* Row 1 — Seeking (left) | Bedroom (right) — Figma layout: 2-col grid */}
+      
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
         <StatCell label="Seeking" value={request.seeking} valueColor="#121212" valueSize="lg" />
         <StatCell label="Bedroom" value={String(request.bedrooms)} />
@@ -269,7 +256,7 @@ function RequestCard({ request }: { request: SeekerRequest }) {
         <StatCell label="Request by" value={request.by} />
       </div>
 
-      {/* Footer: avatar+name(+verified) + Message — Figma Frame 2147237068 */}
+      
       <div className="flex items-center justify-between" style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6" }}>
         <div className="flex items-center" style={{ gap: "12px" }}>
           <div
@@ -288,17 +275,14 @@ function RequestCard({ request }: { request: SeekerRequest }) {
           <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
             {request.name}
           </span>
-          {/* Verified check — Figma 348:31540 (componentId 36:1509 "verify"). 20x20. */}
+          
           <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
         </div>
-        {/* Message button — Figma 348:31586: 173.5x48, padding 8/24, gap 8, blue gradient r:12.
-            Contains messages-2 SVG (20x20 white) + "Message" text.
-            Figma prototype: ON_CLICK → 348:32110 overlay (reply-to-request modal). */}
+        
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            // TODO: open reply-to-request modal (Figma 348:32110)
           }}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
@@ -321,10 +305,6 @@ function RequestCard({ request }: { request: SeekerRequest }) {
   );
 }
 
-// MyRequestCard — Figma Desktop-21 (348:32888). Same body as RequestCard but:
-// footer has Delete (outlined #F6F6F6 stroke, #E30045 text+icon)
-// + Edit Request (solid blue gradient, white text+icon).
-// Both buttons: 242x48, padding 8/24, r:12, gap 8 (icon + text).
 function MyRequestCard({ request }: { request: MyRequest }) {
   return (
     <div
@@ -362,13 +342,12 @@ function MyRequestCard({ request }: { request: MyRequest }) {
         <StatCell label="Request by" value={request.by} />
       </div>
 
-      {/* Footer: Delete (red outline) + Edit Request (blue gradient) — Figma 348:33507 row gap 16 */}
+      
       <div
         className="flex items-center"
         style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6", gap: "16px" }}
       >
-        {/* Delete — Figma 348:33508: 242x48 padding 8/24, bg none, stroke #F6F6F6, text+icon #E30045.
-            Prototype: trash ON_CLICK → OVERLAY (delete confirm modal) — placeholder for now. */}
+        
         <button
           type="button"
           onClick={() => {
@@ -393,7 +372,7 @@ function MyRequestCard({ request }: { request: MyRequest }) {
           Delete
         </button>
 
-        {/* Edit Request — Figma 348:33511: same dims, blue gradient bg, white text+icon */}
+        
         <Link
           href={`/dashboard/requests/${request.id}/edit`}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
@@ -427,7 +406,7 @@ function StatCell({
   label: string;
   value: string;
   valueSuffix?: string;
-  /** Override value text color — e.g. #305E82 navy for Budget per Figma */
+  
   valueColor?: string;
   /** "lg" = 16/24 SemiBold (Seeking title, Budget). "md" = 14/20 Medium (rest). */
   valueSize?: "md" | "lg";

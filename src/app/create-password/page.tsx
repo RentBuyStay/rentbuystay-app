@@ -5,10 +5,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 
-// Figma node 332:11609 (Desktop - 10) — Property Owner Onboarding/Auth — Create Password
-// Back, centered title block, Password field with eye-show toggle + 3 wrap hints,
-// Confirm Password field with eye-hide toggle, Complete Sign up button → success modal (332:11659).
-
 const HINTS = [
   { id: "len", label: "Password must be at least 8 characters", test: (p: string) => p.length >= 8 },
   { id: "upper", label: "At least one uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
@@ -53,7 +49,7 @@ export default function CreatePasswordPage() {
           <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>Back</span>
         </Link>
 
-        {/* Title block — Figma 332:11615: column justify-center alignItems: CENTER, gap 8 */}
+        
         <div className="flex flex-col items-center" style={{ gap: "8px" }}>
           <h1
             style={{
@@ -79,7 +75,7 @@ export default function CreatePasswordPage() {
           </p>
         </div>
 
-        {/* Fields — Figma 332:11801: column gap 16 */}
+        
         <div className="flex flex-col" style={{ gap: "16px" }}>
           {/* Password — label + input with eye-show + hint pills */}
           <div className="flex flex-col" style={{ gap: "16px" }}>
@@ -133,9 +129,7 @@ export default function CreatePasswordPage() {
               </div>
             </div>
 
-            {/* Hint pills — Figma 332:11642: row wrap gap 16, each row gap 8 align-center
-                hint-check-fill (#305E82) + #305E82 text when met
-                hint-check-empty + #807E7E text when not yet met */}
+            
             <div className="flex flex-wrap" style={{ gap: "16px", width: "457px", maxWidth: "100%" }}>
               {HINTS.map((h) => {
                 const ok = h.test(password);
@@ -163,7 +157,7 @@ export default function CreatePasswordPage() {
             </div>
           </div>
 
-          {/* Confirm Password — Figma 332:11635: column gap 16 (just one field here) */}
+          
           <div className="flex flex-col" style={{ gap: "8px" }}>
             <label
               style={{
@@ -219,8 +213,7 @@ export default function CreatePasswordPage() {
           </div>
         </div>
 
-        {/* Complete Sign up — Figma 332:11628: full width 48h gradient r:12.
-            Prototype: ON_CLICK → success modal (332:11659) */}
+        
         <button
           type="button"
           onClick={() => canSubmit && setSubmitted(true)}
@@ -244,7 +237,7 @@ export default function CreatePasswordPage() {
         </button>
       </OnboardingShell>
 
-      {/* Success modal — Figma 332:11659: 503x462 r:24 */}
+      
       {submitted && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
@@ -256,7 +249,7 @@ export default function CreatePasswordPage() {
             className="relative bg-white"
             style={{ width: "503px", maxWidth: "100%", height: "462px", borderRadius: "24px" }}
           >
-            {/* Cancel — Figma 332:11667: x:439 y:40, 24x24 */}
+            
             <button
               onClick={() => setSubmitted(false)}
               aria-label="Close"
@@ -266,12 +259,12 @@ export default function CreatePasswordPage() {
               <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
             </button>
 
-            {/* Content — Figma 332:11662: x:40 y:88 w:423 column align-center gap 24 */}
+            
             <div
               className="absolute flex flex-col items-center"
               style={{ left: "40px", top: "88px", width: "423px", gap: "24px" }}
             >
-              {/* Success icon — Figma 332:11663: 165x112.5 (green check with confetti) */}
+              
               <Image
                 src="/icons/noti-success.svg"
                 alt=""
@@ -307,7 +300,7 @@ export default function CreatePasswordPage() {
               </div>
             </div>
 
-            {/* Okay, log in — Figma 332:11660: x:40 y:374.5 w:423 h:48 r:12 blue gradient */}
+            
             <Link
               href="/log-in"
               className="absolute flex items-center justify-center text-white hover:opacity-90 transition-opacity"

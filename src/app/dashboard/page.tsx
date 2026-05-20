@@ -2,10 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import StartVerificationCTA from "@/components/StartVerificationCTA";
 
-// Figma 332:12083 (Desktop-15) — Property Owner Dashboard (UNVERIFIED / FRESH ACCOUNT)
-// All metrics at 0 + big "Get verified to start listing" CTA + Your Properties empty state.
-// Layout: content at x:312 y:120 w:1088 (sidebar 272 + 40 gap + 1088 content + 40 right margin = 1440).
-
 type Metric = {
   label: string;
   value: string;
@@ -23,7 +19,7 @@ const metrics: Metric[] = [
 export default function DashboardHome() {
   return (
     <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
-      {/* METRIC TILES — Figma Frame 2147237049: 4-up row, each shows 0 for fresh account */}
+      
       <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
         {metrics.map((m) => (
           <div
@@ -73,8 +69,7 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* GET VERIFIED CTA — Figma Frame 2147237125 (337:15983)
-          1088 x 208, blue gradient r:20. Left text block + right illustration. */}
+      
       <section
         className="relative overflow-hidden"
         style={{
@@ -84,7 +79,7 @@ export default function DashboardHome() {
           background: "linear-gradient(175deg, rgba(117,163,199,1) 0%, rgba(48,94,130,1) 100%)",
         }}
       >
-        {/* Content — Figma 341:16006: x:24 y:32 w:417 column gap 16 */}
+        
         <div
           className="absolute flex flex-col"
           style={{ left: "24px", top: "32px", width: "417px", gap: "16px" }}
@@ -114,7 +109,7 @@ export default function DashboardHome() {
           <StartVerificationCTA />
         </div>
 
-        {/* Decorative illustration — Figma 463:22660: 164.47x164.47 at x:859.88 y:22 */}
+        
         <div
           className="absolute"
           style={{ right: "64px", top: "22px", width: "164px", height: "164px" }}
@@ -123,7 +118,7 @@ export default function DashboardHome() {
         </div>
       </section>
 
-      {/* YOUR PROPERTIES — empty state from Figma 341:25471 */}
+      
       <section
         className="bg-white"
         style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}
@@ -147,7 +142,7 @@ export default function DashboardHome() {
           </Link>
         </div>
 
-        {/* Empty state — Figma 341:26288: centered illustration + title + body, gap 24 */}
+        
         <div
           className="flex flex-col items-center justify-center"
           style={{ padding: "64px 24px", gap: "24px" }}

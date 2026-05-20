@@ -3,10 +3,6 @@
 import Image from "next/image";
 import { useEffect } from "react";
 
-// Figma 465:24320 (success modal frame, but actually the Start-Verification prompt)
-// Sits inside Desktop-15 (332:12083) as an overlay triggered by the "Start Verification" CTA.
-// 503x414 white r:24, centered. Content: illustration (120x120) + title + body + button.
-
 export default function StartVerificationModal({
   open,
   onClose,
@@ -33,7 +29,6 @@ export default function StartVerificationModal({
   if (!open) return null;
 
   return (
-    // Backdrop — Figma Frame 2147237212 (465:24296): full screen rgba(18,18,18,0.25)
     <div
       className="fixed inset-0 z-10000 flex items-center justify-center p-4"
       style={{ background: "rgba(18,18,18,0.25)", zIndex: 10000 }}
@@ -44,12 +39,12 @@ export default function StartVerificationModal({
         className="relative bg-white"
         style={{ width: "503px", maxWidth: "100%", height: "414px", borderRadius: "24px" }}
       >
-        {/* Content — Figma 465:24323: x:40 y:40 w:423 column align-center gap 32 */}
+        
         <div
           className="absolute flex flex-col items-center"
           style={{ left: "40px", top: "40px", width: "423px", gap: "32px" }}
         >
-          {/* Illustration — Figma 465:24353: 120x120 verification graphic */}
+          
           <Image
             src="/icons/dash/verify-illu.svg"
             alt=""
@@ -58,7 +53,7 @@ export default function StartVerificationModal({
             style={{ width: "120px", height: "120px" }}
           />
 
-          {/* Title block — Figma 465:24325: column justify-center gap 16, text CENTER */}
+          
           <div className="flex flex-col" style={{ gap: "16px", width: "100%" }}>
             <h2
               style={{
@@ -85,7 +80,7 @@ export default function StartVerificationModal({
           </div>
         </div>
 
-        {/* Start Verification button — Figma 465:24321: x:40 y:326 w:423 h:48 r:12 blue gradient */}
+        
         <button
           type="button"
           onClick={() => {

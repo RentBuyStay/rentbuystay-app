@@ -5,11 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 
-// Figma node 280:11579 (Desktop - 8) — Property Owner Onboarding/Auth — Create Account
-// Frame: 1440x1123 white
-// Left form: x:140 y:120 w:460 column gap 40 — Back, logo, title, fields, proceed/sign-in
-// Right image card: x:740 y:24 w:676 h:976 r:20 — interior photo with dark gradient overlay
-
 const ACCOUNT_TYPES = [
   "Property Owner",
   "Property Seeker",
@@ -26,12 +21,11 @@ export default function PropertyOwnerSignUpPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  // Form valid → ready to proceed. Figma prototype: Proceed → Verify Email (329:11544)
   const canProceed = firstName && lastName && email && phone && agreed;
 
   return (
     <OnboardingShell>
-          {/* Back — Figma: row gap 12, arrow + "Back" 16/400 Geist */}
+          
           <Link
             href="/"
             className="inline-flex items-center self-start hover:opacity-80"
@@ -43,7 +37,7 @@ export default function PropertyOwnerSignUpPage() {
             </span>
           </Link>
 
-          {/* Logo — Figma 280:12312: 76x64 cropped image */}
+          
           <Image
             src="/images/logo-icon-3d7b24.png"
             alt="RentBuyStay"
@@ -52,14 +46,14 @@ export default function PropertyOwnerSignUpPage() {
             style={{ width: "76px", height: "64px" }}
           />
 
-          {/* Title — Figma: 24/600 Geist line-height 40, has explicit \n after "get" */}
+          
           <h1 style={{ fontSize: "24px", lineHeight: "40px", fontWeight: 600, color: "#121212", textAlign: "left" }}>
             Create an account to get
             <br />
             started with RentBuyStay
           </h1>
 
-          {/* Form fields — Figma Frame 2147237035: column gap 16 */}
+          
           <div className="flex flex-col" style={{ gap: "16px" }}>
             {/* Account Type dropdown — bg #F6F6F6 r:12 padding 8 16, justify-between, height fixed */}
             <div className="flex flex-col" style={{ gap: "8px" }}>
@@ -213,8 +207,7 @@ export default function PropertyOwnerSignUpPage() {
               </div>
             </div>
 
-            {/* Checkbox + agreement — Figma 280:11883: row gap 8 align-center
-                ts2 override: SemiBold underline #305E82 for "Terms of Service" and "Privacy Policy" */}
+            
             <label className="flex items-start cursor-pointer" style={{ gap: "8px" }}>
               <span
                 onClick={() => setAgreed((v) => !v)}
@@ -250,7 +243,7 @@ export default function PropertyOwnerSignUpPage() {
             </label>
           </div>
 
-          {/* Bottom — Figma Frame 2147237090: column gap 24, Proceed button + Sign In link */}
+          
           <div className="flex flex-col" style={{ gap: "24px" }}>
             <Link
               href={canProceed ? "/verify-email" : "#"}

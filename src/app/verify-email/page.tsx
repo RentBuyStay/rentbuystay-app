@@ -5,11 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 
-// Figma node 329:11544 (Desktop - 9) — Property Owner Onboarding/Auth — Verify Email
-// Form left (x:140 y:120 w:460 column gap 40): Back, centered title block, code input + timer/resend, Verify Code button
-// Right image: same onboarding-side.png (handled by OnboardingShell)
-
-const RESEND_SECONDS = 57; // matches Figma "00:57"
+const RESEND_SECONDS = 57;
 
 export default function VerifyEmailPage() {
   const [code, setCode] = useState("");
@@ -28,13 +24,13 @@ export default function VerifyEmailPage() {
 
   return (
     <OnboardingShell>
-      {/* Back — Figma 332:11695 */}
+      
       <Link href="/sign-up" className="inline-flex items-center self-start hover:opacity-80" style={{ gap: "12px" }}>
         <Image src="/icons/arrow-left.svg" alt="" width={20} height={20} />
         <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>Back</span>
       </Link>
 
-      {/* Title block — Figma 329:11596: column justify-center alignItems: CENTER, gap 8 */}
+      
       <div className="flex flex-col items-center" style={{ gap: "8px" }}>
         <h1
           style={{
@@ -60,9 +56,9 @@ export default function VerifyEmailPage() {
         </p>
       </div>
 
-      {/* Code input + Resend row — Figma 329:11551: column gap 16 */}
+      
       <div className="flex flex-col" style={{ gap: "16px" }}>
-        {/* Enter Code field — Figma 329:11557 */}
+        
         <div className="flex flex-col" style={{ gap: "8px" }}>
           <label
             style={{
@@ -110,7 +106,7 @@ export default function VerifyEmailPage() {
           </div>
         </div>
 
-        {/* Timer + Resend — Figma 329:11605: row justify-between */}
+        
         <div className="flex items-center justify-between">
           <span
             style={{
@@ -145,7 +141,7 @@ export default function VerifyEmailPage() {
         </div>
       </div>
 
-      {/* Verify Code button — Figma 329:11582: full width 48h gradient r:12 */}
+      
       <Link
         href={canVerify ? "/create-password" : "#"}
         aria-disabled={!canVerify}

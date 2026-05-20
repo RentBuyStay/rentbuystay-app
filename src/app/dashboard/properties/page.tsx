@@ -4,10 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-// Figma 348:27433 (Desktop-17) — Property Owner / My Properties
-// Top toolbar: status tabs (All/Active/Awaiting Approval/Archived/Rejected) + search + Add Property button
-// Grid: row wrap gap 24x 16y, each card 352x414 r:20 1px #F6F6F6 border
-
 type Status = "Active" | "Awaiting Approval" | "Archived" | "Rejected";
 type Tag = "For Rent" | "For Sale" | "Shortlet";
 
@@ -95,7 +91,6 @@ const PROPERTIES: Property[] = [
 const TABS = ["All", "Active", "Awaiting Approval", "Archived", "Rejected"] as const;
 type Tab = (typeof TABS)[number];
 
-// Status badge colors pulled directly from Figma _Badge base instances on Desktop-17.
 function statusStyles(status: Status) {
   switch (status) {
     case "Active":
@@ -108,7 +103,6 @@ function statusStyles(status: Status) {
       // fill_EI6ECX bg / fill_R8LIWJ text
       return { bg: "rgba(138,56,245,0.08)", color: "#8A38F5" };
     case "Rejected":
-      // (not in current Figma sample — use destructive red palette)
       return { bg: "#FEF3F2", color: "#B42318" };
   }
 }
@@ -133,13 +127,11 @@ export default function MyPropertiesPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
-      {/* (page title "My Properties" lives in the topbar — Figma Frame 13) */}
+      
 
-      {/* Toolbar — Figma Frame 2147237140: tabs left, search + Add Property right */}
+      
       <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-        {/* Status tabs — Figma 348:28359 etc: text-only, padding 8/16.
-            Active tab (All): text #305E82 + 1px BOTTOM border #305E82.
-            Inactive: text #807E7E, no border. layout_S2NNS1 column padding 8/16. */}
+        
         <div className="flex items-center" style={{ gap: "0" }}>
           {TABS.map((t) => {
             const active = t === activeTab;
@@ -168,7 +160,7 @@ export default function MyPropertiesPage() {
         </div>
 
         <div className="flex items-center" style={{ gap: "16px" }}>
-          {/* Search — Figma Frame 1000011119: bg #F6F6F6 r:12, no border (fill only) */}
+          
           <div
             className="flex items-center"
             style={{
@@ -196,9 +188,7 @@ export default function MyPropertiesPage() {
             />
           </div>
 
-          {/* Add Property — Figma Frame 1000011497 (348:28342). fill_3062PQ:
-              orange #FFAE00 at fills[0] (BOTTOM), blue gradient at fills[1] (TOP).
-              Top fill wins → button renders BLUE. */}
+          
           <Link
             href="/dashboard/properties/new"
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
@@ -220,7 +210,7 @@ export default function MyPropertiesPage() {
         </div>
       </div>
 
-      {/* Property cards grid — Figma Frame 2147237138: row wrap, 3 columns of 352 cards */}
+      
       {visible.length === 0 ? (
         <div
           className="bg-white flex items-center justify-center"
@@ -262,10 +252,10 @@ function PropertyCard({ property }: { property: Property }) {
         overflow: "hidden",
       }}
     >
-      {/* Image — Figma: 352x218 with For Rent / For Sale / Shortlet pill at bottom-right */}
+      
       <div className="relative" style={{ width: "352px", height: "218px", background: "#EDEDED" }}>
         <Image src={property.image} alt={property.title} fill style={{ objectFit: "cover" }} sizes="352px" />
-        {/* Tag pill — Figma 348:28096: bottom-right offset (261, 170), bg #FFAE00 r:50 padding 8 */}
+        
         <span
           className="absolute"
           style={{
@@ -286,16 +276,15 @@ function PropertyCard({ property }: { property: Property }) {
         </span>
       </div>
 
-      {/* Content — Figma Frame 2147207165: x:16 y:242 w:320 column gap 8 */}
+      
       <div
         className="absolute flex flex-col"
         style={{ left: "16px", top: "242px", width: "320px", gap: "8px" }}
       >
-        {/* Price + Status + menu — Figma Frame 2087326556: row space-between */}
+        
         <div className="flex items-center justify-between">
           <div className="flex items-center" style={{ gap: "8px" }}>
-            {/* Price — Figma style_MFCP57 + fill_VTMEC3 (#305E82 navy).
-                Suffix (/yr, /night) is regular weight gray (#807E7E). */}
+            
             <span
               style={{
                 fontSize: "20px",
@@ -328,7 +317,7 @@ function PropertyCard({ property }: { property: Property }) {
               {property.status}
             </span>
           </div>
-          {/* 3-dot menu — Figma Frame 1321318737 */}
+          
           <button
             type="button"
             onClick={(e) => {
@@ -344,7 +333,7 @@ function PropertyCard({ property }: { property: Property }) {
           </button>
         </div>
 
-        {/* Title + location — Figma Frame 2147207161 column gap 4 */}
+        
         <div className="flex flex-col" style={{ gap: "4px" }}>
           <h3
             style={{
@@ -365,7 +354,7 @@ function PropertyCard({ property }: { property: Property }) {
           </div>
         </div>
 
-        {/* Stats — Figma Frame 2147207164: row gap 16 align-center, divider | between */}
+        
         <div
           className="flex items-center"
           style={{

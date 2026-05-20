@@ -3,12 +3,6 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-// Figma 348:28846 / 348:30377 / 348:27434 / 341:16017 — topbar across all dashboard pages.
-// Figma OO9DOX: 1168 wide x 80 tall (sits to the right of the 272-wide sidebar).
-// White fill, 1px bottom border, title left + notification + help + avatar right.
-// Title text changes per page: "Dashboard" / "My Properties" / "Add New Property" / "Property Requests" / etc.
-
-// Map URL → topbar title — kept centralised so it matches Figma per page.
 const TITLES: { match: (path: string) => boolean; title: string }[] = [
   { match: (p) => p === "/dashboard/properties/new", title: "Add New Property" },
   { match: (p) => p.startsWith("/dashboard/properties"), title: "My Properties" },
@@ -45,7 +39,7 @@ export default function DashboardTopbar({
         zIndex: 50,
       }}
     >
-      {/* Figma topbar title — Geist SemiBold 20/32 (style_SROVGK) */}
+      
       <h1
         style={{
           fontSize: "20px",
@@ -58,7 +52,7 @@ export default function DashboardTopbar({
       </h1>
 
       <div className="flex items-center" style={{ gap: "24px" }}>
-        {/* Notification — Figma 341:16020 */}
+        
         <button
           type="button"
           aria-label="Notifications"
@@ -80,7 +74,7 @@ export default function DashboardTopbar({
           />
         </button>
 
-        {/* Message-question (Help) — Figma 341:16021 */}
+        
         <button
           type="button"
           aria-label="Help"
@@ -93,7 +87,7 @@ export default function DashboardTopbar({
         {/* Divider */}
         <span style={{ width: "1px", height: "32px", background: "#EDEDED" }} />
 
-        {/* Avatar + name — Figma Frame 2147237124 */}
+        
         <div className="flex items-center" style={{ gap: "12px" }}>
           <div className="relative shrink-0" style={{ width: "40px", height: "40px" }}>
             <div

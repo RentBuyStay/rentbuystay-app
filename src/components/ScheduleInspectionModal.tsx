@@ -4,16 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// Figma 477:26878 — Schedule Inspection modal (612x711 r:24 white)
-// Triggered by the calendar-edit icon in the Inquiries/Messages composer.
-// On Send Request → swaps to Figma 477:26957 "Inspection Request Sent" success view.
-//
-// Layout:
-//   Header (x:40 y:40 w:363 col gap 8): title 20/24 + subtitle 12/20 #807E7E
-//   Cancel X at x:548 y:40 (24x24)
-//   Form (x:40 y:132 w:532 col gap 16): Property / Preferred Date / Preferred Time / Note
-//   Send Request button at x:40 y:623 w:532 h:48 blue gradient r:12
-
 export default function ScheduleInspectionModal({
   open,
   onClose,
@@ -49,7 +39,6 @@ export default function ScheduleInspectionModal({
 
   const canSend = property && date && time;
 
-  // Success view — Figma 477:26957 "Inspection Request Sent" (503x462 r:24)
   if (sent) {
     return (
       <div
@@ -62,7 +51,7 @@ export default function ScheduleInspectionModal({
           className="relative bg-white"
           style={{ width: "503px", maxWidth: "100%", height: "462px", borderRadius: "24px" }}
         >
-          {/* Cancel X — Figma 477:26965: x:439 y:40, 24x24 */}
+          
           <button
             type="button"
             onClick={onClose}
@@ -73,7 +62,7 @@ export default function ScheduleInspectionModal({
             <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
           </button>
 
-          {/* Content — Figma 477:26960: x:40 y:88 w:423 col gap 24 align-center */}
+          
           <div
             className="absolute flex flex-col items-center"
             style={{ left: "40px", top: "88px", width: "423px", gap: "24px" }}
@@ -112,7 +101,7 @@ export default function ScheduleInspectionModal({
             </div>
           </div>
 
-          {/* Go to Appointments — Figma 477:26958: x:40 y:374.5 w:423 h:48 blue gradient r:12 */}
+          
           <Link
             href="/dashboard/appointments"
             onClick={onClose}
@@ -149,7 +138,7 @@ export default function ScheduleInspectionModal({
         className="relative bg-white"
         style={{ width: "612px", maxWidth: "100%", maxHeight: "calc(100vh - 32px)", borderRadius: "24px", overflowY: "auto" }}
       >
-        {/* Cancel X — Figma 477:26887: 24x24 at x:548 y:40 */}
+        
         <button
           type="button"
           onClick={onClose}
@@ -160,7 +149,7 @@ export default function ScheduleInspectionModal({
           <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
         </button>
 
-        {/* Header — Figma 477:26913: x:40 y:40 w:363 column gap 8 */}
+        
         <div
           className="absolute flex flex-col"
           style={{ left: "40px", top: "40px", width: "363px", gap: "8px" }}
@@ -173,7 +162,7 @@ export default function ScheduleInspectionModal({
           </p>
         </div>
 
-        {/* Form — Figma 477:26879: x:40 y:132 w:532 column gap 16 */}
+        
         <div
           className="relative flex flex-col"
           style={{ paddingLeft: "40px", paddingRight: "40px", paddingTop: "132px", paddingBottom: "40px", gap: "16px" }}
@@ -188,8 +177,7 @@ export default function ScheduleInspectionModal({
             />
           </FieldGroup>
 
-          {/* Preferred Date — input with calendar icon. Hide native browser picker
-              indicator so we only show the Figma calendar SVG. */}
+          
           <FieldGroup label="Preferred Date">
             <div
               className="flex items-center justify-between relative"
@@ -255,13 +243,11 @@ export default function ScheduleInspectionModal({
             />
           </FieldGroup>
 
-          {/* Send Request — Figma 477:26889: w:532 h:48 padding 8/24 r:12 blue gradient */}
+          
           <button
             type="button"
             onClick={() => {
               if (!canSend) return;
-              // TODO: submit inspection request to API.
-              // Figma prototype: Send Request → 477:26957 "Inspection Request Sent" overlay.
               setSent(true);
             }}
             disabled={!canSend}

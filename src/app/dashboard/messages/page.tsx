@@ -4,12 +4,6 @@ import Image from "next/image";
 import { useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 
-// Figma 348:33912 (Desktop-22, empty state) + 358:35030 (Desktop-23, selected state)
-// Two-pane layout inside the dashboard content area:
-//   LEFT: 400 wide, white, 1px #F6F6F6 right border — search + sort + conversation list
-//   RIGHT: 767 wide (rest), white — header (104) + messages area + composer
-// Clicking a conversation in the left pane selects it and renders messages on the right.
-
 type Conversation = {
   id: string;
   initials: string;
@@ -65,7 +59,6 @@ type Message =
   | { kind: "outgoing-video"; image: string; duration: string; time: string }
   | { kind: "property-request"; title: string; price: string; priceSuffix: string; location: string; time: string };
 
-// Conversation thread for Tunde Adeleke (TA, c3) — matches Figma Desktop-23
 const TUNDE_THREAD: { date: string; messages: Message[] }[] = [
   {
     date: "Yesterday",
@@ -74,7 +67,6 @@ const TUNDE_THREAD: { date: string; messages: Message[] }[] = [
       { kind: "outgoing", text: "If you can increase your budget, I have one mini flat in Ikeja that I can suggest for you.", time: "12:25" },
       { kind: "outgoing-video", image: "/images/prop2.jpg", duration: "02:25", time: "" },
       { kind: "incoming", text: "Hello chief", time: "12:25" },
-      // Figma has explicit \L line break between sentences — render as <br />
       { kind: "incoming", text: "I’m not sorry, I can’t increase the budget for a mini flat.\nThank you.", time: "12:25" },
     ],
   },
@@ -102,7 +94,7 @@ export default function MessagesPage() {
         border: "1px solid #F6F6F6",
       }}
     >
-      {/* LEFT PANE — Figma 358:35040: 400x944 white + 1px right border */}
+      
       <aside
         className="flex flex-col shrink-0"
         style={{ width: "400px", borderRight: "1px solid #F6F6F6", overflow: "hidden" }}
@@ -226,10 +218,9 @@ export default function MessagesPage() {
         </ul>
       </aside>
 
-      {/* RIGHT PANE — Figma 358:35102: 767 wide */}
+      
       <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
         {!activeConv ? (
-          // EMPTY STATE — Figma Desktop-22: centered illustration + title + body
           <div className="flex flex-col items-center justify-center" style={{ flex: 1, gap: "24px" }}>
             <div
               className="flex items-center justify-center rounded-full"
@@ -267,11 +258,10 @@ function ConversationView({
 }) {
   // Use Tunde's thread as sample data when c3 is selected; otherwise empty thread
   const thread = conversation.id === "c3" ? TUNDE_THREAD : [];
-  // Schedule Inspection modal — Figma 477:26878 — triggered by composer calendar-edit icon.
   const [scheduleOpen, setScheduleOpen] = useState(false);
   return (
     <>
-      {/* Header — Figma 358:35103: 767x104, padding 20/24, bottom border #F6F6F6 */}
+      
       <div
         className="flex items-center justify-between shrink-0"
         style={{
@@ -364,8 +354,7 @@ function ConversationView({
         className="flex items-center shrink-0"
         style={{ padding: "16px 24px", gap: "12px", borderTop: "1px solid #F6F6F6" }}
       >
-        {/* Schedule Inspection — Figma prototype: this calendar-edit icon opens the
-            Schedule Inspection overlay (477:26878). */}
+        
         <button
           type="button"
           aria-label="Schedule inspection"
@@ -395,8 +384,7 @@ function ConversationView({
             style={{ fontSize: "14px", color: "#121212", letterSpacing: "-0.02em" }}
           />
         </div>
-        {/* Send button — Figma 358:35123: 106x48 r:12 padding 8/24 BLUE gradient (top of stacked fills)
-            with white "Send" text + send-msg icon */}
+        
         <button
           type="button"
           onClick={() => setComposer("")}
@@ -491,7 +479,7 @@ function MessageRow({ message }: { message: Message }) {
               </svg>
             </div>
           </div>
-          {/* Bottom-right pill: duration + read-receipt checks (Figma 358:35850) */}
+          
           <div
             className="absolute flex items-center"
             style={{
@@ -548,8 +536,7 @@ function MessageRow({ message }: { message: Message }) {
             >
               {message.time}
             </span>
-            {/* Read receipt — Figma 358:35850 "Checks" (12x12 white double-tick),
-                shown only on outgoing bubbles to indicate delivered/read. */}
+            
             {isOutgoing && (
               <Image src="/icons/dash/msg-checks.svg" alt="✓✓" width={12} height={12} />
             )}

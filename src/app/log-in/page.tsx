@@ -5,11 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 
-// Figma node 332:11758 (Desktop - 11) — Property Owner Login
-// Form left (x:140 y:120 w:460 column gap 40): Back, logo, centered "Welcome back" + subtitle,
-// Email field, Password field with eye-hide toggle, Remember me + Forgot password row,
-// Sign In button, "Don't have an account yet? Register here" (Manrope center)
-
 export default function LogInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,13 +15,13 @@ export default function LogInPage() {
 
   return (
     <OnboardingShell>
-      {/* Back — Figma 332:11760 */}
+      
       <Link href="/" className="inline-flex items-center self-start hover:opacity-80" style={{ gap: "12px" }}>
         <Image src="/icons/arrow-left.svg" alt="" width={20} height={20} />
         <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>Back</span>
       </Link>
 
-      {/* Logo — Figma 332:11763: 76x64 cropped image (same imageRef as sign-up) */}
+      
       <Image
         src="/images/logo-icon-3d7b24.png"
         alt="RentBuyStay"
@@ -35,7 +30,7 @@ export default function LogInPage() {
         style={{ width: "76px", height: "64px" }}
       />
 
-      {/* Title block — Figma 332:11764: column justify-center alignItems: CENTER, gap 8 */}
+      
       <div className="flex flex-col items-center" style={{ gap: "8px" }}>
         <h1
           style={{
@@ -61,9 +56,9 @@ export default function LogInPage() {
         </p>
       </div>
 
-      {/* Form fields — Figma 332:11802: column gap 16 */}
+      
       <div className="flex flex-col" style={{ gap: "16px" }}>
-        {/* Email field — Figma 332:11834 */}
+        
         <div className="flex flex-col" style={{ gap: "8px" }}>
           <label
             style={{
@@ -99,9 +94,9 @@ export default function LogInPage() {
           </div>
         </div>
 
-        {/* Password field + Remember/Forgot row — Figma 332:11825: column gap 16 */}
+        
         <div className="flex flex-col" style={{ gap: "16px" }}>
-          {/* Password — Figma 332:11826: label + field with eye-hide icon */}
+          
           <div className="flex flex-col" style={{ gap: "8px" }}>
             <label
               style={{
@@ -146,7 +141,7 @@ export default function LogInPage() {
             </div>
           </div>
 
-          {/* Remember me / Forgot password — Figma 332:11844: row justify-between */}
+          
           <div className="flex items-center justify-between">
             <label className="flex items-center cursor-pointer" style={{ gap: "8px" }}>
               <span
@@ -201,9 +196,9 @@ export default function LogInPage() {
         </div>
       </div>
 
-      {/* Sign In + Register row — Figma 332:11924: column gap 24 */}
+      
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        {/* Sign In button — Figma 332:11925: full width 48h gradient r:12 */}
+        
         <Link
           href={canSignIn ? "/dashboard" : "#"}
           aria-disabled={!canSignIn}
@@ -225,8 +220,7 @@ export default function LogInPage() {
           Sign In
         </Link>
 
-        {/* "Don't have an account yet? Register here" — Manrope 16/400 CENTER
-            Figma ts1 = #807E7E, ts3 = Medium 500 #305E82 */}
+        
         <p
           className="text-center"
           style={{

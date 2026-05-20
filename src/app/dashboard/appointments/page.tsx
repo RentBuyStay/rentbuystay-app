@@ -4,30 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-// Figma 477:26216 (Desktop-47 / All Upcoming) + 477:27181 (Completed) + 477:27540 (Cancelled)
-// Content area is the 1088-wide column at x:312 inside the dashboard layout (sidebar 272 + 40 padding).
-//
-// Layout:
-//   Tabs row at y:120 (h:40): 120w each, gap 16, plain text 14/20 Geist Medium, 1px #305E82 underline on active
-//   Cards list at y:184: column gap 24, each card row space-between, padding 24, bg white, border 1px #F6F6F6 r:20
-//
-// Card structure (row gap 24):
-//   Time block 82w col gap 8 (time 18/24 SemiBold + date 12/20 Regular #807E7E)
-//   Vertical line 1x96 #F6F6F6
-//   Property block 236w col gap 16 (title 14/20 Medium + location row with pin) (avatar+name row + View Property link)
-//   --- pushed to right by space-between ---
-//   Actions block 308w col gap 24 align-end (status badge top + actions row bottom)
-//
-// Status badges (padding 2/8 r:16, text 12/18 Medium):
-//   Confirmed: bg rgba(138,56,245,0.08) text #8A38F5
-//   Pending:   bg #FFF7E9 text #EA651A
-//   Completed: bg #ECFDF3 text #027A48
-//   Cancelled: bg #FFECF1 text #E30045
-//
-// Action buttons (h:48 padding 8/24 r:12):
-//   Cancel Appointment: text-only #E30045 14 Medium
-//   Reschedule / Confirm: white text on blue gradient
-
 type Status = "Confirmed" | "Pending" | "Completed" | "Cancelled";
 
 interface Appointment {
@@ -140,7 +116,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
-      {/* Tabs row — Figma 477:26993: h:40, 120w each, gap 16, bottom border on active */}
+      
       <div className="flex items-center" style={{ gap: "16px" }}>
         {TABS.map((t) => {
           const active = tab === t.key;
@@ -170,7 +146,7 @@ export default function AppointmentsPage() {
         })}
       </div>
 
-      {/* Cards list — Figma 477:27082-style frames: col gap 24 */}
+      
       <div className="flex flex-col" style={{ gap: "24px" }}>
         {items.map((a) => (
           <AppointmentCard key={a.id} appointment={a} />
@@ -197,7 +173,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
     >
       {/* Left: time | line | property */}
       <div className="flex items-center" style={{ gap: "24px" }}>
-        {/* Time block — Figma layout_HC2BI2: col gap 8 w:82 */}
+        
         <div className="flex flex-col" style={{ width: "82px", gap: "8px" }}>
           <div
             style={{
@@ -223,10 +199,10 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
           </div>
         </div>
 
-        {/* Vertical divider — Figma layout_G0PU4Y: h:96 #F6F6F6 */}
+        
         <span style={{ width: "1px", height: "96px", background: "#F6F6F6" }} />
 
-        {/* Property block — Figma layout_7L5BZA: col gap 16 w:236 */}
+        
         <div className="flex flex-col" style={{ width: "236px", gap: "16px" }}>
           <div className="flex flex-col" style={{ gap: "8px" }}>
             <div
@@ -256,7 +232,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 
           {/* avatar + name + View Property link row */}
           <div className="flex items-center" style={{ gap: "16px" }}>
-            {/* Avatar — Figma 477:27049: 32x32 r:full bg #F5F7F9, initials Geist SemiBold 13/20 #305E82 */}
+            
             <div className="flex items-center" style={{ gap: "8px" }}>
               <div
                 className="rounded-full flex items-center justify-center shrink-0"
@@ -299,7 +275,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
         </div>
       </div>
 
-      {/* Right: status + actions — Figma layout_0WW9PG: col gap 24 w:308 align-end */}
+      
       <div className="flex flex-col items-end" style={{ width: "308px", gap: "24px" }}>
         <StatusBadge status={status} />
         <Actions status={status} />

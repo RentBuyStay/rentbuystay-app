@@ -4,11 +4,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// Figma 348:28845 (Desktop-18) — Property Owner / Add New Property
-// Header (x:312 y:120 w:460): Property Details + "Fill in the details for your new listing"
-// Form (x:312 y:224 w:1088 column gap 24)
-// Bottom action bar: Cancel + Publish Listing
-
 const AMENITIES = [
   "24/7 Security",
   "Gated Estate",
@@ -89,8 +84,7 @@ export default function AddNewPropertyPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "40px", maxWidth: "1088px" }}>
-      {/* Page header row — Figma: header text on LEFT, action bar (Cancel + Publish Listing) on RIGHT.
-          Header text Frame 2087326556 at x:312 y:120, action bar Frame 2147237153 at x:1162 y:128. */}
+      
       <div className="flex items-start justify-between" style={{ gap: "16px" }}>
         <div className="flex flex-col" style={{ gap: "8px" }}>
           <h1 style={{ fontSize: "20px", lineHeight: "32px", fontWeight: 600, color: "#121212" }}>
@@ -101,7 +95,7 @@ export default function AddNewPropertyPage() {
           </p>
         </div>
 
-        {/* Action bar — Figma 348:30209: Cancel (plain text link, no border) + Publish Listing (blue gradient) */}
+        
         <div className="flex items-center" style={{ gap: "16px" }}>
           <button
             type="button"
@@ -128,7 +122,6 @@ export default function AddNewPropertyPage() {
               padding: "8px 24px",
               fontSize: "14px",
               fontWeight: 500,
-              // Figma fill_PRSZQ5: orange at fills[0] (BOTTOM), blue gradient at fills[1] (TOP) — blue wins
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
               border: "1px solid rgba(120,158,187,0.5)",
               borderRadius: "12px",
@@ -141,7 +134,7 @@ export default function AddNewPropertyPage() {
         </div>
       </div>
 
-      {/* SECTION: Property fields — Figma 348:30200 column gap 24 w:1088 */}
+      
       <div className="flex flex-col" style={{ gap: "24px" }}>
         {/* Property Title (full row) */}
         <FieldGroup label="Property Title">
@@ -193,9 +186,7 @@ export default function AddNewPropertyPage() {
           </FieldGroup>
         </div>
 
-        {/* Address — Figma 348:29540: input row with "Mark location on map" INSIDE on the right.
-            Field layout: row space-between, padding 8 16, bg #F6F6F6 r:12.
-            Right block: gps icon + "Mark location on map" (12/23 Geist Regular #305E82). */}
+        
         <div className="flex flex-col" style={{ gap: "8px" }}>
           <label
             style={{
@@ -269,7 +260,7 @@ export default function AddNewPropertyPage() {
           />
         </FieldGroup>
 
-        {/* Amenities — Figma 348:30196: chips wrap */}
+        
         <FieldGroup
           label={
             <>
@@ -277,12 +268,7 @@ export default function AddNewPropertyPage() {
             </>
           }
         >
-          {/* Amenity chips — Figma 348:29750 (Frame 1000008269) absolute bounding box 93x32.
-              Frame is FIXED 32px height with horizontal padding 8 (vertical padding 12 + lh 24
-              gets clipped to fit 32). In CSS we mirror the visual: explicit height 32 + flex center.
-              Selected: bg rgba(120,158,187,0.1) + text #305E82 (fill_LJCM05 + fill_NCKY0R)
-              Unselected: bg #F6F6F6 + text #807E7E (fill_CX1YKF + fill_HUOHOY)
-              Font: Geist Medium 12px (style_AZ7NAW), border-radius 8. */}
+          
           <div className="flex flex-wrap" style={{ gap: "8px" }}>
             {[...AMENITIES, ...otherList].map((a) => {
               const active = selectedAmenities.includes(a);
@@ -338,7 +324,7 @@ export default function AddNewPropertyPage() {
         </FieldGroup>
       </div>
 
-      {/* SECTION: Room Details — Figma 348:30197 */}
+      
       <Section title="Room Details">
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
           <FieldGroup label="Bedrooms">
@@ -354,7 +340,7 @@ export default function AddNewPropertyPage() {
             <NumberStepper value={totalArea} onChange={setTotalArea} />
           </FieldGroup>
         </div>
-        {/* Year Built — Figma: single column (left half), not full width */}
+        
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
           <FieldGroup label="Year Built">
             <TextInput value={yearBuilt} onChange={setYearBuilt} placeholder="Enter year" inputMode="numeric" />
@@ -363,7 +349,7 @@ export default function AddNewPropertyPage() {
         </div>
       </Section>
 
-      {/* SECTION: Property Photos — Figma 348:30198 */}
+      
       <Section title="Property Photos">
         <label
           htmlFor="property-photos"
@@ -376,7 +362,7 @@ export default function AddNewPropertyPage() {
             gap: "12px",
           }}
         >
-          {/* Real Figma upload icon (gallery, I348:30297;348:30214) */}
+          
           <Image src="/icons/dash/gallery-upload.svg" alt="" width={64} height={64} />
           <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
             <span style={{ color: "#807E7E", fontWeight: 400 }}>Drag &amp; drop photos or </span>
@@ -429,7 +415,7 @@ export default function AddNewPropertyPage() {
         )}
       </Section>
 
-      {/* SECTION: Additional Charges — Figma 348:30199 */}
+      
       <Section title="Additional Charges">
         <div className="flex flex-col" style={{ gap: "12px" }}>
           {charges.map((c, i) => (
@@ -498,7 +484,6 @@ export default function AddNewPropertyPage() {
 /* ---------------- helpers ---------------- */
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  // Figma style_SROVGK — Geist SemiBold 20/32 #121212 (same as page header)
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
       <h2 style={{ fontSize: "20px", lineHeight: "32px", fontWeight: 600, color: "#121212" }}>{title}</h2>
@@ -603,8 +588,6 @@ function Select({
   );
 }
 
-// Figma stepper uses a single 16×32 up/down arrows icon (348:30036) inside the field.
-// Click top half = increment, bottom half = decrement.
 function NumberStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div
@@ -622,11 +605,10 @@ function NumberStepper({ value, onChange }: { value: number; onChange: (v: numbe
           fontWeight: 400,
           color: "#121212",
           letterSpacing: "-0.02em",
-          // hide the native browser steppers — we render the Figma icon
           MozAppearance: "textfield",
         }}
       />
-      {/* Up/down arrows stack — Figma 348:30036 */}
+      
       <div className="flex flex-col shrink-0" style={{ width: "16px", height: "32px" }}>
         <button
           type="button"
