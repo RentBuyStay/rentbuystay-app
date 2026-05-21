@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import VerifyPhoneModal from "@/components/VerifyPhoneModal";
 
 type StepStatus = "completed" | "pending";
@@ -60,6 +60,11 @@ function buildSteps(phoneVerified: boolean): Step[] {
 export default function VerificationPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+
+  useEffect(() => {
+    setPhoneVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
+  }, []);
+
   const steps = buildSteps(phoneVerified);
 
   return (

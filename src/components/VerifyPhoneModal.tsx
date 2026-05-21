@@ -195,6 +195,9 @@ export default function VerifyPhoneModal({
             disabled={!canVerify}
             onClick={() => {
               if (!canVerify) return;
+              try {
+                localStorage.setItem("rbs-dashboard-verified", "1");
+              } catch {}
               onVerified?.();
               onClose();
             }}

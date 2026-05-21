@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type Status = "Active" | "Awaiting Approval" | "Archived" | "Rejected";
 type Tag = "For Rent" | "For Sale" | "Shortlet";
@@ -240,6 +241,39 @@ export default function MyPropertiesPage() {
 
 function PropertyCard({ property }: { property: Property }) {
   const status = statusStyles(property.status);
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [menuOpen]);
+
+  function go(path: string) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setMenuOpen(false);
+      router.push(path);
+    };
+  }
+
+  function noop(label: string) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setMenuOpen(false);
+      console.log(`${label} ${property.id}`);
+    };
+  }
+
   return (
     <Link
       href={`/dashboard/properties/${property.id}`}
@@ -318,19 +352,46 @@ function PropertyCard({ property }: { property: Property }) {
             </span>
           </div>
           
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // TODO: open card actions menu (Edit / Archive / Delete / Share)
-            }}
-            aria-label="Property actions"
-            className="shrink-0 hover:opacity-70"
-            style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px" }}
-          >
-            <Image src="/icons/dash/card-menu.svg" alt="" width={24} height={24} />
-          </button>
+          <div ref={menuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen((v) => !v);
+              }}
+              aria-label="Property actions"
+              aria-expanded={menuOpen}
+              className="hover:opacity-70"
+              style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px", cursor: "pointer" }}
+            >
+              <Image src="/icons/dash/card-menu.svg" alt="" width={24} height={24} />
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute bg-white"
+                style={{
+                  top: "28px",
+                  right: 0,
+                  minWidth: "160px",
+                  padding: "8px",
+                  background: "#FFFFFF",
+                  border: "1px solid #F6F6F6",
+                  borderRadius: "12px",
+                  boxShadow: "0 8px 24px rgba(18,18,18,0.08)",
+                  zIndex: 20,
+                }}
+              >
+                <MenuItem label="Edit" onClick={go(`/dashboard/properties/${property.id}/edit`)} />
+                <MenuItem
+                  label={property.status === "Archived" ? "Unarchive" : "Archive"}
+                  onClick={noop("Archive")}
+                />
+                <MenuItem label="Share" onClick={noop("Share")} />
+                <MenuItem label="Delete" onClick={noop("Delete")} danger />
+              </div>
+            )}
+          </div>
         </div>
 
         
@@ -383,5 +444,36 @@ function PropertyCard({ property }: { property: Property }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function MenuItem({
+  label,
+  onClick,
+  danger,
+}: {
+  label: string;
+  onClick: (e: React.MouseEvent) => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left hover:bg-[#F6F6F6]"
+      style={{
+        padding: "8px 12px",
+        borderRadius: "8px",
+        background: "none",
+        border: "none",
+        fontSize: "14px",
+        lineHeight: "24px",
+        fontWeight: 500,
+        color: danger ? "#E30045" : "#121212",
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
   );
 }
