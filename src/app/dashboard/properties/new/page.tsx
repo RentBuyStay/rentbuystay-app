@@ -83,7 +83,7 @@ export default function AddNewPropertyPage() {
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: "40px", maxWidth: "1088px" }}>
+    <div className="flex flex-col" style={{ gap: "40px" }}>
       
       <div className="flex items-start justify-between" style={{ gap: "16px" }}>
         <div className="flex flex-col" style={{ gap: "8px" }}>

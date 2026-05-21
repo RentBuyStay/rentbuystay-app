@@ -115,7 +115,7 @@ export default function AppointmentsPage() {
   const items = APPOINTMENTS[tab];
 
   return (
-    <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
+    <div className="flex flex-col" style={{ gap: "24px" }}>
       
       <div className="flex items-center" style={{ gap: "16px" }}>
         {TABS.map((t) => {

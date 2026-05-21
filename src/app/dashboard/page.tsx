@@ -18,7 +18,7 @@ const metrics: Metric[] = [
 
 export default function DashboardHome() {
   return (
-    <div className="flex flex-col" style={{ gap: "24px", maxWidth: "1088px" }}>
+    <div className="flex flex-col" style={{ gap: "24px" }}>
       
       <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
         {metrics.map((m) => (
