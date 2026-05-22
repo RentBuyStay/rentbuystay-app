@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getRole, type AccountRole } from "@/lib/role";
+import SeekerPropertyCard, { type SeekerListing } from "@/components/SeekerPropertyCard";
 import {
   AreaChart,
   Area,
@@ -35,6 +37,214 @@ const UNVERIFIED_METRICS: Metric[] = VERIFIED_METRICS.map((m) => ({
 }));
 
 export default function DashboardHome() {
+  const [role, setRoleState] = useState<AccountRole | null>(null);
+
+  useEffect(() => {
+    setRoleState(getRole());
+  }, []);
+
+  if (!role) return null;
+  if (role === "Property Seeker") return <SeekerDashboardPlaceholder />;
+  return <OwnerDashboardHome />;
+}
+
+type SeekerMetric = {
+  icon: string;
+  label: string;
+  value: string;
+  trendPrefix: string;
+  trendSuffix: string;
+  direction: "up" | "down";
+};
+
+const SEEKER_METRICS: SeekerMetric[] = [
+  { icon: "/icons/dash/nav-saved.svg", label: "Saved Properties", value: "5", trendPrefix: "+2", trendSuffix: "this week", direction: "up" },
+  { icon: "/icons/dash/nav-messages.svg", label: "Unread Messages", value: "4", trendPrefix: "5%", trendSuffix: "this week", direction: "down" },
+  { icon: "/icons/dash/nav-calendar.svg", label: "Upcoming Appointments", value: "3", trendPrefix: "+13%", trendSuffix: "this week", direction: "up" },
+];
+
+const SEEKER_RECOMMENDED: SeekerListing[] = [
+  {
+    id: "s1",
+    title: "Luxury Penthouse, Eko Atlantic",
+    location: "Eko Atlantic City, Lagos",
+    price: "₦1,200,000,000",
+    tag: "FOR SALE",
+    sqft: "4200 sqft",
+    beds: 4,
+    baths: 5,
+    image: "/images/prop1.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Swimming Pool", "Gym", "Smart Home"],
+    seller: { name: "Gabriel Okechukwu", initials: "GO", verified: true },
+  },
+  {
+    id: "s2",
+    title: "2-Bedroom Flat, Jibowu, Yaba",
+    location: "Yaba, Lagos",
+    price: "₦1,800,000",
+    priceSuffix: "/yr",
+    tag: "FOR RENT",
+    sqft: "2000 sqft",
+    beds: 3,
+    baths: 3,
+    image: "/images/prop5.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Borehole Water", "Internet/WiFi", "Tiled Floor"],
+    seller: { name: "Aishat Dada", initials: "AD", verified: true, avatarUrl: "/images/seekers/aishat-dada.png" },
+  },
+  {
+    id: "s3",
+    title: "2-Bedroom Apartment, Victoria Island",
+    location: "Victoria Island, Lagos",
+    price: "₦450,000",
+    priceSuffix: "/night",
+    tag: "SHORTLET",
+    sqft: "1800 sqft",
+    beds: 3,
+    baths: 2,
+    image: "/images/prop2.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Furnished", "Swimming Pool", "Internet/WiFi"],
+    seller: { name: "Dare Okoye", initials: "DO", verified: true, avatarUrl: "/images/seekers/dare-okoye.png" },
+  },
+  {
+    id: "s4",
+    title: "Office Space, Ikeja GRA",
+    location: "Ikeja GRA, Lagos",
+    price: "₦3,400,000",
+    priceSuffix: "/yr",
+    tag: "FOR RENT",
+    sqft: "1200 sqft",
+    beds: 2,
+    baths: 1,
+    image: "/images/prop3.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Backup Generator", "High Speed Internet"],
+    seller: { name: "Stanley Alabi", initials: "SA", verified: true },
+  },
+  {
+    id: "s5",
+    title: "1-Bedroom Serviced Apartment, Oniru",
+    location: "Oniru Estate, Lagos",
+    price: "₦160,000",
+    priceSuffix: "/night",
+    tag: "SHORTLET",
+    sqft: "560 sqft",
+    beds: 2,
+    baths: 1,
+    image: "/images/prop2.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Furnished", "Air Conditioning"],
+    seller: { name: "Olaide Batifeori", initials: "OB", verified: true, avatarUrl: "/images/seekers/olaide-batifeori.png" },
+  },
+  {
+    id: "s6",
+    title: "4-Bedroom Duplex, Ikoyi",
+    location: "Ikoyi, Lagos",
+    price: "₦260,000,000",
+    tag: "FOR SALE",
+    sqft: "5000 sqft",
+    beds: 5,
+    baths: 6,
+    image: "/images/prop4.jpg",
+    amenities: ["Newly Built", "24/7 Security", "Swimming Pool", "Smart Home", "Gym Facility"],
+    seller: { name: "Seun Olaoye", initials: "SO", verified: true },
+  },
+];
+
+function SeekerDashboardPlaceholder() {
+  return (
+    <div className="flex flex-col" style={{ gap: "24px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+        {SEEKER_METRICS.map((m) => (
+          <SeekerMetricTile key={m.label} metric={m} />
+        ))}
+      </div>
+
+      <div className="flex flex-col" style={{ gap: "16px" }}>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col" style={{ gap: "8px" }}>
+            <h2 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
+              Recommended For You
+            </h2>
+            <p style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
+              Based on your search history and preferences
+            </p>
+          </div>
+          <Link
+            href="/dashboard/browse"
+            className="flex items-center hover:opacity-80"
+            style={{ gap: "8px", fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#305E82" }}
+          >
+            Browse all
+            <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
+          </Link>
+        </div>
+
+        <div className="grid" style={{ gridTemplateColumns: "repeat(3, 352px)", gap: "24px 16px" }}>
+          {SEEKER_RECOMMENDED.map((listing) => (
+            <SeekerPropertyCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SeekerMetricTile({ metric }: { metric: SeekerMetric }) {
+  const up = metric.direction === "up";
+  return (
+    <div
+      className="bg-white flex flex-col"
+      style={{
+        border: "1px solid #F6F6F6",
+        borderRadius: "20px",
+        padding: "16px 24px",
+        gap: "16px",
+      }}
+    >
+      <div className="flex items-center" style={{ gap: "8px" }}>
+        <Image src={metric.icon} alt="" width={16} height={16} />
+        <span style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 500, color: "#807E7E" }}>
+          {metric.label}
+        </span>
+      </div>
+      <div className="flex flex-col" style={{ gap: "8px" }}>
+        <span style={{ fontSize: "32px", lineHeight: "40px", fontWeight: 600, color: "#121212" }}>
+          {metric.value}
+        </span>
+        <div className="flex items-center" style={{ gap: "4px" }}>
+          <Image
+            src={up ? "/icons/dash/arrow-up.svg" : "/icons/dash/arrow-down-red.svg"}
+            alt=""
+            width={16}
+            height={16}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+              fontSize: "12px",
+              lineHeight: "24px",
+              fontWeight: 400,
+              color: up ? "#027B2A" : "#CF3801",
+            }}
+          >
+            {metric.trendPrefix}
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+              fontSize: "12px",
+              lineHeight: "24px",
+              fontWeight: 400,
+              color: "#807E7E",
+            }}
+          >
+            {metric.trendSuffix}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OwnerDashboardHome() {
   const [verified, setVerified] = useState(false);
   const [mounted, setMounted] = useState(false);
 

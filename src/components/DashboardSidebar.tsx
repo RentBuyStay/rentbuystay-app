@@ -2,44 +2,90 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { clearRole, roleBadgeLabel, type AccountRole } from "@/lib/role";
 
 type NavItem = { label: string; href: string; icon: string };
+type NavGroup = { label: string; items: NavItem[] };
 
-const overview: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: "/icons/dash/nav-dashboard.svg" },
+const ownerGroups: NavGroup[] = [
+  {
+    label: "OVERVIEW",
+    items: [{ label: "Dashboard", href: "/dashboard", icon: "/icons/dash/nav-dashboard.svg" }],
+  },
+  {
+    label: "LISTINGS",
+    items: [
+      { label: "My Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
+      { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+      { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-requests.svg" },
+      { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
+      { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
+    ],
+  },
+  {
+    label: "FINANCE",
+    items: [
+      { label: "Transactions", href: "/dashboard/transactions", icon: "/icons/dash/nav-transactions.svg" },
+      { label: "Subscription", href: "/dashboard/subscription", icon: "/icons/dash/nav-subscription.svg" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
+      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
+    ],
+  },
 ];
 
-const listings: NavItem[] = [
-  { label: "My Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
-  { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
-  { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-requests.svg" },
-  { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
-  { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
+const seekerGroups: NavGroup[] = [
+  {
+    label: "OVERVIEW",
+    items: [{ label: "Dashboard", href: "/dashboard", icon: "/icons/dash/nav-dashboard.svg" }],
+  },
+  {
+    label: "DISCOVER",
+    items: [
+      { label: "Browse Properties", href: "/dashboard/browse", icon: "/icons/dash/nav-search.svg" },
+      { label: "Saved Properties", href: "/dashboard/saved", icon: "/icons/dash/nav-saved.svg" },
+      { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-seeker-requests.svg" },
+      { label: "Discover Agents", href: "/dashboard/agents", icon: "/icons/dash/nav-discover-agents.svg" },
+    ],
+  },
+  {
+    label: "ACTIVITY",
+    items: [
+      { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
+      { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
+      { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
+    ],
+  },
 ];
 
-const finance: NavItem[] = [
-  { label: "Transactions", href: "/dashboard/transactions", icon: "/icons/dash/nav-transactions.svg" },
-  { label: "Subscription", href: "/dashboard/subscription", icon: "/icons/dash/nav-subscription.svg" },
-];
-
-const account: NavItem[] = [
-  { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
-  { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
-  { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
-];
-
-const groups: { label: string; items: NavItem[] }[] = [
-  { label: "OVERVIEW", items: overview },
-  { label: "LISTINGS", items: listings },
-  { label: "FINANCE", items: finance },
-  { label: "ACCOUNT", items: account },
-];
+const GROUPS_BY_ROLE: Partial<Record<AccountRole, NavGroup[]>> = {
+  "Property Owner": ownerGroups,
+  "Property Seeker": seekerGroups,
+};
 
 const TINT = "rgba(117,163,199,0.4)";
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ role }: { role: AccountRole }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const groups = GROUPS_BY_ROLE[role] ?? [];
+
+  function handleLogout() {
+    clearRole();
+    router.replace("/log-in");
+  }
   return (
     <aside
       className="flex flex-col text-white shrink-0"
@@ -84,7 +130,7 @@ export default function DashboardSidebar() {
               color: "#FFFFFF",
             }}
           >
-            PROPERTY OWNER
+            {roleBadgeLabel(role)}
           </span>
         </div>
       </div>
@@ -141,14 +187,17 @@ export default function DashboardSidebar() {
       </nav>
 
       
-      <Link
-        href="/log-in"
-        className="flex items-center justify-between"
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex items-center justify-between hover:opacity-90"
         style={{
           width: "272px",
           height: "64px",
           padding: "12px 24px",
           background: TINT,
+          border: "none",
+          cursor: "pointer",
         }}
       >
         <span
@@ -162,7 +211,7 @@ export default function DashboardSidebar() {
           Log out
         </span>
         <Image src="/icons/dash/nav-logout.svg" alt="" width={24} height={24} />
-      </Link>
+      </button>
     </aside>
   );
 }

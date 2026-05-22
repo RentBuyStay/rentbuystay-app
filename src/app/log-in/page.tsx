@@ -2,16 +2,33 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
+import { setRole } from "@/lib/role";
+import { verifyCredentials } from "@/lib/auth";
 
 export default function LogInPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canSignIn = email && password;
+  const canSignIn = !!(email && password);
+
+  function handleSignIn() {
+    if (!canSignIn) return;
+    const role = verifyCredentials(email, password);
+    if (!role) {
+      setError("Invalid email or password.");
+      return;
+    }
+    setError(null);
+    setRole(role);
+    router.push("/dashboard");
+  }
 
   return (
     <OnboardingShell>
@@ -197,11 +214,26 @@ export default function LogInPage() {
       </div>
 
       
-      <div className="flex flex-col" style={{ gap: "24px" }}>
-        
-        <Link
-          href={canSignIn ? "/dashboard" : "#"}
-          aria-disabled={!canSignIn}
+      <div className="flex flex-col" style={{ gap: "16px" }}>
+        {error && (
+          <p
+            role="alert"
+            style={{
+              fontSize: "14px",
+              lineHeight: "20px",
+              fontWeight: 500,
+              color: "#E30045",
+              textAlign: "left",
+            }}
+          >
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSignIn}
+          disabled={!canSignIn}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
             width: "100%",
@@ -214,11 +246,11 @@ export default function LogInPage() {
             fontSize: "14px",
             fontWeight: 500,
             opacity: canSignIn ? 1 : 0.5,
-            pointerEvents: canSignIn ? "auto" : "none",
+            cursor: canSignIn ? "pointer" : "not-allowed",
           }}
         >
           Sign In
-        </Link>
+        </button>
 
         
         <p

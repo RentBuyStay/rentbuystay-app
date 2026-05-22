@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation";
 const TITLES: { match: (path: string) => boolean; title: string }[] = [
   { match: (p) => p === "/dashboard/properties/new", title: "Add New Property" },
   { match: (p) => p.startsWith("/dashboard/properties"), title: "My Properties" },
+  { match: (p) => /^\/dashboard\/browse\/[^/]+$/.test(p), title: "Property Details" },
+  { match: (p) => p.startsWith("/dashboard/browse"), title: "Browse Properties" },
+  { match: (p) => p.startsWith("/dashboard/saved"), title: "Saved Properties" },
+  { match: (p) => p.startsWith("/dashboard/agents"), title: "Discover Agents" },
   { match: (p) => p.startsWith("/dashboard/requests"), title: "Property Requests" },
   { match: (p) => p.startsWith("/dashboard/messages"), title: "Inquiries/Messages" },
   { match: (p) => p.startsWith("/dashboard/appointments"), title: "Inspection Appointments" },
