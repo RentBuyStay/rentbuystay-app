@@ -58,6 +58,8 @@ No backend yet — only the hardcoded credentials in `src/lib/auth.ts` are accep
 | --- | --- | --- |
 | Property Owner | `owner@rbs.com` | `owner123` |
 | Property Seeker | `seeker@rbs.com` | `seeker123` |
+| Real Estate Agent | `agent@rbs.com` | `agent123` |
+| Real Estate Agency or Developer | `agency@rbs.com` | `agency123` |
 
 Add new demo accounts (e.g. for Property Seeker once that dashboard is built) by editing the `CREDENTIALS` array in `src/lib/auth.ts`.
 

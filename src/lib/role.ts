@@ -21,5 +21,6 @@ export function clearRole() {
 }
 
 export function roleBadgeLabel(role: AccountRole): string {
+  if (role === "Real Estate Agency or Developer") return "AGENCY/DEVELOPER";
   return role.toUpperCase();
 }

@@ -36,6 +36,13 @@ const UNVERIFIED_METRICS: Metric[] = VERIFIED_METRICS.map((m) => ({
   value: m.label === "Revenue" ? "₦0" : "0",
 }));
 
+const AGENT_METRICS: Metric[] = [
+  { label: "Total Listings", value: "11", trend: { prefix: "+3", suffix: "this month", direction: "up" }, icon: "/icons/dash/metric-home.svg" },
+  { label: "Total Leads", value: "16", trend: { prefix: "5%", suffix: "this week", direction: "down" }, icon: "/icons/dash/metric-people.svg" },
+  { label: "Revenue", value: "₦840k", trend: { prefix: "+6.4%", suffix: "vs last month", direction: "up" }, icon: "/icons/dash/metric-dollar.svg" },
+  { label: "Total Views", value: "1,385", trend: { prefix: "+13%", suffix: "this week", direction: "up" }, icon: "/icons/dash/metric-eye.svg" },
+];
+
 export default function DashboardHome() {
   const [role, setRoleState] = useState<AccountRole | null>(null);
 
@@ -45,7 +52,39 @@ export default function DashboardHome() {
 
   if (!role) return null;
   if (role === "Property Seeker") return <SeekerDashboardPlaceholder />;
+  if (role === "Real Estate Agent") return <AgentDashboardHome />;
   return <OwnerDashboardHome />;
+}
+
+function AgentDashboardHome() {
+  const [verified, setVerified] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
+    function onStorage(e: StorageEvent) {
+      if (e.key === "rbs-dashboard-verified") {
+        setVerified(e.newValue === "1");
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const showVerified = mounted && verified;
+  const metrics = showVerified ? VERIFIED_METRICS : AGENT_METRICS;
+
+  return (
+    <div className="flex flex-col" style={{ gap: "24px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+        {metrics.map((m) => (
+          <MetricTile key={m.label} metric={m} />
+        ))}
+      </div>
+      {showVerified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+    </div>
+  );
 }
 
 type SeekerMetric = {

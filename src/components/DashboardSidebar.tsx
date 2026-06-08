@@ -70,9 +70,92 @@ const seekerGroups: NavGroup[] = [
   },
 ];
 
+const agentGroups: NavGroup[] = [
+  {
+    label: "OVERVIEW",
+    items: [{ label: "Dashboard", href: "/dashboard", icon: "/icons/dash/nav-dashboard.svg" }],
+  },
+  {
+    label: "LISTINGS",
+    items: [
+      { label: "My Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
+      { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+      { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-requests.svg" },
+    ],
+  },
+  {
+    label: "CLIENT MANAGEMENT",
+    items: [
+      { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
+      { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
+    ],
+  },
+  {
+    label: "FINANCE",
+    items: [
+      { label: "Transactions", href: "/dashboard/transactions", icon: "/icons/dash/nav-transactions.svg" },
+      { label: "Subscription", href: "/dashboard/subscription", icon: "/icons/dash/nav-subscription.svg" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
+      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
+    ],
+  },
+];
+
+const agencyGroups: NavGroup[] = [
+  {
+    label: "OVERVIEW",
+    items: [{ label: "Dashboard", href: "/dashboard", icon: "/icons/dash/nav-dashboard.svg" }],
+  },
+  {
+    label: "LISTINGS",
+    items: [
+      { label: "All Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
+      { label: "Agents Management", href: "/dashboard/agents-management", icon: "/icons/dash/badge-user-tag.svg" },
+      { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+    ],
+  },
+  {
+    label: "CLIENT MANAGEMENT",
+    items: [
+      { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
+      { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
+    ],
+  },
+  {
+    label: "FINANCE",
+    items: [
+      { label: "Transactions", href: "/dashboard/transactions", icon: "/icons/dash/nav-transactions.svg" },
+      { label: "Subscription", href: "/dashboard/subscription", icon: "/icons/dash/nav-subscription.svg" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
+      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
+    ],
+  },
+];
+
 const GROUPS_BY_ROLE: Partial<Record<AccountRole, NavGroup[]>> = {
   "Property Owner": ownerGroups,
   "Property Seeker": seekerGroups,
+  "Real Estate Agent": agentGroups,
+  "Real Estate Agency or Developer": agencyGroups,
+};
+
+const BADGE_ICON_BY_ROLE: Partial<Record<AccountRole, string>> = {
+  "Property Owner": "/icons/dash/nav-profile-tick.svg",
+  "Property Seeker": "/icons/dash/nav-profile-tick.svg",
+  "Real Estate Agent": "/icons/dash/badge-user-tag.svg",
+  "Real Estate Agency or Developer": "/icons/dash/badge-user-tag.svg",
 };
 
 const TINT = "rgba(117,163,199,0.4)";
@@ -121,7 +204,7 @@ export default function DashboardSidebar({ role }: { role: AccountRole }) {
             height: "30px",
           }}
         >
-          <Image src="/icons/dash/nav-profile-tick.svg" alt="" width={20} height={20} />
+          <Image src={BADGE_ICON_BY_ROLE[role] ?? "/icons/dash/nav-profile-tick.svg"} alt="" width={20} height={20} />
           <span
             style={{
               fontSize: "12px",
