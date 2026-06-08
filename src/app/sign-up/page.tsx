@@ -2,10 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
+import PhoneNumberInput from "@/components/PhoneNumberInput";
+import { useSignupMutation } from "@/services/authApi";
+import { unwrapApiError } from "@/services/api";
+import { roleToUserType } from "@/lib/userType";
+import type { AccountRole } from "@/lib/role";
+import { setOnboarding } from "@/lib/onboarding";
+import { DEFAULT_COUNTRY, type Country } from "@/lib/countries";
 
-const ACCOUNT_TYPES = [
+const ACCOUNT_TYPES: AccountRole[] = [
   "Property Owner",
   "Property Seeker",
   "Real Estate Agent",
@@ -13,15 +21,42 @@ const ACCOUNT_TYPES = [
 ];
 
 export default function PropertyOwnerSignUpPage() {
-  const [accountType, setAccountType] = useState("Property Owner");
+  const router = useRouter();
+  const [signup, { isLoading }] = useSignupMutation();
+  const [accountType, setAccountType] = useState<AccountRole>("Property Owner");
   const [accountOpen, setAccountOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const canProceed = firstName && lastName && email && phone && agreed;
+  const canProceed = Boolean(
+    firstName && lastName && email && phone && agreed && !isLoading
+  );
+
+  async function handleSignup() {
+    if (!canProceed) return;
+    setError(null);
+    const userType = roleToUserType(accountType);
+    try {
+      await signup({
+        email: email.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phoneNumber: `${country.dial}${phone.replace(/\D/g, "")}`,
+        userType,
+      }).unwrap();
+      setOnboarding({ email: email.trim(), userType, flow: "signup" });
+      router.push("/verify-email");
+    } catch (err) {
+      setError(
+        unwrapApiError(err)?.message ?? "Could not create your account. Please try again."
+      );
+    }
+  }
 
   return (
     <OnboardingShell>
@@ -180,37 +215,18 @@ export default function PropertyOwnerSignUpPage() {
               >
                 Phone Number
               </label>
-              <div
-                className="flex items-center"
-                style={{
-                  background: "#F6F6F6",
-                  borderRadius: "12px",
-                  padding: "8px 16px",
-                  gap: "16px",
-                }}
-              >
-                <div className="flex items-center" style={{ gap: "4px" }}>
-                  <Image src="/icons/flag-us.svg" alt="" width={24} height={24} />
-                  <span style={{ fontSize: "14px", lineHeight: "140%", fontWeight: 500, color: "#807E7E", textAlign: "center" }}>
-                    +1
-                  </span>
-                  <Image src="/icons/chevron-down.svg" alt="" width={16} height={16} />
-                </div>
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  type="tel"
-                  placeholder="Enter phone number"
-                  className="flex-1 outline-none bg-transparent"
-                  style={{ ...inputStyle, lineHeight: "24px" }}
-                />
-              </div>
+              <PhoneNumberInput
+                country={country}
+                onCountryChange={setCountry}
+                value={phone}
+                onChange={setPhone}
+              />
             </div>
 
             
             <label className="flex items-start cursor-pointer" style={{ gap: "8px" }}>
               <span
-                onClick={() => setAgreed((v) => !v)}
+                aria-hidden="true"
                 className="shrink-0 flex items-center justify-center"
                 style={{
                   width: "20px",
@@ -231,11 +247,11 @@ export default function PropertyOwnerSignUpPage() {
               <input type="checkbox" className="sr-only" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>
                 I agree to the{" "}
-                <Link href="/tos" style={{ fontWeight: 500, color: "#305E82", textDecoration: "underline" }}>
+                <Link href="/tos" onClick={(e) => e.stopPropagation()} style={{ fontWeight: 500, color: "#305E82", textDecoration: "underline" }}>
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" style={{ fontWeight: 500, color: "#305E82", textDecoration: "underline" }}>
+                <Link href="/privacy" onClick={(e) => e.stopPropagation()} style={{ fontWeight: 500, color: "#305E82", textDecoration: "underline" }}>
                   Privacy Policy
                 </Link>{" "}
                 of RentBuyStay.
@@ -243,11 +259,17 @@ export default function PropertyOwnerSignUpPage() {
             </label>
           </div>
 
-          
+
           <div className="flex flex-col" style={{ gap: "24px" }}>
-            <Link
-              href={canProceed ? "/verify-email" : "#"}
-              aria-disabled={!canProceed}
+            {error && (
+              <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045", textAlign: "left" }}>
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleSignup}
+              disabled={!canProceed}
               className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
               style={{
                 width: "100%",
@@ -260,11 +282,11 @@ export default function PropertyOwnerSignUpPage() {
                 fontSize: "14px",
                 fontWeight: 500,
                 opacity: canProceed ? 1 : 0.5,
-                pointerEvents: canProceed ? "auto" : "none",
+                cursor: canProceed ? "pointer" : "not-allowed",
               }}
             >
-              Proceed
-            </Link>
+              {isLoading ? "Creating account…" : "Proceed"}
+            </button>
             <p
               className="text-center"
               style={{

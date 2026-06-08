@@ -4,9 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import { getSeekerListing, SEEKER_LISTINGS } from "@/lib/seekerListings";
 import SeekerPropertyCard from "@/components/SeekerPropertyCard";
 import type { SeekerListing } from "@/components/SeekerPropertyCard";
+import {
+  useGetPropertyQuery,
+  useGetActivePropertiesQuery,
+  useGetSavedPropertiesQuery,
+  useSavePropertyMutation,
+  useUnsavePropertyMutation,
+} from "@/services/propertyApi";
+import { toSeekerListing } from "@/lib/property";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
+import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 
 const FALLBACK_GALLERY = [
   "/images/prop1.jpg",
@@ -23,9 +33,35 @@ export default function BrowsePropertyDetailPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
-  const listing = getSeekerListing(id);
+  const { data, isLoading, isError } = useGetPropertyQuery(id);
+  const { data: savedPage } = useGetSavedPropertiesQuery({ page: 0, size: 100 });
+  const [saveProperty] = useSavePropertyMutation();
+  const [unsaveProperty] = useUnsavePropertyMutation();
+  const { toast } = useToast();
 
-  if (!listing) {
+  async function toggleSave(currentlySaved: boolean) {
+    try {
+      if (currentlySaved) {
+        await unsaveProperty(id).unwrap();
+        toast("Removed from saved", "info");
+      } else {
+        await saveProperty(id).unwrap();
+        toast("Saved to your list", "success");
+      }
+    } catch (e) {
+      toast(unwrapApiError(e)?.message ?? "Couldn’t update your saved list.", "error");
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "60vh", color: "#807E7E", fontSize: "14px" }}>
+        Loading property…
+      </div>
+    );
+  }
+
+  if (isError || !data) {
     return (
       <div
         className="flex flex-col items-center justify-center"
@@ -50,6 +86,10 @@ export default function BrowsePropertyDetailPage({
       </div>
     );
   }
+
+  const listing = toSeekerListing(data);
+  const isSaved = (savedPage?.content ?? []).some((p) => p.id === id);
+  const galleryImages = data.photos?.length ? data.photos.map((ph) => ph.url) : undefined;
 
   const tagLabel =
     listing.tag === "FOR SALE"
@@ -162,11 +202,14 @@ export default function BrowsePropertyDetailPage({
         </button>
       </div>
 
-      <PhotoGallery title={listing.title} images={[listing.image, ...FALLBACK_GALLERY.filter((i) => i !== listing.image)]} />
+      <PhotoGallery
+        title={listing.title}
+        images={galleryImages ?? [listing.image, ...FALLBACK_GALLERY.filter((i) => i !== listing.image)]}
+      />
 
       <PriceSpecsRow listing={listing} />
 
-      <div className="grid" style={{ gridTemplateColumns: "671px 393px", gap: "32px", alignItems: "start" }}>
+      <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) 393px", gap: "32px", alignItems: "start" }}>
         <div className="flex flex-col" style={{ gap: "40px" }}>
           <DescriptionBlock listing={listing} />
           <AmenitiesBlock listing={listing} />
@@ -175,7 +218,7 @@ export default function BrowsePropertyDetailPage({
         </div>
 
         <div className="flex flex-col" style={{ gap: "24px" }}>
-          <InterestedCard />
+          <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} />
           <ListedByCard listing={listing} />
         </div>
       </div>
@@ -277,7 +320,7 @@ function AmenitiesBlock({ listing }: { listing: SeekerListing }) {
       >
         Amenities &amp; Features
       </h2>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 200px)", gap: "24px 32px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 32px" }}>
         {amenities.map((a) => (
           <div key={a} className="flex items-center" style={{ gap: "8px" }}>
             <Image src="/icons/dash/tick-circle.svg" alt="" width={24} height={24} />
@@ -451,7 +494,8 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
   );
 }
 
-function InterestedCard() {
+function InterestedCard({ saved, onToggleSave }: { saved: boolean; onToggleSave: () => void }) {
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   return (
     <div
       className="relative bg-white"
@@ -482,6 +526,7 @@ function InterestedCard() {
       >
         <button
           type="button"
+          onClick={() => setScheduleOpen(true)}
           className="inline-flex items-center justify-center text-white hover:opacity-90"
           style={{
             width: "345px",
@@ -503,13 +548,14 @@ function InterestedCard() {
 
         <button
           type="button"
+          onClick={onToggleSave}
           className="inline-flex items-center justify-center hover:opacity-80"
           style={{
             width: "345px",
             height: "56px",
             padding: "16px 24px",
             gap: "8px",
-            background: "transparent",
+            background: saved ? "rgba(120,158,187,0.08)" : "transparent",
             border: "1px solid #F6F6F6",
             borderRadius: "12px",
             fontFamily: "var(--font-geist), system-ui, sans-serif",
@@ -520,9 +566,11 @@ function InterestedCard() {
           }}
         >
           <Image src="/icons/dash/detail-heart.svg" alt="" width={24} height={24} />
-          Saved
+          {saved ? "Saved" : "Save Property"}
         </button>
       </div>
+
+      <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
     </div>
   );
 }
@@ -766,9 +814,14 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
 }
 
 function RelatedListings({ currentId }: { currentId: string }) {
-  const others = SEEKER_LISTINGS.filter((l) => l.id !== currentId).slice(0, 3);
+  const { data: propPage } = useGetActivePropertiesQuery({ page: 0, size: 12 });
+  const others = (propPage?.content ?? [])
+    .filter((p) => p.id !== currentId)
+    .slice(0, 3)
+    .map(toSeekerListing);
+  if (others.length === 0) return null;
   return (
-    <div className="flex flex-col" style={{ gap: "24px", width: "1088px", maxWidth: "100%" }}>
+    <div className="flex flex-col" style={{ gap: "24px", width: "100%" }}>
       <div className="flex flex-col" style={{ width: "411px", gap: "8px" }}>
         <h2
           style={{
@@ -793,7 +846,7 @@ function RelatedListings({ currentId }: { currentId: string }) {
           See similar property listings that you might like
         </p>
       </div>
-      <div className="flex items-center" style={{ gap: "16px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
         {others.map((l) => (
           <SeekerPropertyCard key={l.id} listing={l} />
         ))}

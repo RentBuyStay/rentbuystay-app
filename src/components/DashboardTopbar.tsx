@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import NotificationsBell from "@/components/NotificationsBell";
 
 const TITLES: { match: (path: string) => boolean; title: string }[] = [
   { match: (p) => p === "/dashboard/properties/new", title: "Add New Property" },
@@ -57,29 +58,10 @@ export default function DashboardTopbar({
       </h1>
 
       <div className="flex items-center" style={{ gap: "24px" }}>
-        
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative hover:opacity-80"
-          style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px" }}
-        >
-          <Image src="/icons/dash/tb-notification.svg" alt="" width={24} height={24} />
-          <span
-            className="absolute"
-            style={{
-              top: "2px",
-              right: "2px",
-              width: "8px",
-              height: "8px",
-              borderRadius: "100%",
-              background: "#E11900",
-              border: "1.5px solid #FFFFFF",
-            }}
-          />
-        </button>
 
-        
+        <NotificationsBell />
+
+
         <button
           type="button"
           aria-label="Help"

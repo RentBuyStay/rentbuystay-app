@@ -4,23 +4,96 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import EditProfileModal from "@/components/EditProfileModal";
+import { useGetMeQuery } from "@/services/meApi";
+import {
+  useGetMySubscriptionQuery,
+  useGetSubscriptionPlansQuery,
+} from "@/services/subscriptionApi";
+import { useGetSeekerPreferencesQuery } from "@/services/seekerApi";
+import { formatPrice } from "@/lib/property";
+import type { SeekerPreferencesResponse } from "@/services/types";
 
-const INITIAL_PROFILE = {
-  firstName: "Olaitan",
-  lastName: "Badejo",
-  email: "olaitanbadejo@email.com",
-  phone: "+234 801 234 5678",
-  state: "Lagos",
-  city: "Eti-Osa",
-  bio: "Experienced property owner with 8+ years in Lagos real estate market. Specializing in residential and commercial properties in Lekki, VI, and Ikoyi.",
-  initials: "OB",
-  memberSince: "Jan 2026",
+function memberSince(iso?: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("en-NG", { month: "short", year: "numeric" });
+}
+
+function initialsFrom(first?: string, last?: string): string {
+  return ((first?.[0] ?? "") + (last?.[0] ?? "")).toUpperCase() || "—";
+}
+
+const DASH = "—";
+
+function daysUntil(iso?: string): number | null {
+  if (!iso) return null;
+  const end = new Date(iso).getTime();
+  return Number.isNaN(end) ? null : Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
+}
+
+const LOOKING_FOR_LABEL: Record<string, string> = {
+  RENT: "To Rent",
+  BUY: "To Buy",
+  SHORTLET: "Shortlet",
 };
 
+function longDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState(INITIAL_PROFILE);
+  const { data: me, isLoading } = useGetMeQuery();
+  const isSeeker = me?.userType === "PROPERTY_SEEKER";
+  const { data: mySub } = useGetMySubscriptionQuery(undefined, { skip: isSeeker });
+  const { data: plans = [] } = useGetSubscriptionPlansQuery(undefined, { skip: isSeeker });
+  const { data: prefs } = useGetSeekerPreferencesQuery(undefined, { skip: !isSeeker });
   const [editOpen, setEditOpen] = useState(false);
-  const PROFILE = profile;
+
+  // Local-only override for fields edited in the modal. NOTE: the backend has no
+  // profile-update endpoint yet, so these changes don't persist across reloads.
+  const [localEdits, setLocalEdits] = useState<{ state?: string; city?: string; bio?: string }>({});
+
+  const p = me?.profile;
+  const PROFILE = {
+    firstName: p?.firstName ?? "",
+    lastName: p?.lastName ?? "",
+    email: me?.email ?? DASH,
+    phone: p?.phoneNumber ?? DASH,
+    state: localEdits.state ?? p?.state ?? DASH,
+    city: localEdits.city ?? p?.city ?? DASH,
+    bio: localEdits.bio ?? p?.bio ?? DASH,
+    initials: initialsFrom(p?.firstName, p?.lastName),
+    avatarUrl: p?.avatarUrl,
+    memberSince: memberSince(me?.joinedAt),
+    verified: Boolean(me?.verification?.complete),
+  };
+
+  // Real subscription summary (the card below). No sub → "No active plan".
+  const subPlanName = plans.find((pl) => pl.id === mySub?.planId)?.name;
+  const subDaysLeft = daysUntil(mySub?.endsAt);
+  const subExpired = mySub?.status?.toUpperCase() === "EXPIRED" || (subDaysLeft !== null && subDaysLeft <= 0);
+  const sub = {
+    hasSub: !!mySub,
+    name: subPlanName ?? (mySub ? "Active plan" : "No active plan"),
+    endsAtFull: longDate(mySub?.endsAt),
+    daysLeft: subDaysLeft,
+    expired: subExpired,
+    statusLabel: !mySub ? "Inactive" : subExpired ? "Expired" : "Active",
+  };
+
+  if (isLoading && !me) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "40vh", color: "#807E7E", fontSize: "14px" }}>
+        Loading your profile…
+      </div>
+    );
+  }
 
   return (
     <>
@@ -29,21 +102,32 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between" style={{ gap: "16px" }}>
         <div className="flex items-center" style={{ gap: "16px" }}>
           <div className="relative" style={{ width: "120px", height: "120px" }}>
-            <div
-              className="flex items-center justify-center"
-              style={{
-                width: "120px",
-                height: "120px",
-                borderRadius: "100%",
-                background: "rgba(48,94,130,0.05)",
-                color: "#305E82",
-                fontSize: "42px",
-                lineHeight: "61px",
-                fontWeight: 700,
-              }}
-            >
-              {PROFILE.initials}
-            </div>
+            {PROFILE.avatarUrl ? (
+              <Image
+                src={PROFILE.avatarUrl}
+                alt={`${PROFILE.firstName} ${PROFILE.lastName}`.trim()}
+                width={120}
+                height={120}
+                unoptimized
+                style={{ width: "120px", height: "120px", borderRadius: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  borderRadius: "100%",
+                  background: "rgba(48,94,130,0.05)",
+                  color: "#305E82",
+                  fontSize: "42px",
+                  lineHeight: "61px",
+                  fontWeight: 700,
+                }}
+              >
+                {PROFILE.initials}
+              </div>
+            )}
             <button
               type="button"
               aria-label="Change photo"
@@ -75,9 +159,11 @@ export default function ProfilePage() {
                     color: "#121212",
                   }}
                 >
-                  {PROFILE.firstName} {PROFILE.lastName}
+                  {`${PROFILE.firstName} ${PROFILE.lastName}`.trim() || DASH}
                 </span>
-                <Image src="/icons/dash/verify.svg" alt="Verified" width={20} height={20} />
+                {PROFILE.verified && (
+                  <Image src="/icons/dash/verify.svg" alt="Verified" width={20} height={20} />
+                )}
               </div>
               <span
                 style={{
@@ -139,10 +225,14 @@ export default function ProfilePage() {
           <Field label="City" value={PROFILE.city} />
         </FieldRow>
 
-        <Field label="Bio" value={PROFILE.bio} />
+        {!isSeeker && <Field label="Bio" value={PROFILE.bio} />}
       </div>
 
 
+      {isSeeker && <PropertyPreferencesSection prefs={prefs} />}
+
+
+      {!isSeeker && (
       <div className="flex flex-col" style={{ gap: "16px" }}>
         <h2
           style={{
@@ -184,18 +274,24 @@ export default function ProfilePage() {
                   color: "#FFFFFF",
                 }}
               >
-                RBS Pro
+                {sub.name}
               </span>
-              <div className="flex items-center" style={{ gap: "8px" }}>
-                <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>
-                  Renews on{" "}
-                  <span style={{ fontWeight: 600, color: "#FFFFFF" }}>15 May 2026</span>
-                </span>
-                <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>·</span>
-                <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>
-                  32 days left
-                </span>
-              </div>
+              {sub.hasSub && sub.endsAtFull && (
+                <div className="flex items-center" style={{ gap: "8px" }}>
+                  <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>
+                    {sub.expired ? "Expired on" : "Renews on"}{" "}
+                    <span style={{ fontWeight: 600, color: "#FFFFFF" }}>{sub.endsAtFull}</span>
+                  </span>
+                  {!sub.expired && sub.daysLeft !== null && (
+                    <>
+                      <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>·</span>
+                      <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>
+                        {sub.daysLeft} days left
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -204,15 +300,15 @@ export default function ProfilePage() {
               className="inline-flex items-center justify-center"
               style={{
                 padding: "2px 8px",
-                background: "#ECFDF3",
-                color: "#027A48",
+                background: !sub.hasSub ? "rgba(255,255,255,0.2)" : sub.expired ? "#FFECF1" : "#ECFDF3",
+                color: !sub.hasSub ? "#FFFFFF" : sub.expired ? "#E30045" : "#027A48",
                 borderRadius: "16px",
                 fontSize: "12px",
                 lineHeight: "18px",
                 fontWeight: 500,
               }}
             >
-              Active
+              {sub.statusLabel}
             </span>
             <Link
               href="/dashboard/subscription/manage"
@@ -227,13 +323,14 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      )}
     </div>
 
     <EditProfileModal
       open={editOpen}
       onClose={() => setEditOpen(false)}
-      initial={{ state: profile.state, city: profile.city, bio: profile.bio }}
-      onSave={(values) => setProfile((p) => ({ ...p, ...values }))}
+      initial={{ state: PROFILE.state, city: PROFILE.city, bio: PROFILE.bio }}
+      onSave={(values) => setLocalEdits(values)}
     />
     </>
   );
@@ -275,6 +372,54 @@ function Field({ label, value }: { label: string; value: string }) {
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+function PropertyPreferencesSection({ prefs }: { prefs?: SeekerPreferencesResponse | null }) {
+  const lookingFor = prefs?.lookingFor ? LOOKING_FOR_LABEL[prefs.lookingFor] ?? prefs.lookingFor : DASH;
+  const propertyType = prefs?.propertyTypeName ?? DASH;
+  const bedrooms = prefs?.bedrooms != null ? String(prefs.bedrooms) : DASH;
+  const minPrice = prefs?.minPrice != null ? formatPrice(prefs.minPrice, prefs.currency) : DASH;
+  const maxPrice = prefs?.maxPrice != null ? formatPrice(prefs.maxPrice, prefs.currency) : DASH;
+  const locations = prefs?.preferredLocations ?? [];
+
+  return (
+    <div className="flex flex-col" style={{ gap: "24px" }}>
+      <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#305E82" }}>
+        Property Preferences
+      </h2>
+
+      <FieldRow>
+        <Field label="Looking for" value={lookingFor} />
+        <Field label="Property Type" value={propertyType} />
+        <Field label="Bedroom" value={bedrooms} />
+      </FieldRow>
+
+      <FieldRow>
+        <Field label="Min. Price" value={minPrice} />
+        <Field label="Max. Price" value={maxPrice} />
+        <div className="flex flex-col" style={{ gap: "8px" }}>
+          <span style={{ fontSize: "13px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", letterSpacing: "-0.02em" }}>
+            Preferred Locations
+          </span>
+          {locations.length === 0 ? (
+            <span style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>{DASH}</span>
+          ) : (
+            <div className="flex flex-wrap" style={{ gap: "8px" }}>
+              {locations.map((l) => (
+                <span
+                  key={l.id}
+                  className="inline-flex items-center justify-center"
+                  style={{ padding: "4px 12px", background: "rgba(120,158,187,0.1)", color: "#305E82", borderRadius: "8px", fontSize: "13px", lineHeight: "20px", fontWeight: 500, whiteSpace: "nowrap" }}
+                >
+                  {l.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </FieldRow>
     </div>
   );
 }

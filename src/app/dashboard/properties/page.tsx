@@ -4,107 +4,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-type Status = "Active" | "Awaiting Approval" | "Archived" | "Rejected";
-type Tag = "For Rent" | "For Sale" | "Shortlet";
-
-type Property = {
-  id: string;
-  title: string;
-  location: string;
-  price: string;
-  priceSuffix?: string;
-  tag: Tag;
-  status: Status;
-  sqft: string;
-  beds: number;
-  baths: number;
-  image: string;
-};
-
-const PROPERTIES: Property[] = [
-  {
-    id: "p1",
-    title: "3-Bedroom Flat, Lekki Phase 1",
-    location: "Lekki Phase 1, Lagos",
-    price: "₦2,800,000",
-    priceSuffix: "/yr",
-    tag: "For Rent",
-    status: "Active",
-    sqft: "3500 sqft",
-    beds: 3,
-    baths: 4,
-    image: "/images/prop1.jpg",
-  },
-  {
-    id: "p2",
-    title: "2-Bedroom Apartment, Victoria Island",
-    location: "Victoria Island, Lagos",
-    price: "₦450,000",
-    priceSuffix: "/night",
-    tag: "Shortlet",
-    status: "Active",
-    sqft: "1800 sqft",
-    beds: 3,
-    baths: 2,
-    image: "/images/prop2.jpg",
-  },
-  {
-    id: "p3",
-    title: "Office Space, Ikeja GRA",
-    location: "Ikeja GRA, Lagos",
-    price: "₦3,400,000",
-    priceSuffix: "/yr",
-    tag: "For Rent",
-    status: "Archived",
-    sqft: "1200 sqft",
-    beds: 2,
-    baths: 1,
-    image: "/images/prop3.jpg",
-  },
-  {
-    id: "p4",
-    title: "4-bedroom Duplex, Ikoyi",
-    location: "Ikoyi, Lagos",
-    price: "₦260,000,000",
-    tag: "For Sale",
-    status: "Awaiting Approval",
-    sqft: "5000 sqft",
-    beds: 5,
-    baths: 6,
-    image: "/images/prop4.jpg",
-  },
-  {
-    id: "p5",
-    title: "2-Bedroom Flat, Jibowu, Yaba",
-    location: "Yaba, Lagos",
-    price: "₦1,800,000",
-    priceSuffix: "/yr",
-    tag: "For Rent",
-    status: "Active",
-    sqft: "2000 sqft",
-    beds: 3,
-    baths: 3,
-    image: "/images/prop5.jpg",
-  },
-];
+import {
+  useGetMyPropertiesQuery,
+  useArchivePropertyMutation,
+  useDeletePropertyMutation,
+} from "@/services/propertyApi";
+import { toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 
 const TABS = ["All", "Active", "Awaiting Approval", "Archived", "Rejected"] as const;
 type Tab = (typeof TABS)[number];
 
-function statusStyles(status: Status) {
+function statusStyles(status: PropertyStatusLabel) {
   switch (status) {
     case "Active":
-      // fill_7TWS8R bg / fill_NYWKLY text
       return { bg: "#ECFDF3", color: "#027A48" };
     case "Awaiting Approval":
-      // fill_7AVJNK bg / fill_4SPYRU text
       return { bg: "#FFF7E9", color: "#EA651A" };
     case "Archived":
-      // fill_EI6ECX bg / fill_R8LIWJ text
       return { bg: "rgba(138,56,245,0.08)", color: "#8A38F5" };
     case "Rejected":
       return { bg: "#FEF3F2", color: "#B42318" };
+    case "Draft":
+    default:
+      return { bg: "#F2F4F7", color: "#475467" };
   }
 }
 
@@ -112,18 +34,26 @@ export default function MyPropertiesPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [search, setSearch] = useState("");
 
-  const visible = PROPERTIES.filter((p) => {
+  // Fetch the owner's listings (all statuses) and filter client-side so the
+  // per-tab counts stay accurate.
+  const { data, isLoading, isError, refetch } = useGetMyPropertiesQuery({
+    page: 0,
+    size: 100,
+  });
+  const properties: PropertyVM[] = (data?.content ?? []).map(toPropertyVM);
+
+  const visible = properties.filter((p) => {
     if (activeTab !== "All" && p.status !== activeTab) return false;
     if (search && !`${p.title} ${p.location}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const counts = {
-    All: PROPERTIES.length,
-    Active: PROPERTIES.filter((p) => p.status === "Active").length,
-    "Awaiting Approval": PROPERTIES.filter((p) => p.status === "Awaiting Approval").length,
-    Archived: PROPERTIES.filter((p) => p.status === "Archived").length,
-    Rejected: PROPERTIES.filter((p) => p.status === "Rejected").length,
+    All: properties.length,
+    Active: properties.filter((p) => p.status === "Active").length,
+    "Awaiting Approval": properties.filter((p) => p.status === "Awaiting Approval").length,
+    Archived: properties.filter((p) => p.status === "Archived").length,
+    Rejected: properties.filter((p) => p.status === "Rejected").length,
   };
 
   return (
@@ -131,9 +61,9 @@ export default function MyPropertiesPage() {
       
 
       
-      <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-        
-        <div className="flex items-center" style={{ gap: "0" }}>
+      <div className="flex items-center justify-between" style={{ gap: "16px", flexWrap: "wrap", rowGap: "16px" }}>
+
+        <div className="flex items-center" style={{ gap: "0", flexWrap: "wrap" }}>
           {TABS.map((t) => {
             const active = t === activeTab;
             return (
@@ -160,8 +90,8 @@ export default function MyPropertiesPage() {
           })}
         </div>
 
-        <div className="flex items-center" style={{ gap: "16px" }}>
-          
+        <div className="flex items-center" style={{ gap: "16px", flex: "1 1 auto", justifyContent: "flex-end", minWidth: 0 }}>
+
           <div
             className="flex items-center"
             style={{
@@ -169,7 +99,9 @@ export default function MyPropertiesPage() {
               borderRadius: "12px",
               padding: "8px 16px",
               gap: "8px",
-              width: "320px",
+              flex: "1 1 200px",
+              maxWidth: "320px",
+              minWidth: 0,
               height: "40px",
             }}
           >
@@ -203,6 +135,7 @@ export default function MyPropertiesPage() {
               fontSize: "14px",
               fontWeight: 500,
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             <span style={{ fontSize: "16px" }}>+</span>
@@ -212,7 +145,28 @@ export default function MyPropertiesPage() {
       </div>
 
       
-      {visible.length === 0 ? (
+      {isLoading ? (
+        <div
+          className="bg-white flex items-center justify-center"
+          style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", fontSize: "14px", color: "#807E7E" }}
+        >
+          Loading your properties…
+        </div>
+      ) : isError ? (
+        <div
+          className="bg-white flex flex-col items-center justify-center"
+          style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", gap: "12px", fontSize: "14px", color: "#807E7E" }}
+        >
+          <span>Couldn&rsquo;t load your properties.</span>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            style={{ color: "#305E82", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
+          >
+            Try again
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
         <div
           className="bg-white flex items-center justify-center"
           style={{
@@ -223,12 +177,14 @@ export default function MyPropertiesPage() {
             color: "#807E7E",
           }}
         >
-          No properties found.
+          {properties.length === 0
+            ? "You haven't listed any properties yet."
+            : "No properties match this filter."}
         </div>
       ) : (
         <div
           className="grid"
-          style={{ gridTemplateColumns: "repeat(3, 352px)", gap: "24px 16px" }}
+          style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}
         >
           {visible.map((p) => (
             <PropertyCard key={p.id} property={p} />
@@ -239,11 +195,13 @@ export default function MyPropertiesPage() {
   );
 }
 
-function PropertyCard({ property }: { property: Property }) {
+function PropertyCard({ property }: { property: PropertyVM }) {
   const status = statusStyles(property.status);
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [archiveProperty, { isLoading: archiving }] = useArchivePropertyMutation();
+  const [deleteProperty, { isLoading: deleting }] = useDeletePropertyMutation();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -265,6 +223,23 @@ function PropertyCard({ property }: { property: Property }) {
     };
   }
 
+  function handleArchive(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (property.status === "Archived") return; // backend has no unarchive endpoint yet
+    archiveProperty({ id: property.id, reason: "OTHER" });
+  }
+
+  function handleDelete(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuOpen(false);
+    if (window.confirm(`Delete "${property.title}"? This can't be undone.`)) {
+      deleteProperty(property.id);
+    }
+  }
+
   function noop(label: string) {
     return (e: React.MouseEvent) => {
       e.preventDefault();
@@ -274,20 +249,23 @@ function PropertyCard({ property }: { property: Property }) {
     };
   }
 
+  const busy = archiving || deleting;
+
   return (
     <Link
       href={`/dashboard/properties/${property.id}`}
       className="block bg-white relative hover:shadow-md transition-shadow"
       style={{
-        width: "352px",
+        width: "100%",
+        maxWidth: "352px",
         height: "414px",
         border: "1px solid #F6F6F6",
         borderRadius: "20px",
         overflow: "hidden",
       }}
     >
-      
-      <div className="relative" style={{ width: "352px", height: "218px", background: "#EDEDED" }}>
+
+      <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
         <Image src={property.image} alt={property.title} fill style={{ objectFit: "cover" }} sizes="352px" />
         
         <span
@@ -313,7 +291,7 @@ function PropertyCard({ property }: { property: Property }) {
       
       <div
         className="absolute flex flex-col"
-        style={{ left: "16px", top: "242px", width: "320px", gap: "8px" }}
+        style={{ left: "16px", right: "16px", top: "242px", gap: "8px" }}
       >
         
         <div className="flex items-center justify-between">
@@ -383,12 +361,11 @@ function PropertyCard({ property }: { property: Property }) {
                 }}
               >
                 <MenuItem label="Edit" onClick={go(`/dashboard/properties/${property.id}/edit`)} />
-                <MenuItem
-                  label={property.status === "Archived" ? "Unarchive" : "Archive"}
-                  onClick={noop("Archive")}
-                />
+                {property.status !== "Archived" && (
+                  <MenuItem label={busy ? "Archiving…" : "Archive"} onClick={handleArchive} />
+                )}
                 <MenuItem label="Share" onClick={noop("Share")} />
-                <MenuItem label="Delete" onClick={noop("Delete")} danger />
+                <MenuItem label={deleting ? "Deleting…" : "Delete"} onClick={handleDelete} danger />
               </div>
             )}
           </div>

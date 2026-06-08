@@ -3,14 +3,35 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import { getProperty } from "@/lib/properties";
+import { useGetMyPropertiesQuery, useDeletePropertyMutation } from "@/services/propertyApi";
+import { toPropertyDetailVM } from "@/lib/property";
 
 export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const property = getProperty(id);
+  // The public GET /properties/{id} only returns APPROVED listings, so source
+  // from the owner's own list (all statuses) and pick this one out.
+  const { data, isLoading, isError } = useGetMyPropertiesQuery(
+    { page: 0, size: 100 },
+    {
+      selectFromResult: ({ data, isLoading, isError }) => ({
+        data: data?.content.find((p) => p.id === id),
+        isLoading,
+        isError,
+      }),
+    }
+  );
+  const [deleteProperty, { isLoading: deleting }] = useDeletePropertyMutation();
 
-  if (!property) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "60vh", color: "#807E7E", fontSize: "14px" }}>
+        Loading property…
+      </div>
+    );
+  }
+
+  if (isError || !data) {
     return (
       <div className="flex flex-col items-center justify-center" style={{ minHeight: "60vh", gap: "16px" }}>
         <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#121212" }}>Property not found</h2>
@@ -31,6 +52,17 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </button>
       </div>
     );
+  }
+
+  const property = toPropertyDetailVM(data);
+
+  function handleDelete() {
+    if (window.confirm(`Delete "${property.title}"? This can't be undone.`)) {
+      deleteProperty(id)
+        .unwrap()
+        .then(() => router.push("/dashboard/properties"))
+        .catch(() => {});
+    }
   }
 
   return (
@@ -73,7 +105,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex items-center" style={{ gap: "8px" }}>
               <Image src="/icons/dash/metric-eye.svg" alt="" width={20} height={20} />
               <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
-                {property.views} views
+                {property.viewCount} views
               </span>
             </div>
             <div className="flex items-center" style={{ gap: "8px" }}>
@@ -108,6 +140,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         <div className="flex items-center shrink-0" style={{ gap: "16px" }}>
           <button
             type="button"
+            onClick={handleDelete}
+            disabled={deleting}
             className="flex items-center justify-center hover:opacity-80"
             style={{
               height: "48px",
@@ -119,7 +153,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               fontSize: "14px",
               fontWeight: 500,
               color: "#E30045",
-              cursor: "pointer",
+              cursor: deleting ? "not-allowed" : "pointer",
+              opacity: deleting ? 0.6 : 1,
             }}
           >
             <Image
@@ -128,7 +163,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
               width={20}
               height={20}
             />
-            Delete
+            {deleting ? "Deleting…" : "Delete"}
           </button>
           <button
             type="button"
@@ -197,7 +232,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
       <Section title="Property Details">
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-          <DetailItem label="Property ID" value={property.propertyId} />
+          <DetailItem label="Property ID" value={property.referenceCode} />
           <DetailItem label="Type" value={property.type} />
           <DetailItem label="Status" value={property.status} />
           <DetailItem label="Listed on" value={property.listedOn} />
@@ -205,35 +240,40 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       </Section>
 
 
-      <Section title="Additional Charges">
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-          <DetailItem label="Service Charges" value={property.serviceCharge} />
-          <DetailItem label="Booking Charges" value={property.bookingCharge} />
-        </div>
-      </Section>
+      {property.charges.length > 0 && (
+        <Section title="Additional Charges">
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+            {property.charges.map((c, i) => (
+              <DetailItem key={`${c.title}-${i}`} label={c.title} value={c.amount} />
+            ))}
+          </div>
+        </Section>
+      )}
 
 
-      <Section title="View Map">
-        <div
-          style={{
-            width: "100%",
-            height: "424px",
-            background: "#F6F6F6",
-            borderRadius: "20px",
-            overflow: "hidden",
-            border: "1px solid #F6F6F6",
-          }}
-        >
-          <iframe
-            title={`Map of ${property.location}`}
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${property.mapBbox}&layer=mapnik&marker=${property.mapMarker}`}
-            width="100%"
-            height="100%"
-            style={{ border: "none", display: "block" }}
-            loading="lazy"
-          />
-        </div>
-      </Section>
+      {property.map && (
+        <Section title="View Map">
+          <div
+            style={{
+              width: "100%",
+              height: "424px",
+              background: "#F6F6F6",
+              borderRadius: "20px",
+              overflow: "hidden",
+              border: "1px solid #F6F6F6",
+            }}
+          >
+            <iframe
+              title={`Map of ${property.location}`}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${property.map.bbox}&layer=mapnik&marker=${property.map.marker}`}
+              width="100%"
+              height="100%"
+              style={{ border: "none", display: "block" }}
+              loading="lazy"
+            />
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
@@ -266,6 +306,7 @@ function ImageSlider({ images, title }: { images: string[]; title: string }) {
         src={images[index]}
         alt={`${title} — photo ${index + 1}`}
         fill
+        unoptimized
         style={{ objectFit: "cover" }}
         priority
       />

@@ -2,6 +2,11 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import {
+  useGetNotificationPreferencesQuery,
+  useUpdateNotificationPreferenceMutation,
+} from "@/services/notificationApi";
+import type { NotificationCategory } from "@/services/types";
 
 type View = "empty" | "password" | "notifications" | "help" | "deactivate";
 
@@ -210,47 +215,68 @@ function PasswordField({
 }
 
 
-type Pref = { key: string; title: string; subtitle: string; on: boolean };
-
-const INITIAL_PREFS: Pref[] = [
-  { key: "messages", title: "New Inquiries/Messages", subtitle: "Get instant email notifications when someone messages you", on: true },
-  { key: "expiry", title: "Listing Expiry Reminders", subtitle: "Get notified 7 days before a listing expires", on: true },
-  { key: "report", title: "Weekly Performance Report", subtitle: "Summary of views, leads, and conversion each week right in your mailbox", on: false },
-  { key: "appointments", title: "Appointment Confirmations", subtitle: "When a seeker books or reschedules a viewing", on: true },
-  { key: "renewal", title: "Subscription Renewal", subtitle: "Get notified 14 days before your subscription expires", on: true },
-  { key: "promos", title: "Promotional Offers", subtitle: "Tips, offers, and platform updates", on: false },
+// UI rows mapped to backend NotificationCategory values. `fallback` is used
+// only until the backend's GET returns that category's saved value.
+const PREF_ROWS: {
+  category: NotificationCategory;
+  title: string;
+  subtitle: string;
+  fallback: boolean;
+}[] = [
+  { category: "NEW_INQUIRIES_MESSAGES", title: "New Inquiries/Messages", subtitle: "Get instant email notifications when someone messages you", fallback: true },
+  { category: "LISTING_EXPIRY_REMINDERS", title: "Listing Expiry Reminders", subtitle: "Get notified 7 days before a listing expires", fallback: true },
+  { category: "WEEKLY_PERFORMANCE_REPORT", title: "Weekly Performance Report", subtitle: "Summary of views, leads, and conversion each week right in your mailbox", fallback: false },
+  { category: "APPOINTMENT_CONFIRMATIONS", title: "Appointment Confirmations", subtitle: "When a seeker books or reschedules a viewing", fallback: true },
+  { category: "SUBSCRIPTION_RENEWAL", title: "Subscription Renewal", subtitle: "Get notified 14 days before your subscription expires", fallback: true },
+  { category: "PROMOTIONS", title: "Promotional Offers", subtitle: "Tips, offers, and platform updates", fallback: false },
 ];
 
 function NotificationPreferences() {
-  const [prefs, setPrefs] = useState<Pref[]>(INITIAL_PREFS);
+  const { data: prefs, isLoading, isError } = useGetNotificationPreferencesQuery();
+  const [updatePref] = useUpdateNotificationPreferenceMutation();
+
+  // Only show rows the backend reports as applicable to this user type.
+  const applicable = prefs
+    ? PREF_ROWS.filter((r) => prefs.some((p) => p.category === r.category))
+    : PREF_ROWS;
+
+  if (isLoading) {
+    return <div style={{ color: "#807E7E", fontSize: "14px" }}>Loading preferences…</div>;
+  }
+  if (isError) {
+    return <div style={{ color: "#807E7E", fontSize: "14px" }}>Couldn&rsquo;t load preferences.</div>;
+  }
 
   return (
     <div className="flex flex-col" style={{ width: "100%", maxWidth: "548px", gap: "24px" }}>
-      {prefs.map((p) => (
-        <div
-          key={p.key}
-          className="flex items-center justify-between"
-          style={{
-            height: "100px",
-            padding: "24px",
-            background: "#F6F6F6",
-            borderRadius: "20px",
-          }}
-        >
-          <div className="flex flex-col" style={{ gap: "8px", maxWidth: "calc(100% - 80px)" }}>
-            <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
-              {p.title}
-            </span>
-            <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
-              {p.subtitle}
-            </span>
+      {applicable.map((row) => {
+        const on = prefs?.find((p) => p.category === row.category)?.enabled ?? row.fallback;
+        return (
+          <div
+            key={row.category}
+            className="flex items-center justify-between"
+            style={{
+              height: "100px",
+              padding: "24px",
+              background: "#F6F6F6",
+              borderRadius: "20px",
+            }}
+          >
+            <div className="flex flex-col" style={{ gap: "8px", maxWidth: "calc(100% - 80px)" }}>
+              <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
+                {row.title}
+              </span>
+              <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
+                {row.subtitle}
+              </span>
+            </div>
+            <Toggle
+              on={on}
+              onChange={(next) => updatePref({ category: row.category, enabled: next })}
+            />
           </div>
-          <Toggle
-            on={p.on}
-            onChange={(on) => setPrefs((ps) => ps.map((x) => (x.key === p.key ? { ...x, on } : x)))}
-          />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -31,23 +31,33 @@ const TAG_COLORS: Record<SeekerListingTag, string> = {
   SHORTLET: "#FFAE00",
 };
 
-export default function SeekerPropertyCard({ listing }: { listing: SeekerListing }) {
+export default function SeekerPropertyCard({
+  listing,
+  saved = false,
+  onToggleSave,
+}: {
+  listing: SeekerListing;
+  saved?: boolean;
+  onToggleSave?: (id: string, saved: boolean) => void;
+}) {
   const extraCount = Math.max(0, listing.amenities.length - 2);
   const firstChips = listing.amenities.slice(0, 2);
+  const heartIcon = saved ? "/icons/dash/heart-filled.svg" : "/icons/dash/card-heart.svg";
 
   return (
     <Link
       href={`/dashboard/browse/${listing.id}`}
       className="block bg-white relative hover:shadow-md transition-shadow"
       style={{
-        width: "352px",
+        width: "100%",
+        maxWidth: "352px",
         height: "534px",
         border: "1px solid #F6F6F6",
         borderRadius: "20px",
         overflow: "hidden",
       }}
     >
-      <div className="relative" style={{ width: "352px", height: "218px", background: "#EDEDED" }}>
+      <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
         <Image src={listing.image} alt={listing.title} fill style={{ objectFit: "cover" }} sizes="352px" />
         <span
           className="absolute inline-flex items-center justify-center"
@@ -71,7 +81,7 @@ export default function SeekerPropertyCard({ listing }: { listing: SeekerListing
 
       <div
         className="absolute flex flex-col"
-        style={{ left: "16px", top: "242px", width: "320px", gap: "8px" }}
+        style={{ left: "16px", right: "16px", top: "242px", gap: "8px" }}
       >
         <div className="flex items-center justify-between">
           <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 700, color: "#305E82" }}>
@@ -87,12 +97,13 @@ export default function SeekerPropertyCard({ listing }: { listing: SeekerListing
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              onToggleSave?.(listing.id, saved);
             }}
-            aria-label={`Save ${listing.title}`}
+            aria-label={saved ? `Unsave ${listing.title}` : `Save ${listing.title}`}
             className="shrink-0 hover:opacity-70"
             style={{ background: "none", border: "none", padding: 0, width: "20px", height: "20px", cursor: "pointer" }}
           >
-            <Image src="/icons/dash/card-heart.svg" alt="" width={20} height={20} />
+            <Image src={heartIcon} alt="" width={20} height={20} />
           </button>
         </div>
 
@@ -140,7 +151,7 @@ export default function SeekerPropertyCard({ listing }: { listing: SeekerListing
 
       <div
         className="absolute"
-        style={{ left: 0, top: "406px", width: "352px", height: "1px", background: "#F6F6F6" }}
+        style={{ left: 0, right: 0, top: "406px", height: "1px", background: "#F6F6F6" }}
       />
 
       <div
@@ -156,12 +167,12 @@ export default function SeekerPropertyCard({ listing }: { listing: SeekerListing
 
       <div
         className="absolute"
-        style={{ left: 0, top: "462px", width: "352px", height: "1px", background: "#F6F6F6" }}
+        style={{ left: 0, right: 0, top: "462px", height: "1px", background: "#F6F6F6" }}
       />
 
       <div
         className="absolute flex items-center justify-between"
-        style={{ left: "16px", top: "478px", width: "320px", height: "40px" }}
+        style={{ left: "16px", right: "16px", top: "478px", height: "40px" }}
       >
         <div className="flex items-center" style={{ gap: "12px" }}>
           <div

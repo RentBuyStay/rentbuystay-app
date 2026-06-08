@@ -2,15 +2,54 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
+import {
+  useVerifyEmailMutation,
+  useVerifyDeviceMutation,
+  useResendOtpMutation,
+} from "@/services/authApi";
+import { useLazyGetMeQuery } from "@/services/meApi";
+import { useAppDispatch } from "@/store/hooks";
+import { setCredentials } from "@/features/auth/authSlice";
+import { unwrapApiError } from "@/services/api";
+import {
+  getOnboarding,
+  clearOnboarding,
+  type OnboardingState,
+} from "@/lib/onboarding";
 
-const RESEND_SECONDS = 57;
+// Backend OTP is 4 digits with a 60s resend cooldown (rbs.auth.otp).
+const OTP_LENGTH = 4;
+const RESEND_SECONDS = 60;
 
 export default function VerifyEmailPage() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [verifyEmail, { isLoading: verifyingEmail }] = useVerifyEmailMutation();
+  const [verifyDevice, { isLoading: verifyingDevice }] = useVerifyDeviceMutation();
+  const [resendOtp] = useResendOtpMutation();
+  const [getMe] = useLazyGetMeQuery();
+
+  const [onboarding, setOnboardingState] = useState<OnboardingState | null>(null);
   const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // No in-flight onboarding (e.g. opened directly) → send them back to sign-up.
+  useEffect(() => {
+    const o = getOnboarding();
+    if (!o) {
+      router.replace("/sign-up");
+      return;
+    }
+    // Read once on mount (sessionStorage is unavailable during SSR; lazy init
+    // would cause a hydration mismatch).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOnboardingState(o);
+  }, [router]);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -18,9 +57,45 @@ export default function VerifyEmailPage() {
     return () => clearTimeout(t);
   }, [secondsLeft]);
 
-  const canVerify = code.length === 6;
+  const isLoading = verifyingEmail || verifyingDevice;
+  const canVerify = code.length === OTP_LENGTH && !isLoading && !!onboarding;
   const timer = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
-  const canResend = secondsLeft === 0;
+  const canResend = secondsLeft === 0 && !!onboarding;
+
+  async function handleVerify() {
+    if (!canVerify || !onboarding) return;
+    setError(null);
+    try {
+      if (onboarding.flow === "login-device") {
+        // Trust this device and receive tokens, then resolve the user + role.
+        const tokens = await verifyDevice({ email: onboarding.email, code }).unwrap();
+        dispatch(setCredentials(tokens));
+        await getMe().unwrap();
+        clearOnboarding();
+        router.push("/dashboard");
+      } else {
+        // Signup flow: confirm the email, then set a password.
+        await verifyEmail({ email: onboarding.email, code }).unwrap();
+        router.push("/create-password");
+      }
+    } catch (err) {
+      setError(unwrapApiError(err)?.message ?? "Invalid or expired code. Please try again.");
+    }
+  }
+
+  async function handleResend() {
+    if (!canResend || !onboarding) return;
+    setError(null);
+    try {
+      await resendOtp({
+        email: onboarding.email,
+        purpose: onboarding.flow === "login-device" ? "NEW_DEVICE" : "EMAIL_VERIFY",
+      }).unwrap();
+      setSecondsLeft(RESEND_SECONDS);
+    } catch (err) {
+      setError(unwrapApiError(err)?.message ?? "Could not resend the code.");
+    }
+  }
 
   return (
     <OnboardingShell>
@@ -52,7 +127,7 @@ export default function VerifyEmailPage() {
             textAlign: "center",
           }}
         >
-          Enter the 6-digit code sent to your email address.
+          Enter the {OTP_LENGTH}-digit code sent to{onboarding?.email ? ` ${onboarding.email}` : " your email address"}.
         </p>
       </div>
 
@@ -89,9 +164,9 @@ export default function VerifyEmailPage() {
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              maxLength={6}
+              maxLength={OTP_LENGTH}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))}
               autoFocus
               className="w-full outline-none bg-transparent"
               style={{
@@ -121,7 +196,7 @@ export default function VerifyEmailPage() {
           <button
             type="button"
             disabled={!canResend}
-            onClick={() => setSecondsLeft(RESEND_SECONDS)}
+            onClick={handleResend}
             style={{
               fontSize: "16px",
               lineHeight: "24px",
@@ -141,10 +216,16 @@ export default function VerifyEmailPage() {
         </div>
       </div>
 
-      
-      <Link
-        href={canVerify ? "/create-password" : "#"}
-        aria-disabled={!canVerify}
+      {error && (
+        <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045", textAlign: "left" }}>
+          {error}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleVerify}
+        disabled={!canVerify}
         className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
         style={{
           width: "100%",
@@ -157,11 +238,11 @@ export default function VerifyEmailPage() {
           fontSize: "14px",
           fontWeight: 500,
           opacity: canVerify ? 1 : 0.5,
-          pointerEvents: canVerify ? "auto" : "none",
+          cursor: canVerify ? "pointer" : "not-allowed",
         }}
       >
-        Verify Code
-      </Link>
+        {isLoading ? "Verifying…" : "Verify Code"}
+      </button>
     </OnboardingShell>
   );
 }

@@ -1,105 +1,93 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
+import { useGetMeQuery } from "@/services/meApi";
+import {
+  useGetConversationsQuery,
+  useGetMessagesQuery,
+  useSendMessageMutation,
+  useMarkConversationReadMutation,
+} from "@/services/conversationApi";
+import { useChatSocket } from "@/hooks/useChatSocket";
+import type { ConversationResponse } from "@/services/types";
 
-type Conversation = {
-  id: string;
-  initials: string;
-  name: string;
-  avatar?: string;
-  property: string;
-  preview: string;
-  time: string;
-  unread?: boolean;
-};
+function initials(first?: string, last?: string) {
+  return ((first?.[0] ?? "") + (last?.[0] ?? "")).toUpperCase() || "?";
+}
 
-const CONVERSATIONS: Conversation[] = [
-  {
-    id: "c1",
-    initials: "AT",
-    name: "Ayebatari Temitope",
-    avatar: "/images/agent-pascaline.png",
-    property: "3-Bedroom Flat, Lekki Phase 1",
-    preview: "Good morning, I am interested in visiting the property ...",
-    time: "10:32 AM",
-    unread: true,
-  },
-  {
-    id: "c2",
-    initials: "CN",
-    name: "Chidi Nwosu",
-    property: "Office Space, Ikeja GRA",
-    preview: "Hello, could you please provide more details about the neighborhood?",
-    time: "08:03 AM",
-    unread: true,
-  },
-  {
-    id: "c3",
-    initials: "TA",
-    name: "Tunde Adeleke",
-    property: "Property Request",
-    preview: "If you can increase your budget, I have one mini flat in Ikeja that I can suggest for you.",
-    time: "Yesterday",
-  },
-  {
-    id: "c4",
-    initials: "JC",
-    name: "Jamal Clarke",
-    property: "3-Bedroom Flat, Lekki Phase 1",
-    preview: "Is the property available for immediate move-in? Thanks!",
-    time: "Yesterday",
-  },
-];
+/** The participant who isn't the current user (the person you're chatting with). */
+function otherParty(conv: ConversationResponse, myId?: string) {
+  const other = conv.participants?.find((p) => p.userId !== myId) ?? conv.participants?.[0];
+  const name = `${other?.firstName ?? ""} ${other?.lastName ?? ""}`.trim();
+  return {
+    name: name || conv.title || "Conversation",
+    initials: initials(other?.firstName, other?.lastName),
+    online: other?.online ?? false,
+  };
+}
 
-type Message =
-  | { kind: "incoming"; text: string; time: string }
-  | { kind: "outgoing"; text: string; time: string }
-  | { kind: "outgoing-video"; image: string; duration: string; time: string }
-  | { kind: "property-request"; title: string; price: string; priceSuffix: string; location: string; time: string };
-
-const TUNDE_THREAD: { date: string; messages: Message[] }[] = [
-  {
-    date: "Yesterday",
-    messages: [
-      { kind: "property-request", title: "Mini Flat for Rent", price: "₦1,200,000", priceSuffix: "/year", location: "Ikoyi, Lagos", time: "" },
-      { kind: "outgoing", text: "If you can increase your budget, I have one mini flat in Ikeja that I can suggest for you.", time: "12:25" },
-      { kind: "outgoing-video", image: "/images/prop2.jpg", duration: "02:25", time: "" },
-      { kind: "incoming", text: "Hello chief", time: "12:25" },
-      { kind: "incoming", text: "I’m not sorry, I can’t increase the budget for a mini flat.\nThank you.", time: "12:25" },
-    ],
-  },
-];
+function relTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const diff = Date.now() - d.getTime();
+  if (diff < 86_400_000) return d.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" });
+  if (diff < 172_800_000) return "Yesterday";
+  return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" });
+}
 
 export default function MessagesPage() {
-  const [selected, setSelected] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  // Auto-select a conversation when arriving via ?c=<id> (e.g. from a request's Message button).
+  const [selected, setSelected] = useState<string | null>(searchParams?.get("c") ?? null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("Newest");
-  const [composerText, setComposerText] = useState("");
 
-  const visible = CONVERSATIONS.filter((c) =>
-    !search ||
-    `${c.name} ${c.property} ${c.preview}`.toLowerCase().includes(search.toLowerCase()),
-  );
-  const activeConv = CONVERSATIONS.find((c) => c.id === selected);
+  // Live message delivery over WebSocket (STOMP). Incoming messages are pushed
+  // straight into the RTK cache; the polling below is just a fallback.
+  useChatSocket();
+
+  const { data: me } = useGetMeQuery();
+  const { data: conversations = [], isLoading, isError } = useGetConversationsQuery(undefined, {
+    pollingInterval: 30_000,
+  });
+
+  const visible = useMemo(() => {
+    let list = [...conversations];
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((c) => {
+        const { name } = otherParty(c, me?.id);
+        return `${name} ${c.title ?? ""}`.toLowerCase().includes(q);
+      });
+    }
+    if (sort === "Unread") list = list.filter((c) => c.unreadCount > 0);
+    list.sort((a, b) => {
+      const ta = new Date(a.lastMessageAt ?? a.createdAt ?? 0).getTime();
+      const tb = new Date(b.lastMessageAt ?? b.createdAt ?? 0).getTime();
+      return sort === "Oldest" ? ta - tb : tb - ta;
+    });
+    return list;
+  }, [conversations, search, sort, me?.id]);
+
+  const activeConv = conversations.find((c) => c.id === selected) ?? null;
 
   return (
     <div
       className="flex bg-white"
       style={{
-        // Cancel the parent <main padding:32 40> so the two panes fill the content area edge-to-edge
         margin: "-32px -40px",
         height: "calc(100vh - 80px)",
         border: "1px solid #F6F6F6",
       }}
     >
-      
       <aside
         className="flex flex-col shrink-0"
         style={{ width: "400px", borderRight: "1px solid #F6F6F6", overflow: "hidden" }}
       >
-        {/* Search + sort row */}
         <div
           className="flex items-center"
           style={{ padding: "20px", gap: "12px", borderBottom: "1px solid #F6F6F6" }}
@@ -117,10 +105,7 @@ export default function MessagesPage() {
               style={{ fontSize: "14px", color: "#121212", letterSpacing: "-0.02em" }}
             />
           </div>
-          <div
-            className="flex items-center"
-            style={{ gap: "8px", height: "40px", padding: "8px 12px" }}
-          >
+          <div className="flex items-center" style={{ gap: "8px", height: "40px", padding: "8px 12px" }}>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
@@ -135,97 +120,78 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Conversation list */}
-        <ul className="flex flex-col" style={{ overflowY: "auto", flex: 1 }}>
-          {visible.map((c) => {
-            const isActive = c.id === selected;
-            return (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(c.id)}
-                  className="w-full flex items-start hover:bg-[#FAFAFA] transition-colors text-left"
-                  style={{
-                    padding: "16px 20px",
-                    gap: "12px",
-                    background: isActive ? "rgba(120,158,187,0.1)" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {/* Avatar */}
-                  {c.avatar ? (
-                    <Image
-                      src={c.avatar}
-                      alt=""
-                      width={40}
-                      height={40}
-                      style={{ width: "40px", height: "40px", borderRadius: "100%", objectFit: "cover", flexShrink: 0 }}
-                    />
-                  ) : (
+        {isLoading ? (
+          <div className="flex items-center justify-center" style={{ flex: 1, color: "#807E7E", fontSize: "14px" }}>
+            Loading chats…
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-center" style={{ flex: 1, color: "#807E7E", fontSize: "14px" }}>
+            Couldn&rsquo;t load conversations.
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="flex items-center justify-center text-center" style={{ flex: 1, padding: "40px", color: "#807E7E", fontSize: "14px" }}>
+            No conversations yet.
+          </div>
+        ) : (
+          <ul className="flex flex-col" style={{ overflowY: "auto", flex: 1 }}>
+            {visible.map((c) => {
+              const isActive = c.id === selected;
+              const { name, initials: ini } = otherParty(c, me?.id);
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(c.id)}
+                    className="w-full flex items-start hover:bg-[#FAFAFA] transition-colors text-left"
+                    style={{
+                      padding: "16px 20px",
+                      gap: "12px",
+                      background: isActive ? "rgba(120,158,187,0.1)" : "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
                     <div
                       className="rounded-full flex items-center justify-center shrink-0"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        background: "#305E82",
-                        color: "#FFFFFF",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
+                      style={{ width: "40px", height: "40px", background: "#305E82", color: "#FFFFFF", fontSize: "14px", fontWeight: 600 }}
                     >
-                      {c.initials}
+                      {ini}
                     </div>
-                  )}
-
-                  {/* Body */}
-                  <div className="flex flex-col flex-1 min-w-0" style={{ gap: "2px" }}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center" style={{ gap: "6px" }}>
-                        <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
-                          {c.name}
+                    <div className="flex flex-col flex-1 min-w-0" style={{ gap: "2px" }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center" style={{ gap: "6px" }}>
+                          <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
+                            {name}
+                          </span>
+                          {c.unreadCount > 0 && (
+                            <span style={{ width: "8px", height: "8px", borderRadius: "100%", background: "#FFAE00" }} />
+                          )}
+                        </div>
+                        <span style={{ fontSize: "12px", color: "#807E7E", whiteSpace: "nowrap" }}>
+                          {relTime(c.lastMessageAt ?? c.createdAt)}
                         </span>
-                        {c.unread && (
-                          <span
-                            style={{
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "100%",
-                              background: "#FFAE00",
-                            }}
-                          />
-                        )}
                       </div>
-                      <span style={{ fontSize: "12px", color: "#807E7E", whiteSpace: "nowrap" }}>{c.time}</span>
+                      {c.title && (
+                        <span className="line-clamp-1" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: 500, color: "#305E82" }}>
+                          {c.title}
+                        </span>
+                      )}
+                      <span className="line-clamp-1" style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>
+                        {c.unreadCount > 0 ? `${c.unreadCount} unread` : "Tap to open"}
+                      </span>
                     </div>
-                    <span
-                      className="line-clamp-1"
-                      style={{ fontSize: "13px", lineHeight: "18px", fontWeight: 500, color: "#305E82" }}
-                    >
-                      {c.property}
-                    </span>
-                    <span
-                      className="line-clamp-1"
-                      style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}
-                    >
-                      {c.preview}
-                    </span>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </aside>
 
-      
       <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
         {!activeConv ? (
           <div className="flex flex-col items-center justify-center" style={{ flex: 1, gap: "24px" }}>
-            <div
-              className="flex items-center justify-center rounded-full"
-              style={{ width: "180px", height: "180px", background: "#F4F8FB" }}
-            >
+            <div className="flex items-center justify-center rounded-full" style={{ width: "180px", height: "180px", background: "#F4F8FB" }}>
               <Image src="/icons/dash/nav-messages.svg" alt="" width={64} height={64} />
             </div>
             <div className="flex flex-col items-center" style={{ gap: "8px" }}>
@@ -233,12 +199,17 @@ export default function MessagesPage() {
                 Continue chatting
               </h2>
               <p style={{ fontSize: "14px", lineHeight: "20px", color: "#807E7E" }}>
-                Click on any chats to continue chatting with them.
+                Click on any chat to continue chatting with them.
               </p>
             </div>
           </div>
         ) : (
-          <ConversationView conversation={activeConv} composer={composerText} setComposer={setComposerText} />
+          <ConversationView
+            key={activeConv.id}
+            conversation={activeConv}
+            myId={me?.id}
+            canSchedule={me?.userType === "PROPERTY_SEEKER"}
+          />
         )}
       </div>
     </div>
@@ -249,146 +220,145 @@ export default function MessagesPage() {
 
 function ConversationView({
   conversation,
-  composer,
-  setComposer,
+  myId,
+  canSchedule,
 }: {
-  conversation: Conversation;
-  composer: string;
-  setComposer: (v: string) => void;
+  conversation: ConversationResponse;
+  myId?: string;
+  // Scheduling an inspection is a seeker action (the backend forbids hosts from
+  // requesting inspections on their own properties), so hide it for owners/agents.
+  canSchedule?: boolean;
 }) {
-  // Use Tunde's thread as sample data when c3 is selected; otherwise empty thread
-  const thread = conversation.id === "c3" ? TUNDE_THREAD : [];
+  const [composer, setComposer] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { name, initials: ini, online } = otherParty(conversation, myId);
+  // WebSocket pushes new messages into this cache live; a slow poll covers any
+  // dropped connection.
+  const { data: messages = [] } = useGetMessagesQuery(
+    { id: conversation.id },
+    { pollingInterval: 30_000 }
+  );
+  const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
+  const [markRead] = useMarkConversationReadMutation();
+
+  // Mark the conversation read whenever it's opened or new messages arrive.
+  useEffect(() => {
+    if (conversation.unreadCount > 0) markRead(conversation.id);
+  }, [conversation.id, conversation.unreadCount, markRead]);
+
+  // Keep the view pinned to the latest message.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [messages.length]);
+
+  async function handleSend() {
+    const body = composer.trim();
+    if (!body || sending) return;
+    setComposer("");
+    try {
+      await sendMessage({ id: conversation.id, body }).unwrap();
+    } catch {
+      setComposer(body); // restore on failure
+    }
+  }
+
   return (
     <>
-      
       <div
         className="flex items-center justify-between shrink-0"
-        style={{
-          height: "104px",
-          padding: "20px 24px",
-          borderBottom: "1px solid #F6F6F6",
-        }}
+        style={{ height: "104px", padding: "20px 24px", borderBottom: "1px solid #F6F6F6" }}
       >
         <div className="flex items-center" style={{ gap: "12px" }}>
           <div
             className="rounded-full flex items-center justify-center shrink-0"
-            style={{
-              width: "48px",
-              height: "48px",
-              background: "#305E82",
-              color: "#FFFFFF",
-              fontSize: "16px",
-              fontWeight: 600,
-            }}
+            style={{ width: "48px", height: "48px", background: "#305E82", color: "#FFFFFF", fontSize: "16px", fontWeight: 600 }}
           >
-            {conversation.initials}
+            {ini}
           </div>
           <div className="flex flex-col" style={{ gap: "4px" }}>
             <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
-              {conversation.name}
+              {name}
             </span>
             <div className="flex items-center" style={{ gap: "6px" }}>
-              <span
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "100%",
-                  background: "#00B756",
-                }}
-              />
-              <span style={{ fontSize: "12px", lineHeight: "16px", color: "#00B756", fontWeight: 500 }}>
-                Active
+              <span style={{ width: "8px", height: "8px", borderRadius: "100%", background: online ? "#00B756" : "#807E7E" }} />
+              <span style={{ fontSize: "12px", lineHeight: "16px", color: online ? "#00B756" : "#807E7E", fontWeight: 500 }}>
+                {online ? "Active" : "Offline"}
               </span>
             </div>
           </div>
         </div>
         <div className="flex items-center" style={{ gap: "16px" }}>
-          <button
-            type="button"
-            aria-label="Call"
-            className="hover:opacity-80"
-            style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
+          <button type="button" aria-label="Call" className="hover:opacity-80" style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Image src="/icons/dash/call.svg" alt="" width={20} height={20} />
           </button>
-          <button
-            type="button"
-            aria-label="WhatsApp"
-            className="hover:opacity-80"
-            style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
+          <button type="button" aria-label="WhatsApp" className="hover:opacity-80" style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Image src="/icons/dash/whatsapp.svg" alt="" width={20} height={20} />
           </button>
         </div>
       </div>
 
-      {/* Messages area */}
-      <div
-        className="flex flex-col"
-        style={{ flex: 1, padding: "24px", gap: "16px", overflowY: "auto" }}
-      >
-        {thread.length === 0 ? (
+      <div ref={scrollRef} className="flex flex-col" style={{ flex: 1, padding: "24px", gap: "12px", overflowY: "auto" }}>
+        {messages.length === 0 ? (
           <div className="flex items-center justify-center flex-1" style={{ color: "#807E7E", fontSize: "14px" }}>
             No messages yet. Send the first one below.
           </div>
         ) : (
-          thread.map((group) => (
-            <div key={group.date} className="flex flex-col" style={{ gap: "16px" }}>
-              {/* Date divider */}
-              <div className="flex items-center justify-center">
-                <span style={{ fontSize: "12px", lineHeight: "16px", color: "#807E7E", fontWeight: 500 }}>
-                  {group.date}
-                </span>
+          messages.map((m) => {
+            const mine = m.senderUserId === myId;
+            return (
+              <div key={m.id} className="flex" style={{ justifyContent: mine ? "flex-end" : "flex-start" }}>
+                <div
+                  className="flex flex-col"
+                  style={{
+                    maxWidth: "420px",
+                    padding: "10px 14px",
+                    gap: "4px",
+                    background: mine ? "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)" : "#F6F6F6",
+                    color: mine ? "#FFFFFF" : "#121212",
+                    borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                  }}
+                >
+                  <span style={{ fontSize: "14px", lineHeight: "20px", whiteSpace: "pre-wrap" }}>{m.body}</span>
+                  <span style={{ fontSize: "10px", lineHeight: "14px", color: mine ? "rgba(255,255,255,0.7)" : "#807E7E", alignSelf: "flex-end" }}>
+                    {relTime(m.createdAt)}
+                  </span>
+                </div>
               </div>
-              {group.messages.map((m, i) => (
-                <MessageRow key={i} message={m} />
-              ))}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
-      {/* Composer — calendar-edit + paperclip-2 icons + text input + Send */}
-      <div
-        className="flex items-center shrink-0"
-        style={{ padding: "16px 24px", gap: "12px", borderTop: "1px solid #F6F6F6" }}
-      >
-        
-        <button
-          type="button"
-          aria-label="Schedule inspection"
-          onClick={() => setScheduleOpen(true)}
-          className="hover:opacity-80"
-          style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
-          <Image src="/icons/dash/calendar-edit.svg" alt="" width={24} height={24} />
-        </button>
-        <button
-          type="button"
-          aria-label="Attach"
-          className="hover:opacity-80"
-          style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
+      <div className="flex items-center shrink-0" style={{ padding: "16px 24px", gap: "12px", borderTop: "1px solid #F6F6F6" }}>
+        {canSchedule && (
+          <button type="button" aria-label="Schedule inspection" onClick={() => setScheduleOpen(true)} className="hover:opacity-80" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+            <Image src="/icons/dash/calendar-edit.svg" alt="" width={24} height={24} />
+          </button>
+        )}
+        <button type="button" aria-label="Attach" className="hover:opacity-80" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
           <Image src="/icons/dash/paperclip.svg" alt="" width={24} height={24} />
         </button>
-        <div
-          className="flex-1 flex items-center"
-          style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}
-        >
+        <div className="flex-1 flex items-center" style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}>
           <input
             value={composer}
             onChange={(e) => setComposer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder="Type your message here..."
             className="flex-1 outline-none bg-transparent"
             style={{ fontSize: "14px", color: "#121212", letterSpacing: "-0.02em" }}
           />
         </div>
-        
         <button
           type="button"
-          onClick={() => setComposer("")}
-          disabled={!composer.trim()}
+          onClick={handleSend}
+          disabled={!composer.trim() || sending}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
             height: "48px",
@@ -399,8 +369,8 @@ function ConversationView({
             borderRadius: "12px",
             fontSize: "14px",
             fontWeight: 500,
-            opacity: composer.trim() ? 1 : 0.6,
-            cursor: composer.trim() ? "pointer" : "not-allowed",
+            opacity: composer.trim() && !sending ? 1 : 0.6,
+            cursor: composer.trim() && !sending ? "pointer" : "not-allowed",
           }}
         >
           Send
@@ -408,141 +378,9 @@ function ConversationView({
         </button>
       </div>
 
-      <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
+      {canSchedule && (
+        <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
+      )}
     </>
-  );
-}
-
-function MessageRow({ message }: { message: Message }) {
-  if (message.kind === "property-request") {
-    return (
-      <div className="flex justify-end">
-        <div
-          className="flex flex-col"
-          style={{
-            maxWidth: "360px",
-            padding: "16px",
-            gap: "12px",
-            background: "#FFFFFF",
-            border: "1px solid #F6F6F6",
-            borderRadius: "16px 16px 4px 16px",
-          }}
-        >
-          <span
-            style={{
-              alignSelf: "flex-start",
-              padding: "4px 10px",
-              fontSize: "10px",
-              lineHeight: "16px",
-              fontWeight: 600,
-              letterSpacing: "0.05em",
-              color: "#8A38F5",
-              background: "rgba(138,56,245,0.1)",
-              borderRadius: "100px",
-            }}
-          >
-            PROPERTY REQUEST
-          </span>
-          <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
-            {message.title}
-          </span>
-          <div className="flex items-center" style={{ gap: "8px" }}>
-            <span style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#305E82" }}>
-              {message.price}
-              <span style={{ fontSize: "14px", fontWeight: 400, color: "#807E7E" }}>{message.priceSuffix}</span>
-            </span>
-          </div>
-          <div className="flex items-center" style={{ gap: "4px" }}>
-            <Image src="/icons/dash/card-location.svg" alt="" width={16} height={16} />
-            <span style={{ fontSize: "12px", color: "#807E7E" }}>{message.location}</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (message.kind === "outgoing-video") {
-    return (
-      <div className="flex justify-end">
-        <div
-          className="relative overflow-hidden"
-          style={{ width: "320px", height: "200px", borderRadius: "16px 16px 4px 16px" }}
-        >
-          <Image src={message.image} alt="" fill style={{ objectFit: "cover" }} sizes="320px" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div
-              className="rounded-full flex items-center justify-center"
-              style={{ width: "56px", height: "56px", background: "rgba(255,255,255,0.9)" }}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M5 3L17 10L5 17V3Z" fill="#121212" />
-              </svg>
-            </div>
-          </div>
-          
-          <div
-            className="absolute flex items-center"
-            style={{
-              right: "12px",
-              bottom: "12px",
-              padding: "4px 8px",
-              background: "rgba(0,0,0,0.6)",
-              color: "#FFFFFF",
-              borderRadius: "6px",
-              gap: "4px",
-            }}
-          >
-            <span style={{ fontSize: "11px", fontWeight: 500 }}>{message.duration}</span>
-            <Image src="/icons/dash/msg-checks.svg" alt="✓✓" width={12} height={12} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const isOutgoing = message.kind === "outgoing";
-  return (
-    <div className={`flex ${isOutgoing ? "justify-end" : "justify-start"}`}>
-      <div
-        className="flex flex-col"
-        style={{
-          maxWidth: "440px",
-          padding: "10px 14px",
-          gap: "4px",
-          background: isOutgoing ? "#305E82" : "#F6F6F6",
-          color: isOutgoing ? "#FFFFFF" : "#121212",
-          borderRadius: isOutgoing ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "14px",
-            lineHeight: "20px",
-            whiteSpace: "pre-line",
-          }}
-        >
-          {message.text}
-        </span>
-        {message.time && (
-          <div
-            className="flex items-center"
-            style={{ alignSelf: "flex-end", gap: "4px" }}
-          >
-            <span
-              style={{
-                fontSize: "11px",
-                color: isOutgoing ? "rgba(255,255,255,0.7)" : "#807E7E",
-              }}
-            >
-              {message.time}
-            </span>
-            
-            {isOutgoing && (
-              <Image src="/icons/dash/msg-checks.svg" alt="✓✓" width={12} height={12} />
-            )}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getRole, type AccountRole } from "@/lib/role";
-import SeekerPropertyCard, { type SeekerListing } from "@/components/SeekerPropertyCard";
+import SeekerPropertyCard from "@/components/SeekerPropertyCard";
 import {
   AreaChart,
   Area,
@@ -16,6 +16,19 @@ import {
   ReferenceDot,
 } from "recharts";
 import StartVerificationCTA from "@/components/StartVerificationCTA";
+import { useGetMeQuery } from "@/services/meApi";
+import {
+  useGetMyPropertiesQuery,
+  useGetActivePropertiesQuery,
+  useGetSavedPropertiesQuery,
+  useSavePropertyMutation,
+  useUnsavePropertyMutation,
+} from "@/services/propertyApi";
+import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
+import { useGetConversationsQuery } from "@/services/conversationApi";
+import { toSeekerListing } from "@/lib/property";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
 
 type Metric = {
   label: string;
@@ -91,107 +104,52 @@ type SeekerMetric = {
   icon: string;
   label: string;
   value: string;
-  trendPrefix: string;
-  trendSuffix: string;
-  direction: "up" | "down";
+  trendPrefix?: string;
+  trendSuffix?: string;
+  direction?: "up" | "down";
 };
 
-const SEEKER_METRICS: SeekerMetric[] = [
-  { icon: "/icons/dash/nav-saved.svg", label: "Saved Properties", value: "5", trendPrefix: "+2", trendSuffix: "this week", direction: "up" },
-  { icon: "/icons/dash/nav-messages.svg", label: "Unread Messages", value: "4", trendPrefix: "5%", trendSuffix: "this week", direction: "down" },
-  { icon: "/icons/dash/nav-calendar.svg", label: "Upcoming Appointments", value: "3", trendPrefix: "+13%", trendSuffix: "this week", direction: "up" },
-];
-
-const SEEKER_RECOMMENDED: SeekerListing[] = [
-  {
-    id: "s1",
-    title: "Luxury Penthouse, Eko Atlantic",
-    location: "Eko Atlantic City, Lagos",
-    price: "₦1,200,000,000",
-    tag: "FOR SALE",
-    sqft: "4200 sqft",
-    beds: 4,
-    baths: 5,
-    image: "/images/prop1.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Swimming Pool", "Gym", "Smart Home"],
-    seller: { name: "Gabriel Okechukwu", initials: "GO", verified: true },
-  },
-  {
-    id: "s2",
-    title: "2-Bedroom Flat, Jibowu, Yaba",
-    location: "Yaba, Lagos",
-    price: "₦1,800,000",
-    priceSuffix: "/yr",
-    tag: "FOR RENT",
-    sqft: "2000 sqft",
-    beds: 3,
-    baths: 3,
-    image: "/images/prop5.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Borehole Water", "Internet/WiFi", "Tiled Floor"],
-    seller: { name: "Aishat Dada", initials: "AD", verified: true, avatarUrl: "/images/seekers/aishat-dada.png" },
-  },
-  {
-    id: "s3",
-    title: "2-Bedroom Apartment, Victoria Island",
-    location: "Victoria Island, Lagos",
-    price: "₦450,000",
-    priceSuffix: "/night",
-    tag: "SHORTLET",
-    sqft: "1800 sqft",
-    beds: 3,
-    baths: 2,
-    image: "/images/prop2.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Furnished", "Swimming Pool", "Internet/WiFi"],
-    seller: { name: "Dare Okoye", initials: "DO", verified: true, avatarUrl: "/images/seekers/dare-okoye.png" },
-  },
-  {
-    id: "s4",
-    title: "Office Space, Ikeja GRA",
-    location: "Ikeja GRA, Lagos",
-    price: "₦3,400,000",
-    priceSuffix: "/yr",
-    tag: "FOR RENT",
-    sqft: "1200 sqft",
-    beds: 2,
-    baths: 1,
-    image: "/images/prop3.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Backup Generator", "High Speed Internet"],
-    seller: { name: "Stanley Alabi", initials: "SA", verified: true },
-  },
-  {
-    id: "s5",
-    title: "1-Bedroom Serviced Apartment, Oniru",
-    location: "Oniru Estate, Lagos",
-    price: "₦160,000",
-    priceSuffix: "/night",
-    tag: "SHORTLET",
-    sqft: "560 sqft",
-    beds: 2,
-    baths: 1,
-    image: "/images/prop2.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Furnished", "Air Conditioning"],
-    seller: { name: "Olaide Batifeori", initials: "OB", verified: true, avatarUrl: "/images/seekers/olaide-batifeori.png" },
-  },
-  {
-    id: "s6",
-    title: "4-Bedroom Duplex, Ikoyi",
-    location: "Ikoyi, Lagos",
-    price: "₦260,000,000",
-    tag: "FOR SALE",
-    sqft: "5000 sqft",
-    beds: 5,
-    baths: 6,
-    image: "/images/prop4.jpg",
-    amenities: ["Newly Built", "24/7 Security", "Swimming Pool", "Smart Home", "Gym Facility"],
-    seller: { name: "Seun Olaoye", initials: "SO", verified: true },
-  },
-];
-
 function SeekerDashboardPlaceholder() {
+  const { data: propPage, isLoading } = useGetActivePropertiesQuery({ page: 0, size: 6 });
+  const { data: savedPage } = useGetSavedPropertiesQuery({ page: 0, size: 100 });
+  const { data: inspections } = useGetMyInspectionsQuery();
+  const { data: conversations } = useGetConversationsQuery();
+  const [saveProperty] = useSavePropertyMutation();
+  const [unsaveProperty] = useUnsavePropertyMutation();
+  const { toast } = useToast();
+
+  const savedIds = new Set((savedPage?.content ?? []).map((p) => p.id));
+  const recommended = (propPage?.content ?? []).map(toSeekerListing);
+  const upcoming = (inspections ?? []).filter(
+    (i) => i.status === "PENDING" || i.status === "CONFIRMED"
+  ).length;
+  const unreadMessages = (conversations ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+
+  // Real counts; no fabricated trend deltas.
+  const metrics: SeekerMetric[] = [
+    { icon: "/icons/dash/nav-saved.svg", label: "Saved Properties", value: String(savedPage?.totalElements ?? 0) },
+    { icon: "/icons/dash/nav-messages.svg", label: "Unread Messages", value: String(unreadMessages) },
+    { icon: "/icons/dash/nav-calendar.svg", label: "Upcoming Appointments", value: String(upcoming) },
+  ];
+
+  async function toggleSave(id: string, currentlySaved: boolean) {
+    try {
+      if (currentlySaved) {
+        await unsaveProperty(id).unwrap();
+        toast("Removed from saved", "info");
+      } else {
+        await saveProperty(id).unwrap();
+        toast("Saved to your list", "success");
+      }
+    } catch (e) {
+      toast(unwrapApiError(e)?.message ?? "Couldn’t update your saved list.", "error");
+    }
+  }
+
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
       <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-        {SEEKER_METRICS.map((m) => (
+        {metrics.map((m) => (
           <SeekerMetricTile key={m.label} metric={m} />
         ))}
       </div>
@@ -216,11 +174,26 @@ function SeekerDashboardPlaceholder() {
           </Link>
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3, 352px)", gap: "24px 16px" }}>
-          {SEEKER_RECOMMENDED.map((listing) => (
-            <SeekerPropertyCard key={listing.id} listing={listing} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "64px", color: "#807E7E", fontSize: "14px" }}>
+            Loading recommendations…
+          </div>
+        ) : recommended.length === 0 ? (
+          <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "64px", color: "#807E7E", fontSize: "14px" }}>
+            No recommendations yet. Browse properties to get started.
+          </div>
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}>
+            {recommended.map((listing) => (
+              <SeekerPropertyCard
+                key={listing.id}
+                listing={listing}
+                saved={savedIds.has(listing.id)}
+                onToggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -248,67 +221,69 @@ function SeekerMetricTile({ metric }: { metric: SeekerMetric }) {
         <span style={{ fontSize: "32px", lineHeight: "40px", fontWeight: 600, color: "#121212" }}>
           {metric.value}
         </span>
-        <div className="flex items-center" style={{ gap: "4px" }}>
-          <Image
-            src={up ? "/icons/dash/arrow-up.svg" : "/icons/dash/arrow-down-red.svg"}
-            alt=""
-            width={16}
-            height={16}
-          />
-          <span
-            style={{
-              fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
-              fontSize: "12px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: up ? "#027B2A" : "#CF3801",
-            }}
-          >
-            {metric.trendPrefix}
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
-              fontSize: "12px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: "#807E7E",
-            }}
-          >
-            {metric.trendSuffix}
-          </span>
-        </div>
+        {metric.trendPrefix && (
+          <div className="flex items-center" style={{ gap: "4px" }}>
+            <Image
+              src={up ? "/icons/dash/arrow-up.svg" : "/icons/dash/arrow-down-red.svg"}
+              alt=""
+              width={16}
+              height={16}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+                fontSize: "12px",
+                lineHeight: "24px",
+                fontWeight: 400,
+                color: up ? "#027B2A" : "#CF3801",
+              }}
+            >
+              {metric.trendPrefix}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+                fontSize: "12px",
+                lineHeight: "24px",
+                fontWeight: 400,
+                color: "#807E7E",
+              }}
+            >
+              {metric.trendSuffix}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function OwnerDashboardHome() {
-  const [verified, setVerified] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const { data: me } = useGetMeQuery();
+  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
 
-  useEffect(() => {
-    setMounted(true);
-    setVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
-    function onStorage(e: StorageEvent) {
-      if (e.key === "rbs-dashboard-verified") {
-        setVerified(e.newValue === "1");
-      }
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  // Verification gating is driven by the real KYC status from GET /me.
+  const verified = Boolean(me?.verification?.complete);
+
+  // Surface the real listing count; other metrics stay as placeholders until
+  // the analytics endpoints (/properties/analytics/mine) are wired.
+  const baseMetrics = verified ? VERIFIED_METRICS : UNVERIFIED_METRICS;
+  const metrics = baseMetrics.map((m) =>
+    m.label === "Total Listings" && myProps
+      ? { ...m, value: String(myProps.totalElements) }
+      : m
+  );
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
-        {(mounted && verified ? VERIFIED_METRICS : UNVERIFIED_METRICS).map((m) => (
+        {metrics.map((m) => (
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
 
-      {mounted && verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
     </div>
   );
 }

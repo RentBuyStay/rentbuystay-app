@@ -3,31 +3,64 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
-import { setRole } from "@/lib/role";
-import { verifyCredentials } from "@/lib/auth";
+import { useLoginMutation } from "@/services/authApi";
+import { useLazyGetMeQuery } from "@/services/meApi";
+import { useAppDispatch } from "@/store/hooks";
+import { setCredentials } from "@/features/auth/authSlice";
+import { unwrapApiError } from "@/services/api";
+import { NEW_DEVICE_REQUIRES_OTP } from "@/services/types";
+import { getOnboarding, setOnboarding, clearOnboarding } from "@/lib/onboarding";
 
 export default function LogInPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [login, { isLoading: loggingIn }] = useLoginMutation();
+  const [getMe, { isFetching: fetchingMe }] = useLazyGetMeQuery();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSignIn = !!(email && password);
+  // Prefill the email if we just came from the sign-up wizard.
+  useEffect(() => {
+    // Read once on mount (sessionStorage is client-only).
+    const o = getOnboarding();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (o?.email) setEmail(o.email);
+  }, []);
 
-  function handleSignIn() {
+  const isLoading = loggingIn || fetchingMe;
+  const canSignIn = !!(email && password) && !isLoading;
+
+  async function handleSignIn() {
     if (!canSignIn) return;
-    const role = verifyCredentials(email, password);
-    if (!role) {
-      setError("Invalid email or password.");
-      return;
-    }
     setError(null);
-    setRole(role);
-    router.push("/dashboard");
+    const trimmedEmail = email.trim();
+    try {
+      const tokens = await login({ email: trimmedEmail, password }).unwrap();
+      // Ensure the token is in the store before GET /me reads it for its header.
+      dispatch(setCredentials(tokens));
+      await getMe().unwrap(); // resolves role + user; sets the dashboard role
+      clearOnboarding();
+      router.push("/dashboard");
+    } catch (err) {
+      const code = unwrapApiError(err)?.code;
+      if (code === NEW_DEVICE_REQUIRES_OTP) {
+        // Unrecognised device: backend sent a NEW_DEVICE OTP — go verify it.
+        setOnboarding({ email: trimmedEmail, flow: "login-device" });
+        router.push("/verify-email");
+        return;
+      }
+      if (code === "EMAIL_NOT_VERIFIED") {
+        setOnboarding({ email: trimmedEmail, flow: "signup" });
+        router.push("/verify-email");
+        return;
+      }
+      setError(unwrapApiError(err)?.message ?? "Invalid email or password.");
+    }
   }
 
   return (
@@ -162,7 +195,7 @@ export default function LogInPage() {
           <div className="flex items-center justify-between">
             <label className="flex items-center cursor-pointer" style={{ gap: "8px" }}>
               <span
-                onClick={() => setRemember((v) => !v)}
+                aria-hidden="true"
                 className="shrink-0 flex items-center justify-center"
                 style={{
                   width: "24px",
@@ -249,7 +282,7 @@ export default function LogInPage() {
             cursor: canSignIn ? "pointer" : "not-allowed",
           }}
         >
-          Sign In
+          {isLoading ? "Signing in…" : "Sign In"}
         </button>
 
         

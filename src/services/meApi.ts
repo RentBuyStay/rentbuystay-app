@@ -1,0 +1,36 @@
+import { api } from "./api";
+import { endpoints } from "./endpoints";
+import { setRole, setUser } from "@/features/auth/authSlice";
+import { userTypeToRole } from "@/lib/userType";
+import type { ApiEnvelope, MeResponse } from "./types";
+
+export const meApi = api.injectEndpoints({
+  endpoints: (builder) => ({
+    // Consolidated current-user snapshot (user + profile + org + verification +
+    // counts). Call after login to resolve the user's role and populate the UI.
+    getMe: builder.query<MeResponse, void>({
+      query: () => ({ url: endpoints.me, method: "GET" }),
+      transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
+      providesTags: ["Me"],
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setRole(userTypeToRole(data.userType)));
+          dispatch(
+            setUser({
+              id: data.id,
+              email: data.email,
+              firstName: data.profile?.firstName,
+              lastName: data.profile?.lastName,
+            })
+          );
+        } catch {
+          /* unauthenticated or network error — handled by the caller */
+        }
+      },
+    }),
+  }),
+  overrideExisting: false,
+});
+
+export const { useGetMeQuery, useLazyGetMeQuery } = meApi;

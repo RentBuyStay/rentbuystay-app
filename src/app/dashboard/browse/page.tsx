@@ -6,7 +6,18 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import SeekerPropertyCard, { type SeekerListing } from "@/components/SeekerPropertyCard";
 import SeekerPropertyRow from "@/components/SeekerPropertyRow";
-import { SEEKER_LISTINGS } from "@/lib/seekerListings";
+import {
+  useGetActivePropertiesQuery,
+  useGetSavedPropertiesQuery,
+  useSavePropertyMutation,
+  useUnsavePropertyMutation,
+} from "@/services/propertyApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
+import { toSeekerListing } from "@/lib/property";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
+
+const PAGE_SIZE = 12;
 
 const BrowseLeafletMap = dynamic(() => import("@/components/BrowseLeafletMap"), {
   ssr: false,
@@ -28,27 +39,103 @@ const BrowseLeafletMap = dynamic(() => import("@/components/BrowseLeafletMap"), 
   ),
 });
 
-const PROPERTY_TYPES = ["Flats & Apartments", "House", "Duplex", "Bungalow", "Office Space", "Land", "Other"];
-const BEDROOMS = ["1", "2", "3", "4", "5+"];
+const BEDROOMS = ["Any", "1", "2", "3", "4", "5+"];
 const MIN_PRICE = ["No min", "₦100k", "₦500k", "₦1m", "₦5m", "₦10m"];
 const MAX_PRICE = ["No max", "₦500k", "₦1 million", "₦5 million", "₦10 million", "₦100 million"];
 const FURNISHED = ["Any", "Furnished", "Unfurnished", "Semi-Furnished"];
 const SORT = ["Newest", "Oldest", "Price: Low to High", "Price: High to Low"];
 
+const LISTING_FROM_FILTER: Record<string, string> = {
+  "For Sale": "BUY",
+  "For Rent": "RENT",
+  Shortlet: "SHORTLET",
+};
 
-const TOTAL_PAGES = 12;
+/** Parse a price dropdown label (e.g. "₦500k", "₦1 million") to a number, or null. */
+function parsePriceFilter(s: string): number | null {
+  if (!s || /^no (min|max)$/i.test(s)) return null;
+  const t = s.toLowerCase().replace(/[₦,\s]/g, "").replace("million", "m");
+  const m = t.match(/^([\d.]+)(k|m)?$/);
+  if (!m) return null;
+  let n = parseFloat(m[1]);
+  if (m[2] === "k") n *= 1_000;
+  if (m[2] === "m") n *= 1_000_000;
+  return n;
+}
+
+/** Min-bedrooms from the dropdown ("Any" → null, "5+" → 5). */
+function parseBedroomsFilter(s: string): number | null {
+  if (!s || s === "Any") return null;
+  return parseInt(s, 10) || null;
+}
+
 
 export default function BrowsePropertiesPage() {
   const [search, setSearch] = useState("");
   const [filterAll, setFilterAll] = useState("All");
-  const [propertyType, setPropertyType] = useState(PROPERTY_TYPES[0]);
-  const [bedrooms, setBedrooms] = useState(BEDROOMS[0]);
+  const [propertyType, setPropertyType] = useState("Any");
+  const [bedrooms, setBedrooms] = useState("Any");
   const [minPrice, setMinPrice] = useState(MIN_PRICE[0]);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE[2]);
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE[0]);
   const [furnished, setFurnished] = useState(FURNISHED[0]);
   const [sort, setSort] = useState(SORT[0]);
   const [view, setView] = useState<"grid" | "list" | "map">("grid");
   const [page, setPage] = useState(1);
+
+  const { data: propPage, isLoading, isError } = useGetActivePropertiesQuery({ page: 0, size: 100 });
+  const { data: savedPage } = useGetSavedPropertiesQuery({ page: 0, size: 100 });
+  const { data: propertyTypes = [] } = useGetPropertyTypesQuery();
+  const [saveProperty] = useSavePropertyMutation();
+  const [unsaveProperty] = useUnsavePropertyMutation();
+  const { toast } = useToast();
+
+  const savedIds = new Set((savedPage?.content ?? []).map((p) => p.id));
+  const typeOptions = ["Any", ...propertyTypes.map((t) => t.displayName)];
+
+  // The backend currently ignores GET /properties filter/sort params, so filter
+  // and sort client-side on the raw response (we have price/beds/type/listing).
+  const selectedTypeId = propertyTypes.find((t) => t.displayName === propertyType)?.id;
+  const minP = parsePriceFilter(minPrice);
+  const maxP = parsePriceFilter(maxPrice);
+  const minBeds = parseBedroomsFilter(bedrooms);
+  const q = search.trim().toLowerCase();
+
+  const filteredRaw = (propPage?.content ?? []).filter((p) => {
+    if (filterAll !== "All" && p.listingType !== LISTING_FROM_FILTER[filterAll]) return false;
+    if (selectedTypeId != null && p.propertyTypeId !== selectedTypeId) return false;
+    if (minBeds != null && (p.bedrooms ?? 0) < minBeds) return false;
+    if (minP != null && (p.price ?? 0) < minP) return false;
+    if (maxP != null && (p.price ?? 0) > maxP) return false;
+    if (q && !`${p.title} ${p.city ?? ""} ${p.state ?? ""} ${p.address ?? ""}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const sortedRaw = [...filteredRaw].sort((a, b) => {
+    if (sort === "Price: Low to High") return (a.price ?? 0) - (b.price ?? 0);
+    if (sort === "Price: High to Low") return (b.price ?? 0) - (a.price ?? 0);
+    const ta = new Date(a.createdAt ?? 0).getTime();
+    const tb = new Date(b.createdAt ?? 0).getTime();
+    return sort === "Oldest" ? ta - tb : tb - ta; // Newest default
+  });
+
+  const filtered: SeekerListing[] = sortedRaw.map(toSeekerListing);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visible = view === "map" ? filtered : filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  async function toggleSave(id: string, currentlySaved: boolean) {
+    try {
+      if (currentlySaved) {
+        await unsaveProperty(id).unwrap();
+        toast("Removed from saved", "info");
+      } else {
+        await saveProperty(id).unwrap();
+        toast("Saved to your list", "success");
+      }
+    } catch (e) {
+      toast(unwrapApiError(e)?.message ?? "Couldn’t update your saved list.", "error");
+    }
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: "40px" }}>
@@ -132,7 +219,7 @@ export default function BrowsePropertiesPage() {
           </div>
 
           <div className="flex items-center" style={{ gap: "16px" }}>
-            <FilterField label="Property Type" value={propertyType} onChange={setPropertyType} options={PROPERTY_TYPES} width={205} />
+            <FilterField label="Property Type" value={propertyType} onChange={setPropertyType} options={typeOptions} width={205} />
             <FilterField label="Bedrooms" value={bedrooms} onChange={setBedrooms} options={BEDROOMS} width={204} />
             <FilterField label="Min. Price" value={minPrice} onChange={setMinPrice} options={MIN_PRICE} width={204} />
             <FilterField label="Max Price" value={maxPrice} onChange={setMaxPrice} options={MAX_PRICE} width={205} />
@@ -144,7 +231,8 @@ export default function BrowsePropertiesPage() {
       <div className="flex flex-col" style={{ gap: "24px" }}>
         <div className="flex items-center justify-between">
           <p style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
-            Showing 12 of 2,374 Properties in Nigeria
+            Showing {visible.length} of {filtered.length.toLocaleString()}{" "}
+            {filtered.length === 1 ? "property" : "properties"}
           </p>
 
           <div className="flex items-center" style={{ gap: "24px" }}>
@@ -158,24 +246,43 @@ export default function BrowsePropertiesPage() {
           </div>
         </div>
 
-        {view === "list" ? (
+        {isLoading ? (
+          <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", color: "#807E7E", fontSize: "14px" }}>
+            Loading properties…
+          </div>
+        ) : isError ? (
+          <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", color: "#807E7E", fontSize: "14px" }}>
+            Couldn&rsquo;t load properties.
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", color: "#807E7E", fontSize: "14px" }}>
+            No properties match your search.
+          </div>
+        ) : view === "list" ? (
           <div className="flex flex-col" style={{ gap: "16px" }}>
-            {SEEKER_LISTINGS.map((l) => (
+            {visible.map((l) => (
               <SeekerPropertyRow key={l.id} listing={l} />
             ))}
           </div>
         ) : view === "map" ? (
-          <BrowseMapView listings={SEEKER_LISTINGS} />
+          <BrowseMapView listings={visible} />
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(3, 352px)", gap: "24px 16px" }}>
-            {SEEKER_LISTINGS.map((l) => (
-              <SeekerPropertyCard key={l.id} listing={l} />
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}>
+            {visible.map((l) => (
+              <SeekerPropertyCard
+                key={l.id}
+                listing={l}
+                saved={savedIds.has(l.id)}
+                onToggleSave={toggleSave}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {view !== "map" && <Pagination current={page} total={TOTAL_PAGES} onChange={setPage} />}
+      {view !== "map" && filtered.length > 0 && (
+        <Pagination current={safePage} total={totalPages} onChange={setPage} />
+      )}
     </div>
   );
 }

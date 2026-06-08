@@ -4,15 +4,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useCreatePropertyRequestMutation } from "@/services/propertyRequestApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
+import { unwrapApiError } from "@/services/api";
+import type { ListingType, SeekerType } from "@/services/types";
 
 const PROPERTY_TYPES = ["Flat/Apartment", "House", "Duplex", "Bungalow", "Office Space", "Land", "Other"];
 const CATEGORIES = ["For Rent", "For Sale", "Shortlet"];
-const REQUESTER_KINDS = ["Individual", "Corporate", "Real Estate Agent", "Family"];
+const REQUESTER_KINDS = ["Individual", "Corporate", "Real Estate Agent", "Developer"];
 const STATES = ["Lagos", "Abuja", "Rivers", "Oyo", "Kaduna", "Kano"];
 const BEDROOM_OPTIONS = ["Studio", "1", "2", "3", "4", "5+"];
 
+const LISTING_MAP: Record<string, ListingType> = {
+  "For Rent": "RENT",
+  "For Sale": "BUY",
+  Shortlet: "SHORTLET",
+};
+const SEEKER_MAP: Record<string, SeekerType> = {
+  Individual: "INDIVIDUAL",
+  Corporate: "CORPORATE",
+  "Real Estate Agent": "REAL_ESTATE_AGENT",
+  Developer: "DEVELOPER",
+};
+
 export default function PostPropertyRequestPage() {
   const router = useRouter();
+  const { data: propertyTypes } = useGetPropertyTypesQuery();
+  const [createRequest, { isLoading: saving }] = useCreatePropertyRequestMutation();
   const [seeking, setSeeking] = useState("");
   const [iAm, setIAm] = useState("");
   const [category, setCategory] = useState("");
@@ -23,6 +41,39 @@ export default function PostPropertyRequestPage() {
   const [budget, setBudget] = useState("");
   const [comments, setComments] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const typeOptions = propertyTypes?.length
+    ? propertyTypes.map((t) => t.displayName)
+    : PROPERTY_TYPES;
+
+  async function handleSubmit() {
+    setError(null);
+    const seekerType = SEEKER_MAP[iAm];
+    const listingType = LISTING_MAP[category];
+    if (!seeking || !seekerType || !listingType || !stateField) {
+      setError("Please fill in the required fields: Seeking, I am a/an, Category, and State.");
+      return;
+    }
+    const bedroomsNum =
+      bedrooms === "Studio" ? 0 : bedrooms ? parseInt(bedrooms, 10) : undefined;
+    try {
+      await createRequest({
+        title: seeking.trim(),
+        seekerType,
+        listingType,
+        propertyTypeId: propertyTypes?.find((t) => t.displayName === propertyType)?.id,
+        state: stateField,
+        city: locality.trim() || undefined,
+        bedrooms: Number.isNaN(bedroomsNum) ? undefined : bedroomsNum,
+        budget: budget ? Number(budget.replace(/[^0-9.]/g, "")) : undefined,
+        comments: comments.trim() || undefined,
+      }).unwrap();
+      setSubmitted(true);
+    } catch (e) {
+      setError(unwrapApiError(e)?.message ?? "Could not publish your request. Please try again.");
+    }
+  }
 
   // Lock body scroll when success modal open + ESC closes
   useEffect(() => {
@@ -68,7 +119,8 @@ export default function PostPropertyRequestPage() {
           
           <button
             type="button"
-            onClick={() => setSubmitted(true)}
+            onClick={handleSubmit}
+            disabled={saving}
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
             style={{
               height: "48px",
@@ -78,11 +130,12 @@ export default function PostPropertyRequestPage() {
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
               border: "1px solid rgba(120,158,187,0.5)",
               borderRadius: "12px",
-              cursor: "pointer",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.6 : 1,
               whiteSpace: "nowrap",
             }}
           >
-            Publish Request
+            {saving ? "Publishing…" : "Publish Request"}
           </button>
         </div>
 
@@ -121,7 +174,7 @@ export default function PostPropertyRequestPage() {
               <Select
                 value={propertyType}
                 onChange={setPropertyType}
-                options={PROPERTY_TYPES}
+                options={typeOptions}
                 placeholder="Select type (e.g. Flats/Apartment, house, duplex, etc)"
               />
             </FieldGroup>
@@ -172,6 +225,12 @@ export default function PostPropertyRequestPage() {
               }}
             />
           </FieldGroup>
+
+          {error && (
+            <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045" }}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
 

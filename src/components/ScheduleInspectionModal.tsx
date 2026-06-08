@@ -3,6 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useGetActivePropertiesQuery } from "@/services/propertyApi";
+import { useScheduleInspectionMutation } from "@/services/inspectionApi";
+import { useGetMeQuery } from "@/services/meApi";
+import { unwrapApiError } from "@/services/api";
+
+const TIME_SLOTS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
 
 export default function ScheduleInspectionModal({
   open,
@@ -11,11 +17,22 @@ export default function ScheduleInspectionModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const [property, setProperty] = useState("");
+  const [property, setProperty] = useState(""); // propertyId
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Only ACTIVE (approved) listings can be inspected, and you can't schedule on
+  // your own property (you'd be the host). GET /properties returns all statuses,
+  // so filter down to what's actually schedulable.
+  const { data: me } = useGetMeQuery();
+  const { data: propPage } = useGetActivePropertiesQuery({ size: 50 }, { skip: !open });
+  const properties = (propPage?.content ?? []).filter(
+    (p) => p.status === "ACTIVE" && p.ownerUserId !== me?.id
+  );
+  const [scheduleInspection, { isLoading: scheduling }] = useScheduleInspectionMutation();
 
   useEffect(() => {
     if (!open) return;
@@ -30,14 +47,36 @@ export default function ScheduleInspectionModal({
     };
   }, [open, onClose]);
 
-  // Reset to form view next time modal opens
+  // Reset to the form view each time the modal (re)opens.
   useEffect(() => {
-    if (open) setSent(false);
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSent(false);
+    setError(null);
   }, [open]);
 
   if (!open) return null;
 
-  const canSend = property && date && time;
+  const canSend = !!property && !!date && !!time && !scheduling;
+
+  async function handleSend() {
+    if (!canSend) return;
+    const selected = properties.find((p) => p.id === property);
+    if (!selected) return;
+    setError(null);
+    try {
+      await scheduleInspection({
+        propertyId: selected.id,
+        hostUserId: selected.ownerUserId ?? "",
+        preferredDate: date, // <input type=date> → ISO YYYY-MM-DD
+        preferredTime: time,
+        note: note || undefined,
+      }).unwrap();
+      setSent(true);
+    } catch (e) {
+      setError(unwrapApiError(e)?.message ?? "Could not schedule the inspection. Please try again.");
+    }
+  }
 
   if (sent) {
     return (
@@ -167,14 +206,27 @@ export default function ScheduleInspectionModal({
           className="relative flex flex-col"
           style={{ paddingLeft: "40px", paddingRight: "40px", paddingTop: "132px", paddingBottom: "40px", gap: "16px" }}
         >
-          {/* Property dropdown */}
+          {/* Property dropdown — real ACTIVE listings (value = id) */}
           <FieldGroup label="Property">
-            <Select
-              value={property}
-              onChange={setProperty}
-              options={["3-Bedroom Flat, Lekki Phase 1", "Office Space, Ikeja GRA", "Mini Flat, Yaba"]}
-              placeholder="Select property"
-            />
+            <div className="flex items-center" style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}>
+              <select
+                value={property}
+                onChange={(e) => setProperty(e.target.value)}
+                className="w-full outline-none bg-transparent appearance-none"
+                style={{ fontSize: "14px", lineHeight: "24px", color: property ? "#121212" : "#807E7E", letterSpacing: "-0.02em" }}
+              >
+                <option value="" disabled hidden>
+                  {properties.length ? "Select property" : "No properties available to inspect yet"}
+                </option>
+                {properties.map((p) => (
+                  <option key={p.id} value={p.id} style={{ color: "#121212" }}>
+                    {p.title}
+                    {p.city ? ` — ${p.city}` : ""}
+                  </option>
+                ))}
+              </select>
+              <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} className="shrink-0" />
+            </div>
           </FieldGroup>
 
           
@@ -217,7 +269,7 @@ export default function ScheduleInspectionModal({
             <Select
               value={time}
               onChange={setTime}
-              options={["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM"]}
+              options={TIME_SLOTS}
               placeholder="Select preferred time"
             />
           </FieldGroup>
@@ -244,12 +296,15 @@ export default function ScheduleInspectionModal({
           </FieldGroup>
 
           
+          {error && (
+            <p role="alert" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: 500, color: "#E30045" }}>
+              {error}
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={() => {
-              if (!canSend) return;
-              setSent(true);
-            }}
+            onClick={handleSend}
             disabled={!canSend}
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
             style={{
@@ -266,7 +321,7 @@ export default function ScheduleInspectionModal({
               marginTop: "8px",
             }}
           >
-            Send Request
+            {scheduling ? "Sending…" : "Send Request"}
           </button>
         </div>
       </div>

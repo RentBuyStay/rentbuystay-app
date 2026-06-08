@@ -3,6 +3,33 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  useCreatePropertyMutation,
+  useUpdatePropertyMutation,
+} from "@/services/propertyApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
+import { unwrapApiError } from "@/services/api";
+import type {
+  CreatePropertyRequest,
+  ListingType,
+  PriceFrequency,
+} from "@/services/types";
+
+// UI label → backend enum maps.
+const LISTING_MAP: Record<string, ListingType> = {
+  "For Rent": "RENT",
+  "For Sale": "BUY",
+  Shortlet: "SHORTLET",
+};
+const FREQUENCY_MAP: Record<string, PriceFrequency> = {
+  "per night": "PER_NIGHT",
+  "per week": "PER_WEEK",
+  "per month": "PER_MONTH",
+  "per year": "PER_YEAR",
+  "outright sale": "OUTRIGHT",
+};
+
+const toNumber = (s: string) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
 
 const AMENITIES = [
   "24/7 Security",
@@ -52,11 +79,17 @@ type Mode = "add" | "edit";
 export default function PropertyForm({
   mode,
   initial = {},
+  propertyId,
 }: {
   mode: Mode;
   initial?: PropertyFormInitial;
+  propertyId?: string;
 }) {
   const router = useRouter();
+  const { data: propertyTypes } = useGetPropertyTypesQuery();
+  const [createProperty, { isLoading: creating }] = useCreatePropertyMutation();
+  const [updateProperty, { isLoading: updating }] = useUpdatePropertyMutation();
+  const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState(initial.title ?? "");
   const [propertyType, setPropertyType] = useState(initial.propertyType ?? "");
   const [listingType, setListingType] = useState(initial.listingType ?? "");
@@ -121,7 +154,67 @@ export default function PropertyForm({
   const headerSubtitle = editing
     ? "Edit in the details below to update property information"
     : "Fill in the details for your new listing";
-  const submitLabel = editing ? "Update Listing" : "Publish Listing";
+  const saving = creating || updating;
+  const submitLabel = editing
+    ? updating
+      ? "Updating…"
+      : "Update Listing"
+    : creating
+      ? "Publishing…"
+      : "Publish Listing";
+
+  // Property-type options come from the backend; fall back to the static list
+  // while they load. The chosen displayName resolves to its numeric id on submit.
+  const typeOptions = propertyTypes?.length
+    ? propertyTypes.map((t) => t.displayName)
+    : PROPERTY_TYPES;
+
+  async function handleSubmit() {
+    setError(null);
+    const typeId = propertyTypes?.find((t) => t.displayName === propertyType)?.id;
+    const listing = LISTING_MAP[listingType];
+    const freq = FREQUENCY_MAP[frequency];
+
+    if (!title || !typeId || !listing || !price || !freq || !stateField || !city || !address) {
+      setError(
+        "Please fill in the required fields: title, property type, listing type, price, frequency, state, city, and address."
+      );
+      return;
+    }
+
+    const body: CreatePropertyRequest = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      propertyTypeId: typeId,
+      listingType: listing,
+      price: toNumber(price),
+      priceFrequency: freq,
+      state: stateField,
+      city: city.trim(),
+      address: address.trim(),
+      bedrooms,
+      bathrooms,
+      parkingSpaces: parking,
+      totalAreaSqm: totalArea || undefined,
+      yearBuilt: yearBuilt ? toNumber(yearBuilt) : undefined,
+      customAmenities: selectedAmenities.length ? selectedAmenities : undefined,
+      charges: charges
+        .filter((c) => c.title.trim() && c.amount)
+        .map((c) => ({ title: c.title.trim(), amount: toNumber(c.amount) })),
+      // photos: backend expects [{url}]; needs an upload endpoint first (see note).
+    };
+
+    try {
+      if (editing && propertyId) {
+        await updateProperty({ id: propertyId, body }).unwrap();
+      } else if (!editing) {
+        await createProperty(body).unwrap();
+      }
+      router.push("/dashboard/properties");
+    } catch (e) {
+      setError(unwrapApiError(e)?.message ?? "Could not save the listing. Please try again.");
+    }
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: "40px" }}>
@@ -155,7 +248,8 @@ export default function PropertyForm({
           </button>
           <button
             type="button"
-            onClick={() => router.push("/dashboard/properties")}
+            onClick={handleSubmit}
+            disabled={saving}
             className="text-white hover:opacity-90 transition-opacity"
             style={{
               height: "40px",
@@ -165,7 +259,8 @@ export default function PropertyForm({
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
               border: "1px solid rgba(120,158,187,0.5)",
               borderRadius: "12px",
-              cursor: "pointer",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.6 : 1,
               whiteSpace: "nowrap",
             }}
           >
@@ -173,6 +268,12 @@ export default function PropertyForm({
           </button>
         </div>
       </div>
+
+      {error && (
+        <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045", margin: "-24px 0 0" }}>
+          {error}
+        </p>
+      )}
 
 
       <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -185,7 +286,7 @@ export default function PropertyForm({
             <Select
               value={propertyType}
               onChange={setPropertyType}
-              options={PROPERTY_TYPES}
+              options={typeOptions}
               placeholder="Select category (e.g. Flats/Apartment, house, duplex, etc.)"
             />
           </FieldGroup>

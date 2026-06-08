@@ -2,8 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
+import { useSetPasswordMutation } from "@/services/authApi";
+import { unwrapApiError } from "@/services/api";
+import { getOnboarding } from "@/lib/onboarding";
 
 const HINTS = [
   { id: "len", label: "Password must be at least 8 characters", test: (p: string) => p.length >= 8 },
@@ -16,15 +20,42 @@ const HINTS = [
 ] as const;
 
 export default function CreatePasswordPage() {
+  const router = useRouter();
+  const [setPasswordReq, { isLoading }] = useSetPasswordMutation();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Require an in-flight signup (carries the email) — otherwise back to sign-up.
+  useEffect(() => {
+    if (!getOnboarding()?.email) router.replace("/sign-up");
+  }, [router]);
 
   const passedHints = HINTS.filter((h) => h.test(password));
   const allHintsOk = passedHints.length === HINTS.length;
-  const canSubmit = allHintsOk && password === confirm && confirm.length > 0;
+  const canSubmit =
+    allHintsOk && password === confirm && confirm.length > 0 && !isLoading;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    const email = getOnboarding()?.email;
+    if (!email) {
+      router.replace("/sign-up");
+      return;
+    }
+    setError(null);
+    try {
+      await setPasswordReq({ email, password }).unwrap();
+      // Keep onboarding so the login page can prefill the email; it's cleared
+      // on successful login.
+      setSubmitted(true);
+    } catch (err) {
+      setError(unwrapApiError(err)?.message ?? "Could not set your password. Please try again.");
+    }
+  }
 
   // Lock body scroll when success modal open + ESC closes
   useEffect(() => {
@@ -214,9 +245,15 @@ export default function CreatePasswordPage() {
         </div>
 
         
+        {error && (
+          <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045", textAlign: "left" }}>
+            {error}
+          </p>
+        )}
+
         <button
           type="button"
-          onClick={() => canSubmit && setSubmitted(true)}
+          onClick={handleSubmit}
           disabled={!canSubmit}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
@@ -233,7 +270,7 @@ export default function CreatePasswordPage() {
             cursor: canSubmit ? "pointer" : "not-allowed",
           }}
         >
-          Complete Sign up
+          {isLoading ? "Setting password…" : "Complete Sign up"}
         </button>
       </OnboardingShell>
 

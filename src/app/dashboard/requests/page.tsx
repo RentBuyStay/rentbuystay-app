@@ -2,51 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useGetMeQuery } from "@/services/meApi";
+import {
+  useGetPropertyRequestsQuery,
+  useDeletePropertyRequestMutation,
+} from "@/services/propertyRequestApi";
+import { useOpenDirectConversationMutation } from "@/services/conversationApi";
+import { toRequestVM, type RequestVM, type RequestTag } from "@/lib/propertyRequest";
 
-type RequestType = "For Rent" | "For Sale" | "Shortlet";
-type RequesterKind = "Individual" | "Real Estate Agent" | "Corporate" | "Family";
-
-type SeekerRequest = {
-  id: string;
-  seeking: string;
-  type: RequestType;
-  bedrooms: number | "Studio";
-  area: string;
-  by: RequesterKind;
-  budget: string;
-  budgetSuffix?: string;
-  listed: string;
-  initials: string;
-  name: string;
-};
-
-const REQUESTS: SeekerRequest[] = [
-  { id: "r1", seeking: "House for Rent", type: "For Rent", bedrooms: 1, area: "Lekki Phase 1, Lagos", by: "Individual", budget: "₦800,000", budgetSuffix: "/year", listed: "15 Apr 2026", initials: "CO", name: "Chioma Okeke" },
-  { id: "r2", seeking: "Apartment for Sale", type: "For Sale", bedrooms: 3, area: "Ikoyi, Lagos", by: "Real Estate Agent", budget: "₦45,000,000", listed: "15 Apr 2026", initials: "EN", name: "Emeka Nwosu" },
-  { id: "r3", seeking: "Apartment for Rent", type: "For Rent", bedrooms: 2, area: "Victoria Island, Lagos", by: "Corporate", budget: "₦1,500,000", budgetSuffix: "/year", listed: "20 Apr 2026", initials: "TB", name: "Tunde Balogun" },
-  { id: "r4", seeking: "Apartment for Rent", type: "For Rent", bedrooms: 2, area: "Victoria Island, Lagos", by: "Real Estate Agent", budget: "₦1,500,000", budgetSuffix: "/year", listed: "20 Apr 2026", initials: "TB", name: "Tunde Balogun" },
-  { id: "r5", seeking: "Studio for Rent", type: "For Rent", bedrooms: "Studio", area: "Ikoyi, Lagos", by: "Individual", budget: "₦600,000", budgetSuffix: "/year", listed: "18 Apr 2026", initials: "AY", name: "Amina Yusuf" },
-  { id: "r6", seeking: "Studio for Rent", type: "For Rent", bedrooms: "Studio", area: "Ikoyi, Lagos", by: "Individual", budget: "₦600,000", budgetSuffix: "/year", listed: "18 Apr 2026", initials: "AY", name: "Amina Yusuf" },
-  { id: "r7", seeking: "Duplex for Rent", type: "For Rent", bedrooms: 4, area: "Surulere, Lagos", by: "Family", budget: "₦2,200,000", budgetSuffix: "/year", listed: "22 Apr 2026", initials: "EN", name: "Emeka Nwosu" },
-  { id: "r8", seeking: "Bungalow for Rent", type: "For Rent", bedrooms: 3, area: "Ajah, Lagos", by: "Individual", budget: "₦1,200,000", budgetSuffix: "/year", listed: "19 Apr 2026", initials: "CO", name: "Chinwe Obi" },
-];
-
-type MyRequest = Omit<SeekerRequest, "initials" | "name">;
-const MY_REQUESTS: MyRequest[] = [
-  {
-    id: "mr1",
-    seeking: "Mini Flat for Rent",
-    type: "For Rent",
-    bedrooms: 1,
-    area: "Yaba, Lagos",
-    by: "Individual",
-    budget: "₦1,200,000",
-    budgetSuffix: "/year",
-    listed: "15 Apr 2026",
-  },
-];
+type RequestType = RequestTag;
 
 const TYPES: ("All" | RequestType)[] = ["All", "For Rent", "For Sale", "Shortlet"];
 const PROPERTY_TYPES = ["Any", "Apartment", "House", "Duplex", "Studio", "Bungalow", "Office Space"];
@@ -62,16 +28,18 @@ export default function PropertyRequestsPage() {
   const [typeFilter, setTypeFilter] = useState<"All" | RequestType>("All");
   const [propTypeFilter, setPropTypeFilter] = useState<string>("Any");
 
-  const visibleAll = REQUESTS.filter((r) => {
+  const { data: me } = useGetMeQuery();
+  const { data, isLoading, isError } = useGetPropertyRequestsQuery({ page: 0, size: 50 });
+  const allRequests: RequestVM[] = (data?.content ?? []).map(toRequestVM);
+
+  const matchesFilters = (r: RequestVM) => {
     if (typeFilter !== "All" && r.type !== typeFilter) return false;
     if (propTypeFilter !== "Any" && !r.seeking.toLowerCase().includes(propTypeFilter.toLowerCase())) return false;
     return true;
-  });
-  const visibleMine = MY_REQUESTS.filter((r) => {
-    if (typeFilter !== "All" && r.type !== typeFilter) return false;
-    if (propTypeFilter !== "Any" && !r.seeking.toLowerCase().includes(propTypeFilter.toLowerCase())) return false;
-    return true;
-  });
+  };
+
+  const visibleAll = allRequests.filter(matchesFilters);
+  const visibleMine = allRequests.filter((r) => r.posterUserId === me?.id).filter(matchesFilters);
   const isMy = tab === "My Requests";
   const visibleCount = isMy ? visibleMine.length : visibleAll.length;
 
@@ -147,7 +115,15 @@ export default function PropertyRequestsPage() {
       </div>
 
       
-      {visibleCount === 0 ? (
+      {isLoading ? (
+        <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", fontSize: "14px", color: "#807E7E" }}>
+          Loading requests…
+        </div>
+      ) : isError ? (
+        <div className="bg-white flex items-center justify-center" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "80px", fontSize: "14px", color: "#807E7E" }}>
+          Couldn&rsquo;t load property requests.
+        </div>
+      ) : visibleCount === 0 ? (
         <div
           className="bg-white flex items-center justify-center"
           style={{
@@ -219,7 +195,21 @@ function FilterSelect({
   );
 }
 
-function RequestCard({ request }: { request: SeekerRequest }) {
+function RequestCard({ request }: { request: RequestVM }) {
+  const router = useRouter();
+  const [openDirect, { isLoading: contacting }] = useOpenDirectConversationMutation();
+
+  function handleMessage(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!request.posterUserId) return;
+    // Open (or reuse) a direct chat with the poster, then jump to Messages with
+    // that conversation selected so the user composes/sends there.
+    openDirect(request.posterUserId)
+      .unwrap()
+      .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
+      .catch(() => {});
+  }
+
   return (
     <div
       className="bg-white flex flex-col"
@@ -281,9 +271,8 @@ function RequestCard({ request }: { request: SeekerRequest }) {
         
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
+          onClick={handleMessage}
+          disabled={contacting}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
             height: "48px",
@@ -294,18 +283,27 @@ function RequestCard({ request }: { request: SeekerRequest }) {
             borderRadius: "12px",
             fontSize: "14px",
             fontWeight: 500,
-            cursor: "pointer",
+            cursor: contacting ? "not-allowed" : "pointer",
+            opacity: contacting ? 0.6 : 1,
           }}
         >
           <Image src="/icons/dash/messages-2.svg" alt="" width={20} height={20} />
-          Message
+          {contacting ? "Opening…" : "Message"}
         </button>
       </div>
     </div>
   );
 }
 
-function MyRequestCard({ request }: { request: MyRequest }) {
+function MyRequestCard({ request }: { request: RequestVM }) {
+  const [deleteRequest, { isLoading: deleting }] = useDeletePropertyRequestMutation();
+
+  function handleDelete() {
+    if (window.confirm(`Delete your request "${request.seeking}"?`)) {
+      deleteRequest(request.id).unwrap().catch(() => {});
+    }
+  }
+
   return (
     <div
       className="bg-white flex flex-col"
@@ -350,9 +348,8 @@ function MyRequestCard({ request }: { request: MyRequest }) {
         
         <button
           type="button"
-          onClick={() => {
-            // TODO: open delete-confirm modal
-          }}
+          onClick={handleDelete}
+          disabled={deleting}
           className="flex items-center justify-center hover:bg-[#FFF5F8] transition-colors"
           style={{
             flex: 1,
@@ -365,11 +362,12 @@ function MyRequestCard({ request }: { request: MyRequest }) {
             color: "#E30045",
             fontSize: "14px",
             fontWeight: 500,
-            cursor: "pointer",
+            cursor: deleting ? "not-allowed" : "pointer",
+            opacity: deleting ? 0.6 : 1,
           }}
         >
           <Image src="/icons/dash/trash.svg" alt="" width={20} height={20} />
-          Delete
+          {deleting ? "Deleting…" : "Delete"}
         </button>
 
         
