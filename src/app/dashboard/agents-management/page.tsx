@@ -40,7 +40,7 @@ type CardAgent = {
 };
 
 // Placeholder until the backend adds agent ratings to the staff/agent DTO.
-const DEFAULT_RATING = "5.0";
+const DEFAULT_RATING = "0.0";
 
 function staffToCard(s: AgencyStaffItem): CardAgent {
   const name = `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim() || s.email || "Agent";

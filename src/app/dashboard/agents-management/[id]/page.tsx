@@ -18,7 +18,7 @@ const STATUS_COLORS: Record<PropertyStatusLabel, { bg: string; color: string }> 
 };
 
 // Placeholder until the backend adds agent ratings to the staff/agent DTO.
-const DEFAULT_RATING = "5.0";
+const DEFAULT_RATING = "0.0";
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -106,10 +106,10 @@ export default function AgentDetailPage({
         <div className="flex items-center" style={{ gap: "16px", flex: 1, minWidth: 0 }}>
           <div
             className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center"
-            style={{ width: "56px", height: "56px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "18px", fontWeight: 600 }}
+            style={{ width: "72px", height: "72px", background: "#F5FCFF", color: "#305E82", fontSize: "22px", fontWeight: 600 }}
           >
             {staff.avatarUrl ? (
-              <Image src={staff.avatarUrl} alt={name} fill sizes="56px" unoptimized style={{ objectFit: "cover" }} />
+              <Image src={staff.avatarUrl} alt={name} fill sizes="72px" unoptimized style={{ objectFit: "cover" }} />
             ) : (
               initialsOf(name)
             )}
@@ -117,7 +117,7 @@ export default function AgentDetailPage({
 
           <div className="flex flex-col" style={{ gap: "8px", minWidth: 0 }}>
             <div className="flex items-center" style={{ gap: "8px" }}>
-              <h1 style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#121212" }}>
+              <h1 style={{ fontSize: "24px", lineHeight: "32px", fontWeight: 600, letterSpacing: "-0.02em", color: "#121212" }}>
                 {name}
               </h1>
               {verified && (
@@ -128,34 +128,41 @@ export default function AgentDetailPage({
             <div className="flex items-center" style={{ gap: "16px" }}>
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <Image src="/icons/dash/detail-location.svg" alt="" width={20} height={20} />
-                <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
+                <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
                   {location}
                 </span>
               </div>
+              {/* Figma 709:78130 — solid #305E82 badge, white icon + text, Medium 12/18 */}
               <span
                 className="inline-flex items-center"
                 style={{
                   gap: "8px",
-                  height: "24px",
-                  padding: "0 12px",
-                  background: "rgba(48,94,130,0.08)",
-                  color: "#305E82",
-                  borderRadius: "100px",
+                  padding: "4px 12px",
+                  background: "#305E82",
+                  color: "#FFFFFF",
+                  borderRadius: "20px",
                   fontSize: "12px",
+                  lineHeight: "18px",
                   fontWeight: 500,
                 }}
               >
-                <Image src="/icons/dash/icon-buildings.svg" alt="" width={16} height={16} />
+                <Image
+                  src="/icons/dash/icon-buildings.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                  style={{ filter: "brightness(0) invert(1)" }}
+                />
                 {assigned.length} {assigned.length === 1 ? "Listing" : "Listings"}
               </span>
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <Image src="/icons/dash/icon-star.svg" alt="" width={20} height={20} />
-                <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
+                <span style={{ fontSize: "12px", lineHeight: "24px", color: "#807E7E" }}>
                   {DEFAULT_RATING}
                 </span>
               </div>
               {addedAgo(staff.joinedAt) && (
-                <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
+                <span style={{ fontSize: "14px", lineHeight: "24px", letterSpacing: "-0.02em", color: "#807E7E" }}>
                   {addedAgo(staff.joinedAt)}
                 </span>
               )}
