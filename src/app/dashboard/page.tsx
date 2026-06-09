@@ -27,6 +27,17 @@ import {
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery } from "@/services/conversationApi";
 import { useGetAgencySummaryQuery } from "@/services/agentApi";
+import { useGetMyPropertyAnalyticsQuery } from "@/services/analyticsApi";
+
+/** Compact Naira for metric tiles: 0 → "₦0", 840000 → "₦840k", 1.2m → "₦1.2m". */
+function formatRevenue(n: number): string {
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000;
+    return `₦${m % 1 === 0 ? m : m.toFixed(1)}m`;
+  }
+  if (n >= 1_000) return `₦${Math.round(n / 1000)}k`;
+  return `₦${(n ?? 0).toLocaleString()}`;
+}
 import { toSeekerListing, toPropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
@@ -107,41 +118,50 @@ function AgencyDashboardHome() {
   }, []);
   const verified = Boolean(me?.verification?.complete) || localVerified;
 
-  // Real values where the backend exposes them: org summary gives agent +
-  // property counts; /me/properties gives view totals; inspections →
-  // appointments; conversations → inquiries. Revenue stays a placeholder until
-  // the analytics/revenue endpoints are wired.
+  // Real values from the backend: org summary (agent + property counts),
+  // analytics/mine (views, inquiries, revenue + views delta), inspections
+  // (appointments). No fabricated trend % — only the real views delta is shown.
   const orgId = me?.organizationId;
   const { data: summary } = useGetAgencySummaryQuery(orgId as string, { skip: !orgId });
   const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 100 });
   const { data: inspections } = useGetMyInspectionsQuery();
-  const { data: conversations } = useGetConversationsQuery();
+  const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
 
-  const totalViews = (myProps?.content ?? []).reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
+  const totals = analytics?.totals;
+  const viewsDelta = analytics?.deltas?.viewsThisWeekChange?.trim();
   const totalListings = summary?.propertyCount ?? myProps?.totalElements ?? 0;
   const totalAgents = summary?.agentCount ?? 0;
   const upcomingAppointments = (inspections ?? []).filter(
     (i) => i.status === "PENDING" || i.status === "CONFIRMED"
   ).length;
-  const newInquiries = (conversations ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   const base = verified ? AGENCY_METRICS_VERIFIED : AGENCY_METRICS_UNVERIFIED;
+  const neutral = (prefix: string) =>
+    ({ prefix, suffix: "", direction: "up" } as Metric["trend"]);
   const metrics: Metric[] = !verified
     ? base
     : base.map((m) => {
         switch (m.label) {
           case "Total Listings":
-            return { ...m, value: String(totalListings) };
+            return { ...m, value: String(totalListings), trend: neutral("Listed properties") };
           case "Total Views":
-            return { ...m, value: totalViews.toLocaleString() };
+            return {
+              ...m,
+              value: (totals?.views ?? 0).toLocaleString(),
+              trend: viewsDelta
+                ? { prefix: viewsDelta, suffix: "this week", direction: viewsDelta.startsWith("-") ? "down" : "up" }
+                : neutral("Across your listings"),
+            };
+          case "Revenue":
+            return { ...m, value: formatRevenue(totals?.revenue ?? 0), trend: neutral("Total earned") };
           case "Total Agents":
-            return { ...m, value: String(totalAgents) };
+            return { ...m, value: String(totalAgents), trend: neutral("Active agents") };
           case "Upcoming Appointments":
-            return { ...m, value: String(upcomingAppointments) };
+            return { ...m, value: String(upcomingAppointments), trend: neutral("Confirmed & pending") };
           case "New Inquiries":
-            return { ...m, value: String(newInquiries) };
+            return { ...m, value: String(totals?.inquiries ?? 0), trend: neutral("Total inquiries") };
           default:
-            return m; // Revenue — placeholder until analytics endpoint
+            return m;
         }
       });
 
