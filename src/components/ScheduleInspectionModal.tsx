@@ -13,9 +13,13 @@ const TIME_SLOTS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
 export default function ScheduleInspectionModal({
   open,
   onClose,
+  hostUserId,
 }: {
   open: boolean;
   onClose: () => void;
+  // When set (e.g. opened from a chat with an owner, or a property's detail),
+  // limit the dropdown to listings owned by this host instead of all listings.
+  hostUserId?: string;
 }) {
   const [property, setProperty] = useState(""); // propertyId
   const [date, setDate] = useState("");
@@ -30,7 +34,10 @@ export default function ScheduleInspectionModal({
   const { data: me } = useGetMeQuery();
   const { data: propPage } = useGetActivePropertiesQuery({ size: 50 }, { skip: !open });
   const properties = (propPage?.content ?? []).filter(
-    (p) => p.status === "ACTIVE" && p.ownerUserId !== me?.id
+    (p) =>
+      p.status === "ACTIVE" &&
+      p.ownerUserId !== me?.id &&
+      (!hostUserId || p.ownerUserId === hostUserId || p.assignedAgentUserId === hostUserId)
   );
   const [scheduleInspection, { isLoading: scheduling }] = useScheduleInspectionMutation();
 

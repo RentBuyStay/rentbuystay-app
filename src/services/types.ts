@@ -135,9 +135,12 @@ export type PropertyResponse = {
   rejectionReason?: string;
   viewCount?: number;
   listedAt?: string;
+  isFurnished?: boolean;
   ownerUserId?: string;
+  ownerName?: string;
   organizationId?: string;
   assignedAgentUserId?: string;
+  assignedAgentName?: string;
   amenities?: AmenityRef[];
   photos?: PhotoRef[];
   charges?: ChargeRef[];
@@ -196,6 +199,42 @@ export type SeekerPreferencesResponse = {
   maxPrice?: number;
   currency?: string;
   preferredLocations?: LocationOption[];
+};
+
+// --- Agents & agencies (Discover) ---
+
+export type AgentListItem = {
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+  email?: string;
+  organizationId?: string;
+  organizationName?: string;
+  identityVerified?: boolean;
+  professionalLicenseVerified?: boolean;
+  online?: boolean;
+  lastSeenAt?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  createdAt?: string;
+};
+
+export type AgencyListItem = {
+  id: string;
+  name: string;
+  email?: string;
+  phoneNumber?: string;
+  registrationNumber?: string;
+  status?: string;
+  businessVerified?: boolean;
+  ownerUserId?: string;
+  ownerFirstName?: string;
+  ownerLastName?: string;
+  agentCount?: number;
+  averageRating?: number;
+  reviewCount?: number;
+  createdAt?: string;
 };
 
 // --- Property requests (seekers post what they're looking for) ---

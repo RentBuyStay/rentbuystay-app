@@ -13,6 +13,7 @@ import {
   useSavePropertyMutation,
   useUnsavePropertyMutation,
 } from "@/services/propertyApi";
+import { useOpenDirectConversationMutation } from "@/services/conversationApi";
 import { toSeekerListing } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
@@ -218,7 +219,7 @@ export default function BrowsePropertyDetailPage({
         </div>
 
         <div className="flex flex-col" style={{ gap: "24px" }}>
-          <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} />
+          <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} />
           <ListedByCard listing={listing} />
         </div>
       </div>
@@ -494,7 +495,7 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
   );
 }
 
-function InterestedCard({ saved, onToggleSave }: { saved: boolean; onToggleSave: () => void }) {
+function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; onToggleSave: () => void; hostUserId?: string }) {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   return (
     <div
@@ -570,12 +571,23 @@ function InterestedCard({ saved, onToggleSave }: { saved: boolean; onToggleSave:
         </button>
       </div>
 
-      <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
+      <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} hostUserId={hostUserId} />
     </div>
   );
 }
 
 function ListedByCard({ listing }: { listing: SeekerListing }) {
+  const router = useRouter();
+  const [openDirect] = useOpenDirectConversationMutation();
+
+  function contactOwner() {
+    if (!listing.ownerUserId) return;
+    openDirect(listing.ownerUserId)
+      .unwrap()
+      .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
+      .catch(() => {});
+  }
+
   return (
     <div
       className="relative bg-white"
@@ -769,6 +781,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
       >
         <button
           type="button"
+          onClick={contactOwner}
           className="inline-flex items-center justify-center hover:opacity-80"
           style={{
             width: "165px",
@@ -790,6 +803,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
         </button>
         <button
           type="button"
+          onClick={contactOwner}
           className="inline-flex items-center justify-center text-white hover:opacity-90"
           style={{
             width: "165px",

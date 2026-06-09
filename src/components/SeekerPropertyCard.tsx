@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useOpenDirectConversationMutation } from "@/services/conversationApi";
 
 export type SeekerListingTag = "FOR SALE" | "FOR RENT" | "SHORTLET";
 
@@ -18,6 +20,7 @@ export type SeekerListing = {
   image: string;
   amenities: string[];
   seller: { name: string; initials: string; verified: boolean; avatarUrl?: string };
+  ownerUserId?: string; // host to contact (agent if assigned, else owner)
   description?: string;
   listedOn?: string;
   galleryCount?: number;
@@ -40,8 +43,20 @@ export default function SeekerPropertyCard({
   saved?: boolean;
   onToggleSave?: (id: string, saved: boolean) => void;
 }) {
+  const router = useRouter();
+  const [openDirect] = useOpenDirectConversationMutation();
   const extraCount = Math.max(0, listing.amenities.length - 2);
   const firstChips = listing.amenities.slice(0, 2);
+
+  function contactOwner(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!listing.ownerUserId) return;
+    openDirect(listing.ownerUserId)
+      .unwrap()
+      .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
+      .catch(() => {});
+  }
   const heartIcon = saved ? "/icons/dash/heart-filled.svg" : "/icons/dash/card-heart.svg";
 
   return (
@@ -211,10 +226,7 @@ export default function SeekerPropertyCard({
         <div className="flex items-center" style={{ gap: "16px" }}>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+            onClick={contactOwner}
             aria-label={`Call ${listing.seller.name}`}
             className="hover:opacity-70"
             style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px", cursor: "pointer" }}
@@ -223,10 +235,7 @@ export default function SeekerPropertyCard({
           </button>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+            onClick={contactOwner}
             aria-label={`Message ${listing.seller.name}`}
             className="hover:opacity-70"
             style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px", cursor: "pointer" }}

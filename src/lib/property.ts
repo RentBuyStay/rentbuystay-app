@@ -176,11 +176,17 @@ export function toSeekerListing(p: PropertyResponse): SeekerListing {
     baths: p.bathrooms ?? 0,
     image: primaryPhoto(p),
     amenities: (p.amenities ?? []).map((a) => a.name),
-    // PropertyResponse carries no owner display name (only ownerUserId), so the
-    // seller line is a placeholder until the backend exposes owner/agent name.
-    seller: { name: "Property Owner", initials: "PO", verified: false },
+    seller: sellerFrom(p),
+    ownerUserId: p.assignedAgentUserId ?? p.ownerUserId,
     description: p.description,
     lat: p.latitude,
     lng: p.longitude,
   };
+}
+
+function sellerFrom(p: PropertyResponse): SeekerListing["seller"] {
+  const name = p.assignedAgentName || p.ownerName || "Property Owner";
+  const parts = name.trim().split(/\s+/);
+  const initials = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "PO";
+  return { name, initials, verified: false };
 }

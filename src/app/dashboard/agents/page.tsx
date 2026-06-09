@@ -2,7 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useGetAgentsQuery, useGetAgenciesQuery } from "@/services/agentApi";
+import { useOpenDirectConversationMutation } from "@/services/conversationApi";
+import type { AgentListItem, AgencyListItem } from "@/services/types";
 
 type Agency = {
   id: string;
@@ -12,74 +16,74 @@ type Agency = {
   rating: string;
   listings: string;
   verified: boolean;
+  contactUserId?: string;
 };
 
 type Agent = {
   id: string;
   name: string;
   avatar: string;
+  initials: string;
   company: string;
   location: string;
   rating: string;
   listings: string;
   verified: boolean;
+  contactUserId?: string;
 };
 
-const AGENCIES: Agency[] = [
-  {
-    id: "agency-1",
-    name: "Sydney Realtors",
-    banner: "/images/agencies/sydney-realtors.png",
-    location: "Port-Harcourt",
-    rating: "4.7",
-    listings: "27 listings",
-    verified: true,
-  },
-  {
-    id: "agency-2",
-    name: "Urban Nest Realty",
-    banner: "/images/agencies/urban-nest-realty.png",
-    location: "Lagos",
-    rating: "4.5",
-    listings: "15 listings",
-    verified: true,
-  },
-];
+function rating(n?: number): string {
+  return n && n > 0 ? n.toFixed(1) : "New";
+}
 
-const AGENT_PRIMARY: Omit<Agent, "id"> = {
-  name: "Ibrahim Fashola",
-  avatar: "/images/agents/ibrahim-fashola.png",
-  company: "Jaskaro Properties",
-  location: "Lagos",
-  rating: "5.0",
-  listings: "9 listings",
-  verified: true,
-};
+function toAgencyVM(a: AgencyListItem): Agency {
+  return {
+    id: a.id,
+    name: a.name,
+    banner: "/images/prop1.jpg",
+    location: a.registrationNumber ? `RC ${a.registrationNumber}` : "—",
+    rating: rating(a.averageRating),
+    listings: `${a.agentCount ?? 0} ${a.agentCount === 1 ? "agent" : "agents"}`,
+    verified: !!a.businessVerified,
+    contactUserId: a.ownerUserId,
+  };
+}
 
-const AGENT_SECONDARY: Omit<Agent, "id"> = {
-  name: "Pascaline Okonkwo",
-  avatar: "/images/agents/pascaline-okonkwo.png",
-  company: "Prime Realty & Co.",
-  location: "Abuja",
-  rating: "4.9",
-  listings: "24 listings",
-  verified: true,
-};
-
-const AGENTS: Agent[] = [
-  { id: "agent-1", ...AGENT_PRIMARY },
-  { id: "agent-2", ...AGENT_SECONDARY },
-  { id: "agent-3", ...AGENT_PRIMARY },
-  { id: "agent-4", ...AGENT_SECONDARY },
-  { id: "agent-5", ...AGENT_PRIMARY },
-  { id: "agent-6", ...AGENT_SECONDARY },
-];
+function toAgentVM(a: AgentListItem): Agent {
+  const name = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || "Agent";
+  return {
+    id: a.userId,
+    name,
+    avatar: a.avatarUrl ?? "",
+    initials: ((a.firstName?.[0] ?? "") + (a.lastName?.[0] ?? "")).toUpperCase() || "A",
+    company: a.organizationName ?? "Independent",
+    location: a.online ? "Online" : "—",
+    rating: rating(a.averageRating),
+    listings: `${a.reviewCount ?? 0} ${a.reviewCount === 1 ? "review" : "reviews"}`,
+    verified: !!a.identityVerified,
+    contactUserId: a.userId,
+  };
+}
 
 const LOCATIONS = ["All Location", "Lagos", "Abuja", "Port-Harcourt", "Kano"];
 
 export default function DiscoverAgentsPage() {
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState(LOCATIONS[0]);
+
+  const { data: agenciesPage, isLoading: agenciesLoading } = useGetAgenciesQuery({
+    page: 0,
+    size: 50,
+    q: search || undefined,
+  });
+  const { data: agentsPage, isLoading: agentsLoading } = useGetAgentsQuery({
+    page: 0,
+    size: 50,
+    q: search || undefined,
+  });
+
+  const agencies = (agenciesPage?.content ?? []).map(toAgencyVM);
+  const agents = (agentsPage?.content ?? []).map(toAgentVM);
 
   return (
     <div className="flex flex-col" style={{ gap: "40px" }}>
@@ -91,20 +95,43 @@ export default function DiscoverAgentsPage() {
       />
 
       <Section title="All Agencies & Developers" viewAllHref="/dashboard/agents/all">
-        <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
-          {AGENCIES.map((a) => (
-            <AgencyCard key={a.id} agency={a} />
-          ))}
-        </div>
+        {agenciesLoading ? (
+          <EmptyBox>Loading agencies…</EmptyBox>
+        ) : agencies.length === 0 ? (
+          <EmptyBox>No agencies found.</EmptyBox>
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+            {agencies.map((a) => (
+              <AgencyCard key={a.id} agency={a} />
+            ))}
+          </div>
+        )}
       </Section>
 
       <Section title="All Agents" viewAllHref="/dashboard/agents/all-agents">
-        <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
-          {AGENTS.map((a) => (
-            <AgentCard key={a.id} agent={a} />
-          ))}
-        </div>
+        {agentsLoading ? (
+          <EmptyBox>Loading agents…</EmptyBox>
+        ) : agents.length === 0 ? (
+          <EmptyBox>No agents found.</EmptyBox>
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+            {agents.map((a) => (
+              <AgentCard key={a.id} agent={a} />
+            ))}
+          </div>
+        )}
       </Section>
+    </div>
+  );
+}
+
+function EmptyBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="bg-white flex items-center justify-center"
+      style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "48px", color: "#807E7E", fontSize: "14px" }}
+    >
+      {children}
     </div>
   );
 }
@@ -271,7 +298,20 @@ function Section({
   );
 }
 
+function useContact(userId?: string) {
+  const router = useRouter();
+  const [openDirect] = useOpenDirectConversationMutation();
+  return () => {
+    if (!userId) return;
+    openDirect(userId)
+      .unwrap()
+      .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
+      .catch(() => {});
+  };
+}
+
 function AgencyCard({ agency }: { agency: Agency }) {
+  const contact = useContact(agency.contactUserId);
   return (
     <Link
       href={`/dashboard/agents/${agency.id}`}
@@ -332,8 +372,8 @@ function AgencyCard({ agency }: { agency: Agency }) {
           className="flex items-center"
           style={{ gap: "16px", paddingTop: "16px", borderTop: "1px solid #F6F6F6" }}
         >
-          <ContactButton variant="outline" icon="/icons/dash/call-dark.svg" label="Call" />
-          <ContactButton variant="filled" icon="/icons/dash/messages-2.svg" label="Message" />
+          <ContactButton variant="outline" icon="/icons/dash/call-dark.svg" label="Call" onClick={contact} />
+          <ContactButton variant="filled" icon="/icons/dash/messages-2.svg" label="Message" onClick={contact} />
         </div>
       </div>
     </Link>
@@ -341,6 +381,7 @@ function AgencyCard({ agency }: { agency: Agency }) {
 }
 
 function AgentCard({ agent }: { agent: Agent }) {
+  const contact = useContact(agent.contactUserId);
   return (
     <Link
       href={`/dashboard/agents/${agent.id}`}
@@ -355,14 +396,21 @@ function AgentCard({ agent }: { agent: Agent }) {
       <div className="flex flex-col" style={{ gap: "16px" }}>
         <div className="flex items-center" style={{ gap: "16px" }}>
           <div
-            className="rounded-full relative overflow-hidden shrink-0"
+            className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center"
             style={{
               width: "48px",
               height: "48px",
               background: "rgba(48,94,130,0.05)",
+              color: "#305E82",
+              fontSize: "16px",
+              fontWeight: 600,
             }}
           >
-            <Image src={agent.avatar} alt={agent.name} fill sizes="48px" style={{ objectFit: "cover" }} />
+            {agent.avatar ? (
+              <Image src={agent.avatar} alt={agent.name} fill unoptimized sizes="48px" style={{ objectFit: "cover" }} />
+            ) : (
+              agent.initials
+            )}
           </div>
 
           <div className="flex flex-col" style={{ gap: "4px", flex: 1, minWidth: 0 }}>
@@ -413,8 +461,8 @@ function AgentCard({ agent }: { agent: Agent }) {
           className="flex items-center"
           style={{ gap: "16px", paddingTop: "16px", borderTop: "1px solid #F6F6F6" }}
         >
-          <ContactButton variant="outline" icon="/icons/dash/call-dark.svg" label="Call" />
-          <ContactButton variant="filled" icon="/icons/dash/messages-2.svg" label="Message" />
+          <ContactButton variant="outline" icon="/icons/dash/call-dark.svg" label="Call" onClick={contact} />
+          <ContactButton variant="filled" icon="/icons/dash/messages-2.svg" label="Message" onClick={contact} />
         </div>
       </div>
     </Link>
@@ -438,10 +486,12 @@ function ContactButton({
   variant,
   icon,
   label,
+  onClick,
 }: {
   variant: "outline" | "filled";
   icon: string;
   label: string;
+  onClick?: () => void;
 }) {
   const filled = variant === "filled";
   return (
@@ -450,6 +500,7 @@ function ContactButton({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        onClick?.();
       }}
       className={`inline-flex items-center justify-center hover:opacity-90 ${filled ? "text-white" : ""}`}
       style={{

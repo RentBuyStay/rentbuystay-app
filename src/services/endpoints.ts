@@ -63,6 +63,10 @@ export const endpoints = {
   subscriptionInitiate: (planId: string) => `/subscriptions/initiate/${planId}`,
   subscriptionVerify: (reference: string) => `/subscriptions/verify/${reference}`,
 
+  // Agents & agencies (Discover)
+  agents: "/agents",
+  agencies: "/agencies",
+
   // Reference data
   locations: "/locations",
 

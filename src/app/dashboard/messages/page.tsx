@@ -234,6 +234,7 @@ function ConversationView({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { name, initials: ini, online } = otherParty(conversation, myId);
+  const otherUserId = conversation.participants?.find((p) => p.userId !== myId)?.userId;
   // WebSocket pushes new messages into this cache live; a slow poll covers any
   // dropped connection.
   const { data: messages = [] } = useGetMessagesQuery(
@@ -379,7 +380,7 @@ function ConversationView({
       </div>
 
       {canSchedule && (
-        <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />
+        <ScheduleInspectionModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} hostUserId={otherUserId} />
       )}
     </>
   );
