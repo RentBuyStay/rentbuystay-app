@@ -27,7 +27,10 @@ import {
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery } from "@/services/conversationApi";
 import { useGetAgencySummaryQuery } from "@/services/agentApi";
-import { useGetMyPropertyAnalyticsQuery } from "@/services/analyticsApi";
+import {
+  useGetMyPropertyAnalyticsQuery,
+  useGetAssignedPropertyAnalyticsQuery,
+} from "@/services/analyticsApi";
 
 /** Compact Naira for metric tiles: 0 → "₦0", 840000 → "₦840k", 1.2m → "₦1.2m". */
 function formatRevenue(n: number): string {
@@ -179,23 +182,25 @@ function AgencyDashboardHome() {
 
 function AgentDashboardHome() {
   const { data: me } = useGetMeQuery();
-  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 100 });
+  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
   const { data: conversations } = useGetConversationsQuery();
 
   // Verification gating is driven by the real KYC status from GET /me.
   const verified = Boolean(me?.verification?.complete);
+  // Agents don't own properties — their views/revenue come from the listings
+  // ASSIGNED to them (analytics/assigned), not analytics/mine.
+  const { data: analytics } = useGetAssignedPropertyAnalyticsQuery(undefined, { skip: !verified });
 
-  // Real values where the backend exposes them: listing count + view totals
-  // from /me/properties, leads from active conversations. Revenue stays a
-  // placeholder until the analytics/revenue endpoints are wired.
-  const listings = myProps?.content ?? [];
-  const totalViews = listings.reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
+  // Real values: listings count from /me/properties, views/revenue from
+  // assigned analytics, leads from active conversations.
+  const totals = analytics?.totals;
   const leads = conversations?.length ?? 0;
 
   const metrics: Metric[] = AGENT_METRICS.map((m) => {
     if (m.label === "Total Listings") return { ...m, value: String(myProps?.totalElements ?? 0) };
     if (m.label === "Total Leads") return { ...m, value: String(leads) };
-    if (m.label === "Total Views") return { ...m, value: totalViews.toLocaleString() };
+    if (m.label === "Total Views") return { ...m, value: (totals?.views ?? 0).toLocaleString() };
+    if (m.label === "Revenue") return { ...m, value: formatRevenue(totals?.revenue ?? 0) };
     return m;
   });
 
@@ -375,15 +380,37 @@ function OwnerDashboardHome() {
 
   // Verification gating is driven by the real KYC status from GET /me.
   const verified = Boolean(me?.verification?.complete);
+  const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
 
-  // Surface the real listing count; other metrics stay as placeholders until
-  // the analytics endpoints (/properties/analytics/mine) are wired.
+  // Real values: listing count from /me/properties; views/inquiries/revenue +
+  // the real views delta from analytics/mine. No fabricated trend %.
+  const totals = analytics?.totals;
+  const viewsDelta = analytics?.deltas?.viewsThisWeekChange?.trim();
+  const neutral = (prefix: string) =>
+    ({ prefix, suffix: "", direction: "up" } as Metric["trend"]);
   const baseMetrics = verified ? VERIFIED_METRICS : UNVERIFIED_METRICS;
-  const metrics = baseMetrics.map((m) =>
-    m.label === "Total Listings" && myProps
-      ? { ...m, value: String(myProps.totalElements) }
-      : m
-  );
+  const metrics: Metric[] = !verified
+    ? baseMetrics
+    : baseMetrics.map((m) => {
+        switch (m.label) {
+          case "Total Listings":
+            return { ...m, value: String(myProps?.totalElements ?? 0), trend: neutral("Listed properties") };
+          case "Total Views":
+            return {
+              ...m,
+              value: (totals?.views ?? 0).toLocaleString(),
+              trend: viewsDelta
+                ? { prefix: viewsDelta, suffix: "this week", direction: viewsDelta.startsWith("-") ? "down" : "up" }
+                : neutral("Across your listings"),
+            };
+          case "New Inquiries":
+            return { ...m, value: String(totals?.inquiries ?? 0), trend: neutral("Total inquiries") };
+          case "Revenue":
+            return { ...m, value: formatRevenue(totals?.revenue ?? 0), trend: neutral("Total earned") };
+          default:
+            return m;
+        }
+      });
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>

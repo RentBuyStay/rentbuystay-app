@@ -14,13 +14,21 @@ export type MyPropertyAnalytics = {
 
 export const analyticsApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    // The current owner/agency's own property analytics (views, inquiries, revenue).
+    // Owner/agency analytics — properties they own/created.
     getMyPropertyAnalytics: builder.query<MyPropertyAnalytics, void>({
       query: () => ({ url: endpoints.propertiesAnalyticsMine, method: "GET" }),
+      transformResponse: (res: ApiEnvelope<MyPropertyAnalytics>) => res.data,
+    }),
+    // Agent analytics — properties assigned to the agent (they don't own any).
+    getAssignedPropertyAnalytics: builder.query<MyPropertyAnalytics, void>({
+      query: () => ({ url: endpoints.propertiesAnalyticsAssigned, method: "GET" }),
       transformResponse: (res: ApiEnvelope<MyPropertyAnalytics>) => res.data,
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetMyPropertyAnalyticsQuery } = analyticsApi;
+export const {
+  useGetMyPropertyAnalyticsQuery,
+  useGetAssignedPropertyAnalyticsQuery,
+} = analyticsApi;

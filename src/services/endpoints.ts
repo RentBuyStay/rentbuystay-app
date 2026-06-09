@@ -38,6 +38,7 @@ export const endpoints = {
   propertyTypes: "/property-types",
   propertiesDiscoveryAll: "/properties/discovery/all",
   propertiesAnalyticsMine: "/properties/analytics/mine",
+  propertiesAnalyticsAssigned: "/properties/analytics/assigned",
   propertiesRevenueTotal: "/properties/revenue/total",
 
   // Property requests

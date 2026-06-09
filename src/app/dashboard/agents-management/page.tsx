@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useGetMeQuery } from "@/services/meApi";
+import { useGetMyPropertiesQuery } from "@/services/propertyApi";
 import {
   useGetAgencyStaffQuery,
   useGetInvitationsQuery,
@@ -96,8 +97,22 @@ export default function AgentsManagementPage() {
   const { data: invitations } = useGetInvitationsQuery(orgId as string, { skip: !orgId });
   const [cancelInvitation] = useCancelInvitationMutation();
 
+  // Per-agent listings count: one query for the org's listings, counted by
+  // assignedAgentUserId. (Backend AgencyStaffItem has no listingCount yet.)
+  const { data: propsPage } = useGetMyPropertiesQuery({ page: 0, size: 100 });
+  const listingCounts = new Map<string, number>();
+  for (const p of propsPage?.content ?? []) {
+    if (p.assignedAgentUserId) {
+      listingCounts.set(p.assignedAgentUserId, (listingCounts.get(p.assignedAgentUserId) ?? 0) + 1);
+    }
+  }
+
   // Accepted staff first, then still-pending invitations.
-  const staffCards = (staffPage?.content ?? []).map(staffToCard);
+  const staffCards = (staffPage?.content ?? []).map((s) => {
+    const card = staffToCard(s);
+    const n = listingCounts.get(s.userId) ?? 0;
+    return { ...card, listings: `${n} listing${n === 1 ? "" : "s"}` };
+  });
   const pendingCards = (invitations ?? [])
     .filter((i) => i.status?.toUpperCase() === "PENDING")
     .map(invitationToCard);
