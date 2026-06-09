@@ -90,7 +90,7 @@ export default function DiscoverAgentsPage() {
         setLocation={setLocation}
       />
 
-      <Section title="All Agencies & Developers" viewAllHref="#">
+      <Section title="All Agencies & Developers" viewAllHref="/dashboard/agents/all">
         <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
           {AGENCIES.map((a) => (
             <AgencyCard key={a.id} agency={a} />
@@ -98,7 +98,7 @@ export default function DiscoverAgentsPage() {
         </div>
       </Section>
 
-      <Section title="All Agents" viewAllHref="#">
+      <Section title="All Agents" viewAllHref="/dashboard/agents/all-agents">
         <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
           {AGENTS.map((a) => (
             <AgentCard key={a.id} agent={a} />
