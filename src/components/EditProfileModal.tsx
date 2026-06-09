@@ -144,11 +144,10 @@ export default function EditProfileModal({
               </FieldGroup>
 
               <FieldGroup label="Business Name">
-                <TextInput
-                  value={businessName}
-                  onChange={setBusinessName}
-                  placeholder="Enter business name"
-                />
+                <TextInput value={businessName} onChange={setBusinessName} readOnly />
+                <span style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>
+                  Set at signup and can&rsquo;t be changed here.
+                </span>
               </FieldGroup>
 
               <FieldGroup label="Business Reg No">
@@ -245,10 +244,12 @@ function TextInput({
   value,
   onChange,
   placeholder,
+  readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div
@@ -257,6 +258,7 @@ function TextInput({
         background: "#F6F6F6",
         borderRadius: "12px",
         padding: "8px 16px",
+        opacity: readOnly ? 0.7 : 1,
       }}
     >
       <input
@@ -264,13 +266,17 @@ function TextInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        readOnly={readOnly}
+        aria-readonly={readOnly}
+        tabIndex={readOnly ? -1 : undefined}
         className="w-full outline-none bg-transparent"
         style={{
           fontSize: "14px",
           lineHeight: "24px",
           fontWeight: 400,
-          color: "#121212",
+          color: readOnly ? "#807E7E" : "#121212",
           letterSpacing: "-0.02em",
+          cursor: readOnly ? "not-allowed" : "text",
         }}
       />
     </div>

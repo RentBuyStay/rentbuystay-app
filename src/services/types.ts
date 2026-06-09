@@ -151,9 +151,15 @@ export type PropertyResponse = {
 export type PropertyPhotoInput = { url: string; isPrimary?: boolean };
 export type PropertyChargeInput = { title: string; amount: number; currency?: string };
 
+/**
+ * NOTE: the backend deserialises this as a strict record — EVERY field must be
+ * present in the JSON body (missing keys → 400 "Malformed or unreadable request
+ * body"). Optionals are sent as null/[]/false rather than omitted. Build the
+ * full payload (see PropertyForm.handleSubmit / buildCreatePropertyBody).
+ */
 export type CreatePropertyRequest = {
   title: string;
-  description?: string;
+  description?: string | null;
   propertyTypeId: number;
   listingType: ListingType;
   price: number;
@@ -161,18 +167,19 @@ export type CreatePropertyRequest = {
   state: string;
   city: string;
   address: string;
-  latitude?: number;
-  longitude?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  parkingSpaces?: number;
-  totalAreaSqm?: number;
-  yearBuilt?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
+  totalAreaSqm?: number | null;
+  yearBuilt?: number | null;
+  isFurnished?: boolean;
   amenityIds?: number[];
   customAmenities?: string[];
   photos?: PropertyPhotoInput[];
   charges?: PropertyChargeInput[];
-  assignedAgentUserId?: string;
+  assignedAgentUserId?: string | null;
 };
 
 export type ArchiveReason = "RENTED" | "SOLD" | "OTHER";
@@ -238,6 +245,20 @@ export type UpdateProfileRequest = {
   avatarUrl?: string;
 };
 
+/** Body for PATCH /me/organization — agency org-level fields (display read from
+ *  MeResponse.organization). Org name + registrationNumber are set at signup and
+ *  are not editable here. */
+export type UpdateOrganizationRequest = {
+  whatsappNumber?: string;
+  website?: string;
+  state?: string;
+  city?: string;
+  officeAddress?: string;
+  esvarbonLicenceNumber?: string;
+  yearEstablished?: number;
+  bio?: string;
+};
+
 export type OrganizationSummary = {
   id: string;
   name: string;
@@ -248,6 +269,46 @@ export type OrganizationSummary = {
   agentCount: number;
   propertyCount: number;
 };
+
+// --- Agency staff + invitations ---
+
+export type AgencyStaffItem = {
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  avatarUrl?: string;
+  userType?: UserType;
+  status?: string;
+  city?: string;
+  state?: string;
+  joinedAt?: string;
+};
+
+export type CreateInvitationRequest = {
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  city?: string;
+};
+
+export type InvitationResponse = {
+  id: string;
+  organizationId: string;
+  organizationName?: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  city?: string;
+  status: string; // PENDING | ACCEPTED | EXPIRED | CANCELLED
+  expiresAt?: string;
+  acceptedAt?: string;
+  createdAt?: string;
+};
+
+export type AcceptInvitationRequest = { password: string };
 
 export type AgencyListItem = {
   id: string;
@@ -477,7 +538,21 @@ export type MeResponse = {
     companyName?: string;
     lastLoginAt?: string;
   };
-  organization?: { id?: string; name?: string; [k: string]: unknown };
+  organization?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    phoneNumber?: string;
+    whatsappNumber?: string;
+    website?: string;
+    state?: string;
+    city?: string;
+    officeAddress?: string;
+    registrationNumber?: string;
+    esvarbonLicenceNumber?: string;
+    yearEstablished?: number;
+    bio?: string;
+  };
   verification?: {
     email?: { verified: boolean; verifiedAt?: string };
     phone?: { verified: boolean; verifiedAt?: string };

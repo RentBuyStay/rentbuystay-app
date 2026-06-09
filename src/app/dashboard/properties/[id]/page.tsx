@@ -8,12 +8,10 @@ import { toPropertyDetailVM, type PropertyDetailVM } from "@/lib/property";
 import { getProperty as getLocalProperty, type Property as LocalProperty } from "@/lib/properties";
 import { getRole, type AccountRole } from "@/lib/role";
 
-type AssignedAgent = { name: string; avatar: string; verified: boolean };
-const DEMO_ASSIGNED: AssignedAgent = {
-  name: "Kuku Adebanjo",
-  avatar: "/images/agents/amara-nwosu.png",
-  verified: true,
-};
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "AG";
+}
 
 const TAG_LABEL: Record<LocalProperty["tag"], "For Rent" | "For Sale" | "Shortlet"> = {
   "For Rent": "For Rent",
@@ -104,6 +102,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const property: PropertyDetailVM = data ? toPropertyDetailVM(data) : localToDetailVM(localFallback!);
+  const assignedAgentName = data?.assignedAgentName ?? null;
 
   function handleDelete() {
     if (window.confirm(`Delete "${property.title}"? This can't be undone.`)) {
@@ -260,7 +259,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
 
-      {isAgency && <AssignedToItem agent={DEMO_ASSIGNED} />}
+      {isAgency && assignedAgentName && <AssignedToItem name={assignedAgentName} />}
 
       <Section title="Description">
         <p style={{ fontSize: "14px", lineHeight: "24px", color: "#121212" }}>
@@ -483,21 +482,20 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AssignedToItem({ agent }: { agent: AssignedAgent }) {
+function AssignedToItem({ name }: { name: string }) {
   return (
     <div className="flex flex-col" style={{ gap: "4px" }}>
       <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>Assigned to</span>
       <div className="flex items-center" style={{ gap: "8px" }}>
         <div
-          className="rounded-full relative overflow-hidden shrink-0"
-          style={{ width: "24px", height: "24px", background: "rgba(48,94,130,0.05)" }}
+          className="rounded-full shrink-0 flex items-center justify-center"
+          style={{ width: "24px", height: "24px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "10px", fontWeight: 600 }}
         >
-          <Image src={agent.avatar} alt={agent.name} fill sizes="24px" style={{ objectFit: "cover" }} />
+          {initialsOf(name)}
         </div>
         <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
-          {agent.name}
+          {name}
         </span>
-        {agent.verified && <Image src="/icons/dash/verify.svg" alt="" width={16} height={16} />}
       </div>
     </div>
   );

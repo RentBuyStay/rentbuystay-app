@@ -2,7 +2,12 @@ import { api } from "./api";
 import { endpoints } from "./endpoints";
 import { setRole, setUser } from "@/features/auth/authSlice";
 import { userTypeToRole } from "@/lib/userType";
-import type { ApiEnvelope, MeResponse, UpdateProfileRequest } from "./types";
+import type {
+  ApiEnvelope,
+  MeResponse,
+  UpdateProfileRequest,
+  UpdateOrganizationRequest,
+} from "./types";
 
 export const meApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -37,8 +42,21 @@ export const meApi = api.injectEndpoints({
       transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
       invalidatesTags: ["Me"],
     }),
+
+    // Agency org-level fields (whatsapp/website/state/city/officeAddress/
+    // esvarbonLicence/yearEstablished/bio). Reflected in GET /me organization.
+    updateMyOrganization: builder.mutation<MeResponse, UpdateOrganizationRequest>({
+      query: (body) => ({ url: endpoints.meOrganization, method: "PATCH", body }),
+      transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
+      invalidatesTags: ["Me"],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetMeQuery, useLazyGetMeQuery, useUpdateMyProfileMutation } = meApi;
+export const {
+  useGetMeQuery,
+  useLazyGetMeQuery,
+  useUpdateMyProfileMutation,
+  useUpdateMyOrganizationMutation,
+} = meApi;

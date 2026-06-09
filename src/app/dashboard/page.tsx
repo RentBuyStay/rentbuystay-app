@@ -26,6 +26,7 @@ import {
 } from "@/services/propertyApi";
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery } from "@/services/conversationApi";
+import { useGetAgencySummaryQuery } from "@/services/agentApi";
 import { toSeekerListing, toPropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
@@ -105,7 +106,44 @@ function AgencyDashboardHome() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
   const verified = Boolean(me?.verification?.complete) || localVerified;
-  const metrics = verified ? AGENCY_METRICS_VERIFIED : AGENCY_METRICS_UNVERIFIED;
+
+  // Real values where the backend exposes them: org summary gives agent +
+  // property counts; /me/properties gives view totals; inspections →
+  // appointments; conversations → inquiries. Revenue stays a placeholder until
+  // the analytics/revenue endpoints are wired.
+  const orgId = me?.organizationId;
+  const { data: summary } = useGetAgencySummaryQuery(orgId as string, { skip: !orgId });
+  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 100 });
+  const { data: inspections } = useGetMyInspectionsQuery();
+  const { data: conversations } = useGetConversationsQuery();
+
+  const totalViews = (myProps?.content ?? []).reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
+  const totalListings = summary?.propertyCount ?? myProps?.totalElements ?? 0;
+  const totalAgents = summary?.agentCount ?? 0;
+  const upcomingAppointments = (inspections ?? []).filter(
+    (i) => i.status === "PENDING" || i.status === "CONFIRMED"
+  ).length;
+  const newInquiries = (conversations ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+
+  const base = verified ? AGENCY_METRICS_VERIFIED : AGENCY_METRICS_UNVERIFIED;
+  const metrics: Metric[] = !verified
+    ? base
+    : base.map((m) => {
+        switch (m.label) {
+          case "Total Listings":
+            return { ...m, value: String(totalListings) };
+          case "Total Views":
+            return { ...m, value: totalViews.toLocaleString() };
+          case "Total Agents":
+            return { ...m, value: String(totalAgents) };
+          case "Upcoming Appointments":
+            return { ...m, value: String(upcomingAppointments) };
+          case "New Inquiries":
+            return { ...m, value: String(newInquiries) };
+          default:
+            return m; // Revenue — placeholder until analytics endpoint
+        }
+      });
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>

@@ -21,6 +21,7 @@ export const endpoints = {
   // Current user
   me: "/me",
   meProfile: "/me/profile",
+  meOrganization: "/me/organization",
   mePreferences: "/me/preferences",
   myProperties: "/me/properties",
   savedProperties: "/me/saved-properties",
@@ -69,6 +70,13 @@ export const endpoints = {
   agencies: "/agencies",
   agencyAgents: (id: string) => `/agencies/${id}/agents`,
   agencySummary: (id: string) => `/agencies/${id}/summary`,
+
+  // Agency staff + invitations (org owner)
+  orgStaff: (orgId: string) => `/organizations/${orgId}/staff`,
+  orgInvitations: (orgId: string) => `/organizations/${orgId}/invitations`,
+  orgInvitation: (orgId: string, invitationId: string) =>
+    `/organizations/${orgId}/invitations/${invitationId}`,
+  acceptInvitation: (token: string) => `/invitations/${token}/accept`,
 
   // Reference data
   locations: "/locations",

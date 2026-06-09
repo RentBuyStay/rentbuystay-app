@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import EditProfileModal from "@/components/EditProfileModal";
-import { useGetMeQuery, useUpdateMyProfileMutation } from "@/services/meApi";
+import {
+  useGetMeQuery,
+  useUpdateMyProfileMutation,
+  useUpdateMyOrganizationMutation,
+} from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 import {
@@ -64,6 +68,7 @@ export default function ProfilePage() {
   const { data: prefs } = useGetSeekerPreferencesQuery(undefined, { skip: !isSeeker });
   const [editOpen, setEditOpen] = useState(false);
   const [updateMyProfile] = useUpdateMyProfileMutation();
+  const [updateMyOrganization] = useUpdateMyOrganizationMutation();
   const { toast } = useToast();
 
   const p = me?.profile;
@@ -88,16 +93,43 @@ export default function ProfilePage() {
     bio:
       "Established in 2018, Urban Nest Realty offers a wide range of residential and commercial properties in Lagos, Abuja, Ogun, and Ibadan. Our experienced team is dedicated to helping you find the perfect space with confidence and ease.",
   };
+  // Real agency org data (GET /me organization) with demo fallbacks so the page
+  // still renders sensibly before the org is populated. Display reads from here;
+  // edits to org-level fields go to PATCH /me/organization.
+  const o = me?.organization;
+  const org = {
+    name: o?.name || AGENCY_DEMO.companyName,
+    email: o?.email || AGENCY_DEMO.contactEmail,
+    phone: o?.phoneNumber || p?.phoneNumber || AGENCY_DEMO.phone,
+    whatsapp: o?.whatsappNumber || AGENCY_DEMO.whatsapp,
+    website: o?.website || AGENCY_DEMO.website,
+    state: o?.state || p?.state || AGENCY_DEMO.state,
+    city: o?.city || p?.city || AGENCY_DEMO.city,
+    officeAddress: o?.officeAddress || AGENCY_DEMO.officeAddress,
+    companyRegNo: o?.registrationNumber || AGENCY_DEMO.companyRegNo,
+    esvarbonLicence: o?.esvarbonLicenceNumber || AGENCY_DEMO.esvarbonLicence,
+    yearEstablished:
+      o?.yearEstablished != null ? String(o.yearEstablished) : AGENCY_DEMO.yearEstablished,
+    bio: o?.bio || p?.bio || AGENCY_DEMO.bio,
+  };
+  const agencyInitials =
+    org.name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || AGENCY_DEMO.initials;
+
   const PROFILE = isAgency
     ? {
-        firstName: me?.organization?.name ?? p?.companyName ?? AGENCY_DEMO.companyName,
+        firstName: org.name,
         lastName: "",
         email: me?.email ?? AGENCY_DEMO.email,
-        phone: p?.phoneNumber ?? AGENCY_DEMO.phone,
-        state: p?.state ?? AGENCY_DEMO.state,
-        city: p?.city ?? AGENCY_DEMO.city,
-        bio: p?.bio ?? AGENCY_DEMO.bio,
-        initials: AGENCY_DEMO.initials,
+        phone: org.phone,
+        state: org.state,
+        city: org.city,
+        bio: org.bio,
+        initials: agencyInitials,
         avatarUrl: p?.avatarUrl,
         memberSince: memberSince(me?.joinedAt) || "Jan 2026",
         verified: Boolean(me?.verification?.complete),
@@ -215,7 +247,7 @@ export default function ProfilePage() {
                   color: "#807E7E",
                 }}
               >
-                {isAgency ? AGENCY_DEMO.contactEmail : PROFILE.email}
+                {isAgency ? org.email : PROFILE.email}
               </span>
             </div>
             <span
@@ -258,26 +290,26 @@ export default function ProfilePage() {
         {isAgency ? (
           <>
             <FieldRow>
-              <Field label="Company Name" value={PROFILE.firstName} />
+              <Field label="Company Name" value={org.name} />
               <Field label="Email Address" value={PROFILE.email} />
-              <Field label="Phone Number" value={PROFILE.phone} />
+              <Field label="Phone Number" value={org.phone} />
             </FieldRow>
             <FieldRow>
-              <Field label="Whatsapp Number" value={p?.whatsappNumber ?? AGENCY_DEMO.whatsapp} />
-              <Field label="Website" value={AGENCY_DEMO.website} />
-              <Field label="State" value={PROFILE.state} />
+              <Field label="Whatsapp Number" value={org.whatsapp} />
+              <Field label="Website" value={org.website} />
+              <Field label="State" value={org.state} />
             </FieldRow>
             <FieldRow>
-              <Field label="City" value={PROFILE.city} />
-              <Field label="Office Address" value={AGENCY_DEMO.officeAddress} />
-              <Field label="Company Reg No" value={AGENCY_DEMO.companyRegNo} />
+              <Field label="City" value={org.city} />
+              <Field label="Office Address" value={org.officeAddress} />
+              <Field label="Company Reg No" value={org.companyRegNo} />
             </FieldRow>
             <FieldRow>
-              <Field label="ESVARBON Licence Number" value={AGENCY_DEMO.esvarbonLicence} />
-              <Field label="Year Established" value={AGENCY_DEMO.yearEstablished} />
+              <Field label="ESVARBON Licence Number" value={org.esvarbonLicence} />
+              <Field label="Year Established" value={org.yearEstablished} />
               <div />
             </FieldRow>
-            <Field label="Bio" value={PROFILE.bio} />
+            <Field label="Bio" value={org.bio} />
           </>
         ) : (
           <>
@@ -403,12 +435,12 @@ export default function ProfilePage() {
       initial={
         isAgency
           ? {
-              state: clean(p?.state) || "Lagos",
-              city: clean(p?.city) || "Eti-Osa",
-              bio: clean(p?.bio),
-              whatsappNumber: clean(p?.whatsappNumber),
-              businessName: clean(p?.companyName) || me?.organization?.name || "Prime Properties",
-              businessRegNo: "",
+              state: clean(o?.state) || clean(p?.state) || "Lagos",
+              city: clean(o?.city) || clean(p?.city) || "Eti-Osa",
+              bio: clean(o?.bio) || clean(p?.bio),
+              whatsappNumber: clean(o?.whatsappNumber),
+              businessName: o?.name || "",
+              businessRegNo: o?.registrationNumber || "",
             }
           : {
               state: clean(p?.state) || "Lagos",
@@ -418,7 +450,18 @@ export default function ProfilePage() {
       }
       onSave={async (values) => {
         try {
-          await updateMyProfile(values).unwrap();
+          if (isAgency) {
+            // Org-level fields land on the organization (reflected in GET /me).
+            // Company name + reg number are set at provisioning (no edit endpoint).
+            await updateMyOrganization({
+              state: values.state,
+              city: values.city,
+              bio: values.bio,
+              whatsappNumber: values.whatsappNumber || undefined,
+            }).unwrap();
+          } else {
+            await updateMyProfile(values).unwrap();
+          }
           toast("Profile updated", "success");
         } catch (e) {
           toast(unwrapApiError(e)?.message ?? "Couldn’t update your profile.", "error");

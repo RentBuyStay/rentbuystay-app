@@ -28,24 +28,32 @@ export default function PropertyOwnerSignUpPage() {
   const [agreed, setAgreed] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const canProceed = Boolean(
-    firstName && lastName && email && phone && agreed && !isLoading
-  );
+  const isAgency = accountType === "Real Estate Agency or Developer";
+
+  const canProceed = isAgency
+    ? Boolean(companyName && email && phone && agreed && !isLoading)
+    : Boolean(firstName && lastName && email && phone && agreed && !isLoading);
 
   async function handleSignup() {
     if (!canProceed) return;
     setError(null);
     const userType = roleToUserType(accountType);
+    // Agency signup carries the org name through `firstName` (lastName is a
+    // placeholder space): the backend reads the company name off the signup
+    // payload — see UpdateOrganizationRequest's "set at signup" note.
+    const firstNamePayload = isAgency ? companyName.trim() : firstName.trim();
+    const lastNamePayload = isAgency ? " " : lastName.trim();
     try {
       await signup({
         email: email.trim(),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: firstNamePayload,
+        lastName: lastNamePayload,
         phoneNumber: `${country.dial}${phone.replace(/\D/g, "")}`,
         userType,
       }).unwrap();
@@ -165,32 +173,44 @@ export default function PropertyOwnerSignUpPage() {
               </button>
             </div>
 
-            {/* First Name */}
-            <FieldGroup label="First Name">
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                type="text"
-                placeholder="Enter your first name here"
-                style={inputStyle}
-                className="w-full outline-none bg-transparent"
-              />
-            </FieldGroup>
+            {isAgency ? (
+              <FieldGroup label="Company Name">
+                <input
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  type="text"
+                  placeholder="Enter your company name here"
+                  style={inputStyle}
+                  className="w-full outline-none bg-transparent"
+                />
+              </FieldGroup>
+            ) : (
+              <>
+                <FieldGroup label="First Name">
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    type="text"
+                    placeholder="Enter your first name here"
+                    style={inputStyle}
+                    className="w-full outline-none bg-transparent"
+                  />
+                </FieldGroup>
 
-            {/* Last Name */}
-            <FieldGroup label="Last Name">
-              <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                type="text"
-                placeholder="Enter your last name here"
-                style={inputStyle}
-                className="w-full outline-none bg-transparent"
-              />
-            </FieldGroup>
+                <FieldGroup label="Last Name">
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    type="text"
+                    placeholder="Enter your last name here"
+                    style={inputStyle}
+                    className="w-full outline-none bg-transparent"
+                  />
+                </FieldGroup>
+              </>
+            )}
 
-            {/* Email */}
-            <FieldGroup label="Email">
+            <FieldGroup label={isAgency ? "Company Email" : "Email"}>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

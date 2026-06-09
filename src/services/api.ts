@@ -31,10 +31,9 @@ const rawBaseQuery = fetchBaseQuery({
   // Never let a request hang indefinitely — a stalled refresh would otherwise
   // hold the reauth mutex and freeze every other request ("Loading…" forever).
   timeout: 15000,
-  prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.accessToken;
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    // Stable device id powers the backend's trusted-device login flow.
+  prepareHeaders: (headers) => {
+    // Authorization is injected per-request in withAuth() below (URL-aware) so
+    // public /auth/* calls never carry a Bearer. Only the device id is global.
     const deviceId = getDeviceId();
     if (deviceId) headers.set("X-Device-Id", deviceId);
     return headers;
@@ -44,6 +43,30 @@ const rawBaseQuery = fetchBaseQuery({
 const urlOf = (args: string | FetchArgs): string =>
   typeof args === "string" ? args : args.url;
 
+// Public endpoints that must NOT carry a Bearer (and whose 401s aren't token
+// expiry): /auth/* and the invitation-accept link an agent opens while logged out.
+const isAuthEndpoint = (args: string | FetchArgs): boolean => {
+  const url = urlOf(args);
+  return url.startsWith("/auth") || url.startsWith("/invitations/");
+};
+
+/**
+ * Attach the current access token — EXCEPT on public /auth/* endpoints. Sending
+ * even an expired Bearer to /auth/* makes Spring's JWT filter reject the request
+ * ("Jwt expired"), which would break signup/login/refresh. Reads the token fresh
+ * each call so a post-refresh retry uses the new token.
+ */
+function withAuth(
+  args: string | FetchArgs,
+  getState: () => unknown
+): string | FetchArgs {
+  if (isAuthEndpoint(args)) return args;
+  const token = (getState() as RootState).auth.accessToken;
+  if (!token) return args;
+  const base: FetchArgs = typeof args === "string" ? { url: args } : args;
+  return { ...base, headers: { ...(base.headers as object), Authorization: `Bearer ${token}` } };
+}
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -52,12 +75,12 @@ const baseQueryWithReauth: BaseQueryFn<
   // Wait for any in-progress refresh to finish before firing the request.
   await mutex.waitForUnlock();
 
-  let result = await rawBaseQuery(args, api, extraOptions);
+  let result = await rawBaseQuery(withAuth(args, api.getState), api, extraOptions);
 
   // A 401 on an /auth/* call is meaningful (e.g. NEW_DEVICE_REQUIRES_OTP, bad
   // credentials) — never treat it as an expired access token. Otherwise, any
   // 401 while we hold a refresh token is an expired access token: refresh once.
-  const isAuthCall = urlOf(args).startsWith("/auth");
+  const isAuthCall = isAuthEndpoint(args);
   const hasRefreshToken =
     Boolean((api.getState() as RootState).auth.refreshToken) ||
     Boolean(loadAuth().refreshToken);
@@ -84,7 +107,8 @@ const baseQueryWithReauth: BaseQueryFn<
           .data;
         if (envelope?.success && envelope.data) {
           api.dispatch(setCredentials(envelope.data));
-          result = await rawBaseQuery(args, api, extraOptions); // retry original
+          // Retry with the freshly-issued access token.
+          result = await rawBaseQuery(withAuth(args, api.getState), api, extraOptions);
         } else {
           // Refresh token is invalid/expired — end the session cleanly.
           api.dispatch(logOut());
@@ -96,7 +120,7 @@ const baseQueryWithReauth: BaseQueryFn<
     } else {
       // Another request is already refreshing — wait, then retry once.
       await mutex.waitForUnlock();
-      result = await rawBaseQuery(args, api, extraOptions);
+      result = await rawBaseQuery(withAuth(args, api.getState), api, extraOptions);
     }
   }
 
@@ -124,6 +148,8 @@ export const api = createApi({
     "Billing",
     "Notifications",
     "SavedProperties",
+    "AgencyStaff",
+    "Invitations",
   ],
   endpoints: () => ({}),
 });

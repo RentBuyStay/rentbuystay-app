@@ -3,7 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearRole, roleBadgeLabel, type AccountRole } from "@/lib/role";
+import { roleBadgeLabel, type AccountRole } from "@/lib/role";
+import { useLogoutMutation } from "@/services/authApi";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logOut, selectRefreshToken } from "@/features/auth/authSlice";
 
 type NavItem = { label: string; href: string; icon: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -163,10 +166,20 @@ const TINT = "rgba(117,163,199,0.4)";
 export default function DashboardSidebar({ role }: { role: AccountRole }) {
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const refreshToken = useAppSelector(selectRefreshToken);
+  const [logout] = useLogoutMutation();
   const groups = GROUPS_BY_ROLE[role] ?? [];
 
-  function handleLogout() {
-    clearRole();
+  async function handleLogout() {
+    // Revoke the refresh token server-side (best effort), then clear ALL local
+    // auth — tokens + role + cached API state — so no stale JWT lingers.
+    try {
+      if (refreshToken) await logout({ refreshToken }).unwrap();
+    } catch {
+      /* ignore network/again errors — local clear below is what matters */
+    }
+    dispatch(logOut());
     router.replace("/log-in");
   }
   return (

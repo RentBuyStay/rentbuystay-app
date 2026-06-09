@@ -4,68 +4,40 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import { AGENTS } from "../page";
+import { useGetMeQuery } from "@/services/meApi";
+import { useGetAgencyStaffQuery } from "@/services/organizationApi";
+import { useGetMyPropertiesQuery } from "@/services/propertyApi";
+import { toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 
-type AgentProperty = {
-  id: string;
-  title: string;
-  location: string;
-  price: string;
-  priceSuffix?: string;
-  tag: "FOR RENT" | "FOR SALE" | "SHORTLET";
-  status: "Active" | "Awaiting Approval" | "Archived";
-  sqft: string;
-  beds: number;
-  baths: number;
-  image: string;
-};
-
-const AGENT_PROPERTIES: AgentProperty[] = [
-  {
-    id: "p1",
-    title: "3-Bedroom Flat, Lekki Phase 1",
-    location: "Lekki Phase 1, Lagos",
-    price: "₦2,800,000",
-    priceSuffix: "/yr",
-    tag: "FOR RENT",
-    status: "Active",
-    sqft: "3500 sqft",
-    beds: 3,
-    baths: 4,
-    image: "/images/prop1.jpg",
-  },
-  {
-    id: "p2",
-    title: "2-Bedroom Apartment, Victoria Island",
-    location: "Victoria Island, Lagos",
-    price: "₦450,000",
-    priceSuffix: "/night",
-    tag: "SHORTLET",
-    status: "Active",
-    sqft: "1800 sqft",
-    beds: 3,
-    baths: 2,
-    image: "/images/prop2.jpg",
-  },
-  {
-    id: "p4",
-    title: "4-bedroom Duplex, Ikoyi",
-    location: "Ikoyi, Lagos",
-    price: "₦260,000,000",
-    tag: "FOR SALE",
-    status: "Awaiting Approval",
-    sqft: "5000 sqft",
-    beds: 5,
-    baths: 6,
-    image: "/images/prop4.jpg",
-  },
-];
-
-const STATUS_COLORS: Record<AgentProperty["status"], { bg: string; color: string }> = {
+const STATUS_COLORS: Record<PropertyStatusLabel, { bg: string; color: string }> = {
   Active: { bg: "#ECFDF3", color: "#027A48" },
   "Awaiting Approval": { bg: "#FFF7E9", color: "#EA651A" },
   Archived: { bg: "rgba(138,56,245,0.08)", color: "#8A38F5" },
+  Rejected: { bg: "#FEF3F2", color: "#B42318" },
+  Draft: { bg: "#F2F4F7", color: "#475467" },
 };
+
+// Placeholder until the backend adds agent ratings to the staff/agent DTO.
+const DEFAULT_RATING = "5.0";
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "AG";
+}
+
+function addedAgo(iso?: string): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "Added today";
+  if (days === 1) return "Added 1 day ago";
+  if (days < 30) return `Added ${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Added ${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(months / 12);
+  return `Added ${years} year${years === 1 ? "" : "s"} ago`;
+}
 
 export default function AgentDetailPage({
   params,
@@ -74,8 +46,47 @@ export default function AgentDetailPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
-  const agent = AGENTS.find((a) => a.id === id) ?? AGENTS[0];
   const [showSuspend, setShowSuspend] = useState(false);
+
+  const { data: me } = useGetMeQuery();
+  const orgId = me?.organizationId;
+  const { data: staffPage, isLoading } = useGetAgencyStaffQuery(
+    { orgId: orgId as string },
+    { skip: !orgId }
+  );
+  const { data: propsPage } = useGetMyPropertiesQuery({ page: 0, size: 100 });
+
+  const staff = (staffPage?.content ?? []).find((x) => x.userId === id);
+  const assigned: PropertyVM[] = (propsPage?.content ?? [])
+    .filter((p) => p.assignedAgentUserId === id)
+    .map(toPropertyVM);
+
+  const name = `${staff?.firstName ?? ""} ${staff?.lastName ?? ""}`.trim() || staff?.email || "Agent";
+  const location = [staff?.city, staff?.state].filter(Boolean).join(", ") || "—";
+  const verified = staff?.status?.toUpperCase() === "ACTIVE";
+
+  if (isLoading && !staff) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "40vh", color: "#807E7E", fontSize: "14px" }}>
+        Loading agent…
+      </div>
+    );
+  }
+
+  if (!staff) {
+    return (
+      <div className="flex flex-col items-center justify-center" style={{ minHeight: "50vh", gap: "16px" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#121212" }}>Agent not found</h2>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/agents-management")}
+          style={{ padding: "8px 24px", height: "48px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", color: "white", border: "none", borderRadius: "12px", cursor: "pointer" }}
+        >
+          Back to Agents
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -94,18 +105,22 @@ export default function AgentDetailPage({
       <div className="flex items-start justify-between" style={{ gap: "16px" }}>
         <div className="flex items-center" style={{ gap: "16px", flex: 1, minWidth: 0 }}>
           <div
-            className="rounded-full relative overflow-hidden shrink-0"
-            style={{ width: "56px", height: "56px", background: "rgba(48,94,130,0.05)" }}
+            className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center"
+            style={{ width: "56px", height: "56px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "18px", fontWeight: 600 }}
           >
-            <Image src={agent.avatar} alt={agent.name} fill sizes="56px" style={{ objectFit: "cover" }} />
+            {staff.avatarUrl ? (
+              <Image src={staff.avatarUrl} alt={name} fill sizes="56px" unoptimized style={{ objectFit: "cover" }} />
+            ) : (
+              initialsOf(name)
+            )}
           </div>
 
           <div className="flex flex-col" style={{ gap: "8px", minWidth: 0 }}>
             <div className="flex items-center" style={{ gap: "8px" }}>
               <h1 style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#121212" }}>
-                {agent.name}
+                {name}
               </h1>
-              {agent.verified && (
+              {verified && (
                 <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
               )}
             </div>
@@ -114,7 +129,7 @@ export default function AgentDetailPage({
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <Image src="/icons/dash/detail-location.svg" alt="" width={20} height={20} />
                 <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
-                  Surulere, Lagos
+                  {location}
                 </span>
               </div>
               <span
@@ -131,17 +146,19 @@ export default function AgentDetailPage({
                 }}
               >
                 <Image src="/icons/dash/icon-buildings.svg" alt="" width={16} height={16} />
-                3 Listings
+                {assigned.length} {assigned.length === 1 ? "Listing" : "Listings"}
               </span>
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <Image src="/icons/dash/icon-star.svg" alt="" width={20} height={20} />
                 <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
-                  {agent.rating}
+                  {DEFAULT_RATING}
                 </span>
               </div>
-              <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
-                Added 8 months ago
-              </span>
+              {addedAgo(staff.joinedAt) && (
+                <span style={{ fontSize: "13px", lineHeight: "24px", color: "#807E7E" }}>
+                  {addedAgo(staff.joinedAt)}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -167,15 +184,24 @@ export default function AgentDetailPage({
         </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
-        {AGENT_PROPERTIES.map((p) => (
-          <PropertyCard key={p.id} property={p} />
-        ))}
-      </div>
+      {assigned.length === 0 ? (
+        <div
+          className="bg-white flex items-center justify-center"
+          style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "64px", color: "#807E7E", fontSize: "14px" }}
+        >
+          No properties assigned to this agent yet.
+        </div>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+          {assigned.map((p) => (
+            <PropertyCard key={p.id} property={p} />
+          ))}
+        </div>
+      )}
 
       {showSuspend && (
         <SuspendAgentModal
-          agentName={agent.name}
+          agentName={name}
           onClose={() => setShowSuspend(false)}
           onConfirm={() => {
             setShowSuspend(false);
@@ -187,7 +213,7 @@ export default function AgentDetailPage({
   );
 }
 
-function PropertyCard({ property }: { property: AgentProperty }) {
+function PropertyCard({ property }: { property: PropertyVM }) {
   const status = STATUS_COLORS[property.status];
   return (
     <Link
