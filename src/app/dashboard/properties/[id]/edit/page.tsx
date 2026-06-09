@@ -5,6 +5,7 @@ import { use } from "react";
 import PropertyForm, { type PropertyFormInitial } from "@/components/PropertyForm";
 import { useGetMyPropertiesQuery } from "@/services/propertyApi";
 import type { ListingType, PriceFrequency } from "@/services/types";
+import { getProperty as getLocalProperty, type Property as LocalProperty } from "@/lib/properties";
 
 const TAG_BY_LISTING: Record<ListingType, string> = {
   RENT: "For Rent",
@@ -19,6 +20,38 @@ const FREQUENCY_LABEL: Record<PriceFrequency, string> = {
   PER_YEAR: "per year",
   OUTRIGHT: "outright sale",
 };
+
+function fromLocal(p: LocalProperty): PropertyFormInitial {
+  const suffixToFreq: Record<string, string> = {
+    "/yr": "per year",
+    "/mo": "per month",
+    "/wk": "per week",
+    "/night": "per night",
+    "": "outright sale",
+  };
+  return {
+    title: p.title,
+    propertyType: "Apartment and Flat",
+    listingType: p.tag,
+    price: p.price.replace(/[^\d.]/g, ""),
+    frequency: suffixToFreq[p.priceSuffix ?? ""] ?? "",
+    state: (p.location.split(",")[1] ?? "Lagos").trim(),
+    city: (p.location.split(",")[0] ?? "").trim(),
+    address: p.location,
+    description: p.description,
+    amenities: p.amenities,
+    bedrooms: p.beds,
+    bathrooms: p.baths,
+    totalArea: Number(p.sqft.replace(/[^\d]/g, "")) || 0,
+    yearBuilt: "",
+    existingPhotos: p.images,
+    charges: [
+      { id: "service", title: "Service Charge", amount: p.serviceCharge.replace(/[^\d.]/g, "") },
+      { id: "booking", title: "Booking Charge", amount: p.bookingCharge.replace(/[^\d.]/g, "") },
+    ],
+    assignedAgentId: "kuku-adebanjo",
+  };
+}
 
 export default function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -45,6 +78,10 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
   }
 
   if (isError || !property) {
+    const localFallback = getLocalProperty(id);
+    if (localFallback) {
+      return <PropertyForm mode="edit" propertyId={id} initial={fromLocal(localFallback)} />;
+    }
     return (
       <div className="flex flex-col items-center justify-center" style={{ minHeight: "60vh", gap: "16px" }}>
         <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#121212" }}>Property not found</h2>

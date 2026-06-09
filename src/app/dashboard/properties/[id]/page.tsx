@@ -2,13 +2,61 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useGetMyPropertiesQuery, useDeletePropertyMutation } from "@/services/propertyApi";
-import { toPropertyDetailVM } from "@/lib/property";
+import { toPropertyDetailVM, type PropertyDetailVM } from "@/lib/property";
+import { getProperty as getLocalProperty, type Property as LocalProperty } from "@/lib/properties";
+import { getRole, type AccountRole } from "@/lib/role";
+
+type AssignedAgent = { name: string; avatar: string; verified: boolean };
+const DEMO_ASSIGNED: AssignedAgent = {
+  name: "Kuku Adebanjo",
+  avatar: "/images/agents/amara-nwosu.png",
+  verified: true,
+};
+
+const TAG_LABEL: Record<LocalProperty["tag"], "For Rent" | "For Sale" | "Shortlet"> = {
+  "For Rent": "For Rent",
+  "For Sale": "For Sale",
+  Shortlet: "Shortlet",
+};
+
+function localToDetailVM(p: LocalProperty): PropertyDetailVM {
+  return {
+    id: p.id,
+    referenceCode: p.propertyId,
+    title: p.title,
+    location: p.location,
+    price: p.price,
+    priceSuffix: p.priceSuffix,
+    tag: TAG_LABEL[p.tag],
+    status: p.status,
+    rawStatus: p.status === "Active" ? "ACTIVE" : p.status === "Awaiting Approval" ? "AWAITING_APPROVAL" : p.status === "Archived" ? "ARCHIVED" : "REJECTED",
+    sqft: p.sqft,
+    beds: p.beds,
+    baths: p.baths,
+    image: p.image,
+    viewCount: p.views,
+    description: p.description,
+    amenities: p.amenities,
+    images: p.images,
+    type: p.type,
+    listedAgo: p.listedAgo,
+    listedOn: p.listedOn,
+    charges: [
+      { title: "Service Charge", amount: p.serviceCharge },
+      { title: "Booking Charge", amount: p.bookingCharge },
+    ],
+    map: { bbox: p.mapBbox, marker: p.mapMarker },
+  };
+}
 
 export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
+  const [role, setRole] = useState<AccountRole | null>(null);
+  useEffect(() => setRole(getRole()), []);
+  const isAgency = role === "Real Estate Agency or Developer";
   // The public GET /properties/{id} only returns APPROVED listings, so source
   // from the owner's own list (all statuses) and pick this one out.
   const { data, isLoading, isError } = useGetMyPropertiesQuery(
@@ -31,7 +79,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  if (isError || !data) {
+  const localFallback = !data ? getLocalProperty(id) : undefined;
+  if ((isError || !data) && !localFallback) {
     return (
       <div className="flex flex-col items-center justify-center" style={{ minHeight: "60vh", gap: "16px" }}>
         <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#121212" }}>Property not found</h2>
@@ -54,7 +103,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const property = toPropertyDetailVM(data);
+  const property: PropertyDetailVM = data ? toPropertyDetailVM(data) : localToDetailVM(localFallback!);
 
   function handleDelete() {
     if (window.confirm(`Delete "${property.title}"? This can't be undone.`)) {
@@ -210,6 +259,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
+
+      {isAgency && <AssignedToItem agent={DEMO_ASSIGNED} />}
 
       <Section title="Description">
         <p style={{ fontSize: "14px", lineHeight: "24px", color: "#121212" }}>
@@ -428,6 +479,26 @@ function DetailItem({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col" style={{ gap: "4px" }}>
       <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{label}</span>
       <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>{value}</span>
+    </div>
+  );
+}
+
+function AssignedToItem({ agent }: { agent: AssignedAgent }) {
+  return (
+    <div className="flex flex-col" style={{ gap: "4px" }}>
+      <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>Assigned to</span>
+      <div className="flex items-center" style={{ gap: "8px" }}>
+        <div
+          className="rounded-full relative overflow-hidden shrink-0"
+          style={{ width: "24px", height: "24px", background: "rgba(48,94,130,0.05)" }}
+        >
+          <Image src={agent.avatar} alt={agent.name} fill sizes="24px" style={{ objectFit: "cover" }} />
+        </div>
+        <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
+          {agent.name}
+        </span>
+        {agent.verified && <Image src="/icons/dash/verify.svg" alt="" width={16} height={16} />}
+      </div>
     </div>
   );
 }

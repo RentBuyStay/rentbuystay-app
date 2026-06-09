@@ -2,7 +2,7 @@ import { api } from "./api";
 import { endpoints } from "./endpoints";
 import { setRole, setUser } from "@/features/auth/authSlice";
 import { userTypeToRole } from "@/lib/userType";
-import type { ApiEnvelope, MeResponse } from "./types";
+import type { ApiEnvelope, MeResponse, UpdateProfileRequest } from "./types";
 
 export const meApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -29,8 +29,16 @@ export const meApi = api.injectEndpoints({
         }
       },
     }),
+
+    // Patch the caller's own profile (state/city/bio/company/whatsapp/avatar).
+    // Invalidates Me so the snapshot refetches with the saved values.
+    updateMyProfile: builder.mutation<MeResponse, UpdateProfileRequest>({
+      query: (body) => ({ url: endpoints.meProfile, method: "PATCH", body }),
+      transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
+      invalidatesTags: ["Me"],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetMeQuery, useLazyGetMeQuery } = meApi;
+export const { useGetMeQuery, useLazyGetMeQuery, useUpdateMyProfileMutation } = meApi;

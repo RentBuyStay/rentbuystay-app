@@ -20,6 +20,7 @@ export const endpoints = {
 
   // Current user
   me: "/me",
+  meProfile: "/me/profile",
   mePreferences: "/me/preferences",
   myProperties: "/me/properties",
   savedProperties: "/me/saved-properties",
@@ -66,6 +67,8 @@ export const endpoints = {
   // Agents & agencies (Discover)
   agents: "/agents",
   agencies: "/agencies",
+  agencyAgents: (id: string) => `/agencies/${id}/agents`,
+  agencySummary: (id: string) => `/agencies/${id}/summary`,
 
   // Reference data
   locations: "/locations",

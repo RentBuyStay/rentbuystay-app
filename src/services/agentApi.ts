@@ -4,6 +4,7 @@ import type {
   AgencyListItem,
   AgentListItem,
   ApiEnvelope,
+  OrganizationSummary,
   Page,
 } from "./types";
 
@@ -28,8 +29,24 @@ export const agentApi = api.injectEndpoints({
       query: (params) => ({ url: `${endpoints.agencies}?${toQuery(params ?? {})}`, method: "GET" }),
       transformResponse: (res: ApiEnvelope<Page<AgencyListItem>>) => res.data,
     }),
+    getAgencySummary: builder.query<OrganizationSummary, string>({
+      query: (id) => ({ url: endpoints.agencySummary(id), method: "GET" }),
+      transformResponse: (res: ApiEnvelope<OrganizationSummary>) => res.data,
+    }),
+    getAgencyAgents: builder.query<Page<AgentListItem>, { id: string; page?: number; size?: number }>({
+      query: ({ id, page = 0, size = 50 }) => ({
+        url: `${endpoints.agencyAgents(id)}?page=${page}&size=${size}`,
+        method: "GET",
+      }),
+      transformResponse: (res: ApiEnvelope<Page<AgentListItem>>) => res.data,
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetAgentsQuery, useGetAgenciesQuery } = agentApi;
+export const {
+  useGetAgentsQuery,
+  useGetAgenciesQuery,
+  useGetAgencySummaryQuery,
+  useGetAgencyAgentsQuery,
+} = agentApi;

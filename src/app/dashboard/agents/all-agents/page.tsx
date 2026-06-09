@@ -4,45 +4,72 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useGetAgentsQuery } from "@/services/agentApi";
+import { useOpenDirectConversationMutation } from "@/services/conversationApi";
+import type { AgentListItem } from "@/services/types";
 
-type Agent = {
-  id: string;
+type AgentVM = {
+  userId: string;
   name: string;
+  initials: string;
   avatar: string;
   company: string;
-  location: string;
   rating: string;
+  ratingValue: number;
   listings: string;
   verified: boolean;
 };
 
-const A1 = "/images/agents/ibrahim-fashola.png";
-const A2 = "/images/agents/pascaline-okonkwo.png";
+function toVM(a: AgentListItem): AgentVM {
+  const name = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() || "Agent";
+  const count = a.listingCount ?? 0;
+  return {
+    userId: a.userId,
+    name,
+    initials: ((a.firstName?.[0] ?? "") + (a.lastName?.[0] ?? "")).toUpperCase() || "A",
+    avatar: a.avatarUrl ?? "",
+    company: a.organizationName ?? "Independent",
+    rating: a.averageRating && a.averageRating > 0 ? a.averageRating.toFixed(1) : "New",
+    ratingValue: a.averageRating ?? 0,
+    listings: `${count} ${count === 1 ? "listing" : "listings"}`,
+    verified: !!a.identityVerified,
+  };
+}
 
-const ALL_AGENTS: Agent[] = [
-  { id: "agent-1", name: "Ibrahim Fashola", avatar: A1, company: "Jaskaro Properties", location: "Lagos", rating: "5.0", listings: "9 listings", verified: true },
-  { id: "agent-2", name: "Pascaline Okonkwo", avatar: A2, company: "Prime Realty & Co.", location: "Abuja", rating: "4.9", listings: "24 listings", verified: true },
-  { id: "agent-3", name: "Ayo Mustapha", avatar: A1, company: "Anchor Realty Group", location: "Lagos", rating: "4.6", listings: "18 listings", verified: true },
-  { id: "agent-4", name: "Amaka Nze", avatar: A2, company: "City Gate Realty", location: "Enugu", rating: "4.7", listings: "12 listings", verified: true },
-  { id: "agent-5", name: "Bello Kolade", avatar: A1, company: "Five Estate", location: "Abuja", rating: "4.4", listings: "21 listings", verified: true },
-  { id: "agent-6", name: "Eze James", avatar: A2, company: "Prime Realty & Co.", location: "Port-Harcourt", rating: "4.8", listings: "14 listings", verified: true },
-  { id: "agent-7", name: "Ayo Mustapha", avatar: A1, company: "Anchor Realty Group", location: "Lagos", rating: "4.6", listings: "18 listings", verified: true },
-  { id: "agent-8", name: "Amaka Nze", avatar: A2, company: "City Gate Realty", location: "Enugu", rating: "4.7", listings: "12 listings", verified: true },
-  { id: "agent-9", name: "Bello Kolade", avatar: A1, company: "Five Estate", location: "Abuja", rating: "4.4", listings: "21 listings", verified: true },
-  { id: "agent-10", name: "Eze James", avatar: A2, company: "Prime Realty & Co.", location: "Port-Harcourt", rating: "4.8", listings: "14 listings", verified: true },
-];
-
-const VERIFIED_OPTIONS = ["Verified", "Unverified", "All"];
+const VERIFIED_OPTIONS = ["All", "Verified", "Unverified"];
 const RATING_OPTIONS = ["All Ratings", "4.5+", "4.0+", "3.5+"];
-const LOCATIONS = ["All Location", "Lagos", "Abuja", "Port-Harcourt", "Enugu"];
+const PAGE_SIZE = 12;
 
 export default function AllAgentsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [location, setLocation] = useState(LOCATIONS[0]);
+  const [query, setQuery] = useState("");
   const [verifiedFilter, setVerifiedFilter] = useState(VERIFIED_OPTIONS[0]);
   const [rating, setRating] = useState(RATING_OPTIONS[0]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
+
+  const { data, isLoading } = useGetAgentsQuery({
+    page,
+    size: PAGE_SIZE,
+    q: query || undefined,
+  });
+
+  const minRating = rating === "4.5+" ? 4.5 : rating === "4.0+" ? 4.0 : rating === "3.5+" ? 3.5 : 0;
+  const all = (data?.content ?? []).map(toVM);
+  const agents = all.filter((a) => {
+    if (verifiedFilter === "Verified" && !a.verified) return false;
+    if (verifiedFilter === "Unverified" && a.verified) return false;
+    if (minRating > 0 && a.ratingValue < minRating) return false;
+    return true;
+  });
+
+  const total = data?.totalElements ?? 0;
+  const totalPages = data?.totalPages ?? 0;
+
+  function runSearch() {
+    setQuery(search);
+    setPage(0);
+  }
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -53,9 +80,7 @@ export default function AllAgentsPage() {
         style={{ gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
       >
         <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} />
-        <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#525252" }}>
-          Back
-        </span>
+        <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#525252" }}>Back</span>
       </button>
 
       <div className="flex items-end justify-between" style={{ gap: "16px" }}>
@@ -64,7 +89,7 @@ export default function AllAgentsPage() {
             All Agents
           </h1>
           <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
-            Showing 12 of 250
+            Showing {agents.length} of {total}
           </span>
         </div>
 
@@ -76,25 +101,14 @@ export default function AllAgentsPage() {
       </div>
 
       <div className="flex items-center" style={{ gap: "16px" }}>
-        <div className="flex items-center" style={{ height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
-          <select
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="outline-none bg-transparent appearance-none"
-            style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 400, color: "#121212", paddingRight: "8px" }}
-          >
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-          <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} style={{ pointerEvents: "none" }} />
-        </div>
-
         <div className="flex items-center" style={{ flex: 1, height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
           <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Enter agency or agent name..."
+            onKeyDown={(e) => e.key === "Enter" && runSearch()}
+            placeholder="Enter agent name..."
             className="flex-1 outline-none bg-transparent"
             style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#121212" }}
           />
@@ -102,6 +116,7 @@ export default function AllAgentsPage() {
 
         <button
           type="button"
+          onClick={runSearch}
           className="flex items-center justify-center text-white hover:opacity-90"
           style={{
             width: "160px", height: "48px", padding: "8px 24px",
@@ -113,28 +128,32 @@ export default function AllAgentsPage() {
         >
           Search
         </button>
-
-        <button
-          type="button"
-          className="inline-flex items-center justify-center hover:opacity-80"
-          style={{
-            height: "48px", padding: "8px 16px", gap: "8px",
-            background: "#F6F6F6", border: "none", borderRadius: "12px",
-            fontSize: "14px", fontWeight: 400, color: "#121212", cursor: "pointer",
-          }}
-        >
-          <Image src="/icons/dash/filter-setting.svg" alt="" width={16} height={16} />
-          Filter
-        </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
-        {ALL_AGENTS.map((a) => (
-          <AgentRowCard key={a.id} agent={a} />
-        ))}
-      </div>
+      {isLoading ? (
+        <EmptyBox>Loading agents…</EmptyBox>
+      ) : agents.length === 0 ? (
+        <EmptyBox>No agents found.</EmptyBox>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+          {agents.map((a) => (
+            <AgentRowCard key={a.userId} agent={a} />
+          ))}
+        </div>
+      )}
 
-      <Pagination current={page} total={5} onChange={setPage} />
+      {totalPages > 1 && <Pagination current={page} totalPages={totalPages} onChange={setPage} />}
+    </div>
+  );
+}
+
+function EmptyBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="bg-white flex items-center justify-center"
+      style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "48px", color: "#807E7E", fontSize: "14px" }}
+    >
+      {children}
     </div>
   );
 }
@@ -150,30 +169,38 @@ function SmallDropdown({ value, onChange, options }: { value: string; onChange: 
   );
 }
 
-function AgentRowCard({ agent }: { agent: Agent }) {
+function AgentRowCard({ agent }: { agent: AgentVM }) {
+  const router = useRouter();
+  const [openDirect] = useOpenDirectConversationMutation();
+  const contact = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openDirect(agent.userId)
+      .unwrap()
+      .then((c) => router.push(`/dashboard/messages?c=${c.id}`))
+      .catch(() => {});
+  };
   return (
     <Link
-      href={`/dashboard/agents/${agent.id}`}
+      href={`/dashboard/agents/${agent.userId}`}
       className="block bg-white hover:shadow-md transition-shadow"
       style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "24px" }}
     >
       <div className="flex flex-col" style={{ gap: "16px" }}>
         <div className="flex items-center" style={{ gap: "16px" }}>
-          <div className="rounded-full relative overflow-hidden shrink-0" style={{ width: "48px", height: "48px", background: "rgba(48,94,130,0.05)" }}>
-            <Image src={agent.avatar} alt={agent.name} fill sizes="48px" style={{ objectFit: "cover" }} />
+          <div className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: "48px", height: "48px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "16px", fontWeight: 600 }}>
+            {agent.avatar ? (
+              <Image src={agent.avatar} alt={agent.name} fill unoptimized sizes="48px" style={{ objectFit: "cover" }} />
+            ) : (
+              agent.initials
+            )}
           </div>
           <div className="flex flex-col" style={{ gap: "4px", flex: 1, minWidth: 0 }}>
             <div className="flex items-center" style={{ gap: "8px" }}>
-              <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
-                {agent.name}
-              </span>
+              <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>{agent.name}</span>
               {agent.verified && <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />}
             </div>
             <span style={{ fontSize: "14px", lineHeight: "20px", color: "#807E7E" }}>{agent.company}</span>
-            <div className="flex items-center" style={{ gap: "8px", marginTop: "4px" }}>
-              <Image src="/icons/dash/detail-location.svg" alt="" width={16} height={16} />
-              <span style={{ fontSize: "12px", lineHeight: "20px", color: "#305E82" }}>{agent.location}</span>
-            </div>
           </div>
         </div>
 
@@ -190,14 +217,14 @@ function AgentRowCard({ agent }: { agent: Agent }) {
             </div>
           </div>
           <span className="hover:underline" style={{ fontSize: "14px", fontWeight: 500, color: "#305E82" }}>
-            View all Properties
+            View Profile
           </span>
         </div>
 
         <div className="flex items-center" style={{ gap: "16px", paddingTop: "16px", borderTop: "1px solid #F6F6F6" }}>
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onClick={contact}
             className="inline-flex items-center justify-center hover:opacity-80"
             style={{
               flex: 1, height: "48px", padding: "8px 24px", gap: "8px",
@@ -210,7 +237,7 @@ function AgentRowCard({ agent }: { agent: Agent }) {
           </button>
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onClick={contact}
             className="inline-flex items-center justify-center text-white hover:opacity-90"
             style={{
               flex: 1, height: "48px", padding: "8px 24px", gap: "8px",
@@ -229,20 +256,20 @@ function AgentRowCard({ agent }: { agent: Agent }) {
   );
 }
 
-function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
-  const pages = Array.from({ length: total }, (_, i) => i + 1);
+function Pagination({ current, totalPages, onChange }: { current: number; totalPages: number; onChange: (p: number) => void }) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i);
   return (
     <div className="flex items-center justify-center" style={{ gap: "40px" }}>
       <button
         type="button"
-        onClick={() => onChange(Math.max(1, current - 1))}
-        disabled={current === 1}
+        onClick={() => onChange(Math.max(0, current - 1))}
+        disabled={current === 0}
         className="inline-flex items-center hover:opacity-80"
         style={{
           background: "none", border: "none", padding: "8px", gap: "8px",
           color: "#305E82", fontSize: "14px", fontWeight: 500,
-          cursor: current === 1 ? "not-allowed" : "pointer",
-          opacity: current === 1 ? 0.4 : 1,
+          cursor: current === 0 ? "not-allowed" : "pointer",
+          opacity: current === 0 ? 0.4 : 1,
         }}
       >
         <Image src="/icons/dash/pag-arrow-left.svg" alt="" width={20} height={20} />
@@ -262,19 +289,21 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
               cursor: "pointer",
             }}
           >
-            {p}
+            {p + 1}
           </button>
         ))}
-        <span style={{ fontSize: "16px", color: "#807E7E" }}>...</span>
       </div>
 
       <button
         type="button"
-        onClick={() => onChange(current + 1)}
+        onClick={() => onChange(Math.min(totalPages - 1, current + 1))}
+        disabled={current >= totalPages - 1}
         className="inline-flex items-center hover:opacity-80"
         style={{
           background: "none", border: "none", padding: "8px", gap: "8px",
-          color: "#305E82", fontSize: "14px", fontWeight: 500, cursor: "pointer",
+          color: "#305E82", fontSize: "14px", fontWeight: 500,
+          cursor: current >= totalPages - 1 ? "not-allowed" : "pointer",
+          opacity: current >= totalPages - 1 ? 0.4 : 1,
         }}
       >
         Next

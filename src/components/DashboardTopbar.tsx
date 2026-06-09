@@ -9,6 +9,7 @@ const TITLES: { match: (path: string) => boolean; title: string }[] = [
   { match: (p) => p.startsWith("/dashboard/properties"), title: "My Properties" },
   { match: (p) => /^\/dashboard\/browse\/[^/]+$/.test(p), title: "Property Details" },
   { match: (p) => p.startsWith("/dashboard/browse"), title: "Browse Properties" },
+  { match: (p) => /^\/dashboard\/agents-management\/[^/]+$/.test(p), title: "Agents Management" },
   { match: (p) => p.startsWith("/dashboard/agents-management"), title: "Agents Management" },
   { match: (p) => p.startsWith("/dashboard/saved"), title: "Saved Properties" },
   { match: (p) => p.startsWith("/dashboard/agents"), title: "Discover Agents" },

@@ -59,7 +59,7 @@ function toAgentVM(a: AgentListItem): Agent {
     company: a.organizationName ?? "Independent",
     location: a.online ? "Online" : "—",
     rating: rating(a.averageRating),
-    listings: `${a.reviewCount ?? 0} ${a.reviewCount === 1 ? "review" : "reviews"}`,
+    listings: `${a.listingCount ?? 0} ${a.listingCount === 1 ? "listing" : "listings"}`,
     verified: !!a.identityVerified,
     contactUserId: a.userId,
   };
@@ -314,7 +314,7 @@ function AgencyCard({ agency }: { agency: Agency }) {
   const contact = useContact(agency.contactUserId);
   return (
     <Link
-      href={`/dashboard/agents/${agency.id}`}
+      href={`/dashboard/agents/agency/${agency.id}`}
       className="block bg-white relative hover:shadow-md transition-shadow"
       style={{
         border: "1px solid #F6F6F6",
@@ -354,7 +354,7 @@ function AgencyCard({ agency }: { agency: Agency }) {
           </div>
 
           <Link
-            href={`/dashboard/agents/${agency.id}`}
+            href={`/dashboard/agents/agency/${agency.id}`}
             className="hover:underline"
             style={{
               fontSize: "14px",

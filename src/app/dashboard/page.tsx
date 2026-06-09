@@ -26,7 +26,7 @@ import {
 } from "@/services/propertyApi";
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery } from "@/services/conversationApi";
-import { toSeekerListing } from "@/lib/property";
+import { toSeekerListing, toPropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 
@@ -50,43 +50,96 @@ const UNVERIFIED_METRICS: Metric[] = VERIFIED_METRICS.map((m) => ({
 }));
 
 const AGENT_METRICS: Metric[] = [
-  { label: "Total Listings", value: "11", trend: { prefix: "+3", suffix: "this month", direction: "up" }, icon: "/icons/dash/metric-home.svg" },
-  { label: "Total Leads", value: "16", trend: { prefix: "5%", suffix: "this week", direction: "down" }, icon: "/icons/dash/metric-people.svg" },
-  { label: "Revenue", value: "₦840k", trend: { prefix: "+6.4%", suffix: "vs last month", direction: "up" }, icon: "/icons/dash/metric-dollar.svg" },
-  { label: "Total Views", value: "1,385", trend: { prefix: "+13%", suffix: "this week", direction: "up" }, icon: "/icons/dash/metric-eye.svg" },
+  { label: "Total Listings", value: "0", trend: { prefix: "Listings you manage", suffix: "", direction: "up" }, icon: "/icons/dash/metric-home.svg" },
+  { label: "Total Leads", value: "0", trend: { prefix: "Active conversations", suffix: "", direction: "up" }, icon: "/icons/dash/metric-people.svg" },
+  { label: "Revenue", value: "₦0", trend: { prefix: "Coming soon", suffix: "", direction: "up" }, icon: "/icons/dash/metric-dollar.svg" },
+  { label: "Total Views", value: "0", trend: { prefix: "Across your listings", suffix: "", direction: "up" }, icon: "/icons/dash/metric-eye.svg" },
 ];
+
+// Agency dashboard mirrors Figma 677:62236 (unverified) / 677:62377 (verified):
+// six tiles in a 3x2 grid (Listings / Views / Revenue, then Agents / Appointments / Inquiries).
+const AGENCY_METRICS_VERIFIED: Metric[] = [
+  { label: "Total Listings", value: "27", trend: { prefix: "+3", suffix: "this month", direction: "up" }, icon: "/icons/dash/metric-home.svg" },
+  { label: "Total Views", value: "1,385", trend: { prefix: "+13%", suffix: "this week", direction: "up" }, icon: "/icons/dash/metric-eye.svg" },
+  { label: "Revenue", value: "₦840k", trend: { prefix: "+6.4%", suffix: "vs last month", direction: "up" }, icon: "/icons/dash/metric-dollar.svg" },
+  { label: "Total Agents", value: "11", trend: { prefix: "+2", suffix: "this month", direction: "up" }, icon: "/icons/dash/metric-people.svg" },
+  { label: "Upcoming Appointments", value: "8", trend: { prefix: "+7%", suffix: "this week", direction: "up" }, icon: "/icons/dash/nav-calendar.svg" },
+  { label: "New Inquiries", value: "16", trend: { prefix: "5%", suffix: "this week", direction: "down" }, icon: "/icons/dash/metric-messages.svg" },
+];
+
+// Same labels + icons as the verified state — Figma renders zeros in the
+// unverified state while keeping the trend lines visible.
+const AGENCY_METRICS_UNVERIFIED: Metric[] = AGENCY_METRICS_VERIFIED.map((m) => ({
+  ...m,
+  value: m.label === "Revenue" ? "₦0" : "0",
+}));
 
 export default function DashboardHome() {
   const [role, setRoleState] = useState<AccountRole | null>(null);
 
   useEffect(() => {
+    // One-time read of the persisted role after mount (hydration-safe).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRoleState(getRole());
   }, []);
 
   if (!role) return null;
   if (role === "Property Seeker") return <SeekerDashboardPlaceholder />;
   if (role === "Real Estate Agent") return <AgentDashboardHome />;
+  if (role === "Real Estate Agency or Developer") return <AgencyDashboardHome />;
   return <OwnerDashboardHome />;
 }
 
-function AgentDashboardHome() {
-  const [verified, setVerified] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
+function AgencyDashboardHome() {
+  const { data: me } = useGetMeQuery();
+  // Honour the backend `me.verification.complete` and the localStorage flag
+  // that VerifyPhoneModal sets on phone confirm, so the demo flow flips the
+  // dashboard the moment the phone OTP succeeds — no backend round-trip needed.
+  const [localVerified, setLocalVerified] = useState(false);
   useEffect(() => {
-    setMounted(true);
-    setVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
+    setLocalVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
     function onStorage(e: StorageEvent) {
-      if (e.key === "rbs-dashboard-verified") {
-        setVerified(e.newValue === "1");
-      }
+      if (e.key === "rbs-dashboard-verified") setLocalVerified(e.newValue === "1");
     }
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+  const verified = Boolean(me?.verification?.complete) || localVerified;
+  const metrics = verified ? AGENCY_METRICS_VERIFIED : AGENCY_METRICS_UNVERIFIED;
 
-  const showVerified = mounted && verified;
-  const metrics = showVerified ? VERIFIED_METRICS : AGENT_METRICS;
+  return (
+    <div className="flex flex-col" style={{ gap: "24px" }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+        {metrics.map((m) => (
+          <MetricTile key={m.label} metric={m} />
+        ))}
+      </div>
+      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+    </div>
+  );
+}
+
+function AgentDashboardHome() {
+  const { data: me } = useGetMeQuery();
+  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 100 });
+  const { data: conversations } = useGetConversationsQuery();
+
+  // Verification gating is driven by the real KYC status from GET /me.
+  const verified = Boolean(me?.verification?.complete);
+
+  // Real values where the backend exposes them: listing count + view totals
+  // from /me/properties, leads from active conversations. Revenue stays a
+  // placeholder until the analytics/revenue endpoints are wired.
+  const listings = myProps?.content ?? [];
+  const totalViews = listings.reduce((sum, p) => sum + (p.viewCount ?? 0), 0);
+  const leads = conversations?.length ?? 0;
+
+  const metrics: Metric[] = AGENT_METRICS.map((m) => {
+    if (m.label === "Total Listings") return { ...m, value: String(myProps?.totalElements ?? 0) };
+    if (m.label === "Total Leads") return { ...m, value: String(leads) };
+    if (m.label === "Total Views") return { ...m, value: totalViews.toLocaleString() };
+    return m;
+  });
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -95,7 +148,7 @@ function AgentDashboardHome() {
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {showVerified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -529,108 +582,127 @@ function ViewsChart() {
 }
 
 
-type Inquiry = { initials: string; name: string; message: string };
-
-const INQUIRIES: Inquiry[] = [
-  {
-    initials: "CN",
-    name: "Chidi Nwosu",
-    message: "Good morning, I am interested in visiting the property...",
-  },
-  {
-    initials: "AY",
-    name: "Amina Yusuf",
-    message: "Hello, can you please provide more details about the neighborhood?",
-  },
-  {
-    initials: "JC",
-    name: "Jamal Clarke",
-    message: "Is the apartment still available for inspection this weekend?",
-  },
-];
+function initialsOf(first?: string, last?: string, fallback = "") {
+  const i = `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
+  return i || fallback.slice(0, 2).toUpperCase() || "··";
+}
 
 function RecentInquiries() {
+  const { data: me } = useGetMeQuery();
+  const { data: conversations } = useGetConversationsQuery();
+  const meId = me?.id;
+
+  const rows = (conversations ?? [])
+    .slice()
+    .sort((a, b) =>
+      (b.lastMessageAt ?? b.createdAt ?? "").localeCompare(a.lastMessageAt ?? a.createdAt ?? "")
+    )
+    .slice(0, 5)
+    .map((c) => {
+      const other = c.participants?.find((p) => p.userId !== meId) ?? c.participants?.[0];
+      const name =
+        [other?.firstName, other?.lastName].filter(Boolean).join(" ") || "RentBuyStay user";
+      return {
+        id: c.id,
+        name,
+        initials: initialsOf(other?.firstName, other?.lastName, name),
+        message: c.title || "Started a conversation with you",
+        unread: (c.unreadCount ?? 0) > 0,
+      };
+    });
+
   return (
     <section
       className="bg-white flex flex-col"
       style={{ border: "1px solid #F6F6F6", borderRadius: "20px", height: "240px", overflow: "hidden" }}
     >
-      <div style={{ padding: "16px 24px" }}>
+      <div className="flex items-center justify-between" style={{ padding: "16px 24px" }}>
         <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>
           Recent Inquiries
         </h2>
+        {rows.length > 0 && (
+          <Link
+            href="/dashboard/messages"
+            className="hover:opacity-80"
+            style={{ fontSize: "13px", fontWeight: 500, color: "#305E82" }}
+          >
+            View all
+          </Link>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto" style={{ padding: "0 24px 24px" }}>
-        <div className="flex flex-col" style={{ gap: "16px" }}>
-          {INQUIRIES.map((i) => (
-            <div key={i.name} className="flex items-start" style={{ gap: "16px" }}>
-              <div
-                className="rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  background: "#F5F7F9",
-                  color: "#305E82",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                }}
+        {rows.length === 0 ? (
+          <div
+            className="flex items-center justify-center text-center"
+            style={{ height: "100%", fontSize: "13px", color: "#807E7E" }}
+          >
+            No inquiries yet. New messages from buyers and renters will show up here.
+          </div>
+        ) : (
+          <div className="flex flex-col" style={{ gap: "16px" }}>
+            {rows.map((i) => (
+              <Link
+                key={i.id}
+                href={`/dashboard/messages?c=${i.id}`}
+                className="flex items-start hover:opacity-80"
+                style={{ gap: "16px" }}
               >
-                {i.initials}
-              </div>
-              <div className="flex flex-col" style={{ gap: "4px", minWidth: 0, flex: 1 }}>
-                <div className="flex items-center" style={{ gap: "6px" }}>
-                  <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
-                    {i.name}
-                  </span>
-                  <Image src="/icons/dash/verify.svg" alt="" width={14} height={14} />
-                </div>
-                <p
+                <div
+                  className="rounded-full flex items-center justify-center shrink-0"
                   style={{
-                    fontSize: "12px",
-                    lineHeight: "18px",
-                    fontWeight: 400,
-                    color: "#807E7E",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    width: "44px",
+                    height: "44px",
+                    background: "#F5F7F9",
+                    color: "#305E82",
+                    fontSize: "13px",
+                    fontWeight: 600,
                   }}
                 >
-                  {i.message}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+                  {i.initials}
+                </div>
+                <div className="flex flex-col" style={{ gap: "4px", minWidth: 0, flex: 1 }}>
+                  <div className="flex items-center" style={{ gap: "6px" }}>
+                    <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
+                      {i.name}
+                    </span>
+                    {i.unread && (
+                      <span
+                        className="shrink-0 rounded-full"
+                        style={{ width: "8px", height: "8px", background: "#FFAE00" }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: "18px",
+                      fontWeight: 400,
+                      color: "#807E7E",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {i.message}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
 
-type PropertyRow = {
-  id: string;
-  slug: string;
-  property: string;
-  location: string;
-  type: "Apartment" | "Duplex" | "Commercial";
-  price: string;
-  views: number;
-  status: "Active" | "Awaiting Approval" | "Archived";
-};
-
-const PROPERTIES: PropertyRow[] = [
-  { id: "RBS-L-004821", slug: "p1", property: "3-Bedroom Flat, Lekki Phase 1", location: "Lekki Phase 1, Lagos", type: "Apartment", price: "₦2,800,000.00/yr", views: 412, status: "Active" },
-  { id: "RBS-L-004822", slug: "p2", property: "2-Bedroom Apartment, Victoria Island", location: "Victoria Island, Lagos", type: "Apartment", price: "₦450,000.00/night", views: 287, status: "Active" },
-  { id: "RBS-L-004823", slug: "p4", property: "4-Bedroom Duplex, Ikoyi", location: "Ikoyi, Lagos", type: "Duplex", price: "₦260,000,000.00", views: 396, status: "Awaiting Approval" },
-  { id: "RBS-L-004824", slug: "p3", property: "Office Space, Ikeja GRA", location: "Ikeja GRA, Lagos", type: "Commercial", price: "₦3,400,000.00/yr", views: 122, status: "Archived" },
-  { id: "RBS-L-004826", slug: "p5", property: "2-Bedroom Flat, Lekki Phase 1", location: "Lekki Phase 1, Lagos", type: "Apartment", price: "₦4,800,000.00/yr", views: 462, status: "Active" },
-];
-
-const STATUS_STYLES: Record<PropertyRow["status"], { bg: string; color: string }> = {
+const STATUS_STYLES: Record<PropertyStatusLabel, { bg: string; color: string }> = {
   Active: { bg: "#ECFDF3", color: "#027A48" },
   "Awaiting Approval": { bg: "#FFF7E9", color: "#EA651A" },
   Archived: { bg: "rgba(138,56,245,0.08)", color: "#8A38F5" },
+  Rejected: { bg: "#FEF3F2", color: "#B42318" },
+  Draft: { bg: "#F2F4F7", color: "#475467" },
 };
 
 const PROPERTY_COLS = [
@@ -645,6 +717,12 @@ const PROPERTY_COLS = [
 
 function YourProperties() {
   const router = useRouter();
+  const { data: myProps, isLoading } = useGetMyPropertiesQuery({ page: 0, size: 5 });
+  const rows = (myProps?.content ?? []).map((p) => ({
+    vm: toPropertyVM(p),
+    type: p.propertyTypeName || "—",
+  }));
+
   return (
     <section className="flex flex-col" style={{ gap: "16px" }}>
       <div className="flex items-center justify-between">
@@ -680,69 +758,83 @@ function YourProperties() {
           ))}
         </div>
 
-        {PROPERTIES.map((r) => (
+        {rows.length === 0 ? (
           <div
-            key={r.id}
-            className="flex items-center"
-            style={{ borderBottom: "1px solid #F6F6F6", background: "#FFFFFF" }}
+            className="flex items-center justify-center text-center"
+            style={{ padding: "48px 24px", fontSize: "14px", color: "#807E7E", background: "#FFFFFF" }}
           >
-            <div
-              style={{
-                flex: `1 1 ${PROPERTY_COLS[0].width}px`,
-                padding: "16px 24px",
-                fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                fontSize: "14px",
-                color: "#121212",
-              }}
-            >
-              {r.id}
-            </div>
-            <div
-              className="flex flex-col"
-              style={{ flex: `1 1 ${PROPERTY_COLS[1].width}px`, padding: "12px 24px", gap: "4px" }}
-            >
-              <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
-                {r.property}
-              </span>
-              <span style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>{r.location}</span>
-            </div>
-            <div
-              style={{ flex: `1 1 ${PROPERTY_COLS[2].width}px`, padding: "16px 24px", fontSize: "14px", color: "#121212" }}
-            >
-              {r.type}
-            </div>
-            <div
-              style={{ flex: `1 1 ${PROPERTY_COLS[3].width}px`, padding: "16px 24px", fontSize: "14px", fontWeight: 500, color: "#305E82" }}
-            >
-              {r.price}
-            </div>
-            <div
-              style={{ flex: `1 1 ${PROPERTY_COLS[4].width}px`, padding: "16px 24px", fontSize: "14px", color: "#121212" }}
-            >
-              {r.views}
-            </div>
-            <div style={{ flex: `1 1 ${PROPERTY_COLS[5].width}px`, padding: "16px 24px" }}>
-              <StatusBadge status={r.status} />
-            </div>
-            <div style={{ flex: `1 1 ${PROPERTY_COLS[6].width}px`, padding: "16px 24px" }}>
-              <button
-                type="button"
-                aria-label={`Edit ${r.property}`}
-                onClick={() => router.push(`/dashboard/properties/${r.slug}/edit`)}
-                className="hover:opacity-80"
-                style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-              >
-                <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} style={{ filter: "invert(28%) sepia(58%) saturate(485%) hue-rotate(170deg)" }} />
-              </button>
-            </div>
+            {isLoading
+              ? "Loading your listings…"
+              : "You haven’t listed any properties yet."}
           </div>
-        ))}
+        ) : (
+          rows.map(({ vm, type }) => (
+            <div
+              key={vm.id}
+              className="flex items-center"
+              style={{ borderBottom: "1px solid #F6F6F6", background: "#FFFFFF" }}
+            >
+              <div
+                style={{
+                  flex: `1 1 ${PROPERTY_COLS[0].width}px`,
+                  padding: "16px 24px",
+                  fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                  fontSize: "14px",
+                  color: "#121212",
+                }}
+              >
+                {vm.referenceCode}
+              </div>
+              <div
+                className="flex flex-col"
+                style={{ flex: `1 1 ${PROPERTY_COLS[1].width}px`, padding: "12px 24px", gap: "4px", minWidth: 0 }}
+              >
+                <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {vm.title}
+                </span>
+                <span style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {vm.location}
+                </span>
+              </div>
+              <div
+                style={{ flex: `1 1 ${PROPERTY_COLS[2].width}px`, padding: "16px 24px", fontSize: "14px", color: "#121212" }}
+              >
+                {type}
+              </div>
+              <div
+                style={{ flex: `1 1 ${PROPERTY_COLS[3].width}px`, padding: "16px 24px", fontSize: "14px", fontWeight: 500, color: "#305E82" }}
+              >
+                {vm.price}
+                {vm.priceSuffix ?? ""}
+              </div>
+              <div
+                style={{ flex: `1 1 ${PROPERTY_COLS[4].width}px`, padding: "16px 24px", fontSize: "14px", color: "#121212" }}
+              >
+                {vm.viewCount}
+              </div>
+              <div style={{ flex: `1 1 ${PROPERTY_COLS[5].width}px`, padding: "16px 24px" }}>
+                <StatusBadge status={vm.status} />
+              </div>
+              <div style={{ flex: `1 1 ${PROPERTY_COLS[6].width}px`, padding: "16px 24px" }}>
+                <button
+                  type="button"
+                  aria-label={`Edit ${vm.title}`}
+                  onClick={() => router.push(`/dashboard/properties/${vm.id}/edit`)}
+                  className="hover:opacity-80"
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                >
+                  <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} style={{ filter: "invert(28%) sepia(58%) saturate(485%) hue-rotate(170deg)" }} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );
 }
 
-function StatusBadge({ status }: { status: PropertyRow["status"] }) {
+function StatusBadge({ status }: { status: PropertyStatusLabel }) {
   const s = STATUS_STYLES[status];
   return (
     <span

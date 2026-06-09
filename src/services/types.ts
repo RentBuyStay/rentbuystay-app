@@ -211,6 +211,12 @@ export type AgentListItem = {
   email?: string;
   organizationId?: string;
   organizationName?: string;
+  // Present only once the backend adds them to the /agents directory DTO
+  // (the profile is already loaded server-side — see AgentDirectoryService).
+  state?: string;
+  city?: string;
+  bio?: string;
+  listingCount?: number;
   identityVerified?: boolean;
   professionalLicenseVerified?: boolean;
   online?: boolean;
@@ -218,6 +224,29 @@ export type AgentListItem = {
   averageRating?: number;
   reviewCount?: number;
   createdAt?: string;
+};
+
+/** Body for PATCH /me/profile — every field optional; server enforces which
+ *  fields are allowed for the caller's user type. */
+export type UpdateProfileRequest = {
+  state?: string;
+  city?: string;
+  bio?: string;
+  companyName?: string;
+  companyRegNumber?: string;
+  whatsappNumber?: string;
+  avatarUrl?: string;
+};
+
+export type OrganizationSummary = {
+  id: string;
+  name: string;
+  city?: string;
+  state?: string;
+  website?: string;
+  bio?: string;
+  agentCount: number;
+  propertyCount: number;
 };
 
 export type AgencyListItem = {

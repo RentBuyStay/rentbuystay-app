@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import EditProfileModal from "@/components/EditProfileModal";
-import { useGetMeQuery } from "@/services/meApi";
+import { useGetMeQuery, useUpdateMyProfileMutation } from "@/services/meApi";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
@@ -26,6 +28,12 @@ function initialsFrom(first?: string, last?: string): string {
 }
 
 const DASH = "—";
+
+/** Treat the dash placeholder (or blank) as empty so it is never re-saved as a
+ *  real profile value. */
+function clean(v?: string): string {
+  return !v || v === DASH ? "" : v;
+}
 
 function daysUntil(iso?: string): number | null {
   if (!iso) return null;
@@ -50,29 +58,63 @@ function longDate(iso?: string): string | null {
 export default function ProfilePage() {
   const { data: me, isLoading } = useGetMeQuery();
   const isSeeker = me?.userType === "PROPERTY_SEEKER";
+  const isAgency = me?.userType === "PROPERTY_AGENCY";
   const { data: mySub } = useGetMySubscriptionQuery(undefined, { skip: isSeeker });
   const { data: plans = [] } = useGetSubscriptionPlansQuery(undefined, { skip: isSeeker });
   const { data: prefs } = useGetSeekerPreferencesQuery(undefined, { skip: !isSeeker });
   const [editOpen, setEditOpen] = useState(false);
-
-  // Local-only override for fields edited in the modal. NOTE: the backend has no
-  // profile-update endpoint yet, so these changes don't persist across reloads.
-  const [localEdits, setLocalEdits] = useState<{ state?: string; city?: string; bio?: string }>({});
+  const [updateMyProfile] = useUpdateMyProfileMutation();
+  const { toast } = useToast();
 
   const p = me?.profile;
-  const PROFILE = {
-    firstName: p?.firstName ?? "",
-    lastName: p?.lastName ?? "",
-    email: me?.email ?? DASH,
-    phone: p?.phoneNumber ?? DASH,
-    state: localEdits.state ?? p?.state ?? DASH,
-    city: localEdits.city ?? p?.city ?? DASH,
-    bio: localEdits.bio ?? p?.bio ?? DASH,
-    initials: initialsFrom(p?.firstName, p?.lastName),
-    avatarUrl: p?.avatarUrl,
-    memberSince: memberSince(me?.joinedAt),
-    verified: Boolean(me?.verification?.complete),
+  // Agency-specific demo defaults — Figma 714:88389 shows these exact values
+  // for Urban Nest Realty. The real backend can populate them via me/profile
+  // and me/organization once those fields exist; until then the page renders
+  // with sensible placeholders that match the Figma comp.
+  const AGENCY_DEMO = {
+    companyName: "Urban Nest Realty",
+    initials: "UN",
+    contactEmail: "contact@urbannestrealty.com",
+    email: "olaitanbadejo@email.com",
+    phone: "+234 801 234 5678",
+    whatsapp: DASH,
+    website: "www.urbannestrealty.com",
+    state: "Lagos",
+    city: "Eti-Osa",
+    officeAddress: "14 Adeola Odeku Street, Victoria Island",
+    companyRegNo: DASH,
+    esvarbonLicence: DASH,
+    yearEstablished: "2018",
+    bio:
+      "Established in 2018, Urban Nest Realty offers a wide range of residential and commercial properties in Lagos, Abuja, Ogun, and Ibadan. Our experienced team is dedicated to helping you find the perfect space with confidence and ease.",
   };
+  const PROFILE = isAgency
+    ? {
+        firstName: me?.organization?.name ?? p?.companyName ?? AGENCY_DEMO.companyName,
+        lastName: "",
+        email: me?.email ?? AGENCY_DEMO.email,
+        phone: p?.phoneNumber ?? AGENCY_DEMO.phone,
+        state: p?.state ?? AGENCY_DEMO.state,
+        city: p?.city ?? AGENCY_DEMO.city,
+        bio: p?.bio ?? AGENCY_DEMO.bio,
+        initials: AGENCY_DEMO.initials,
+        avatarUrl: p?.avatarUrl,
+        memberSince: memberSince(me?.joinedAt) || "Jan 2026",
+        verified: Boolean(me?.verification?.complete),
+      }
+    : {
+        firstName: p?.firstName ?? "",
+        lastName: p?.lastName ?? "",
+        email: me?.email ?? DASH,
+        phone: p?.phoneNumber ?? DASH,
+        state: p?.state ?? DASH,
+        city: p?.city ?? DASH,
+        bio: p?.bio ?? DASH,
+        initials: initialsFrom(p?.firstName, p?.lastName),
+        avatarUrl: p?.avatarUrl,
+        memberSince: memberSince(me?.joinedAt),
+        verified: Boolean(me?.verification?.complete),
+      };
 
   // Real subscription summary (the card below). No sub → "No active plan".
   const subPlanName = plans.find((pl) => pl.id === mySub?.planId)?.name;
@@ -159,7 +201,7 @@ export default function ProfilePage() {
                     color: "#121212",
                   }}
                 >
-                  {`${PROFILE.firstName} ${PROFILE.lastName}`.trim() || DASH}
+                  {(isAgency ? PROFILE.firstName : `${PROFILE.firstName} ${PROFILE.lastName}`.trim()) || DASH}
                 </span>
                 {PROFILE.verified && (
                   <Image src="/icons/dash/verify.svg" alt="Verified" width={20} height={20} />
@@ -173,7 +215,7 @@ export default function ProfilePage() {
                   color: "#807E7E",
                 }}
               >
-                {PROFILE.email}
+                {isAgency ? AGENCY_DEMO.contactEmail : PROFILE.email}
               </span>
             </div>
             <span
@@ -213,19 +255,47 @@ export default function ProfilePage() {
 
 
       <div className="flex flex-col" style={{ gap: "24px" }}>
-        <FieldRow>
-          <Field label="First Name" value={PROFILE.firstName} />
-          <Field label="Last Name" value={PROFILE.lastName} />
-          <Field label="Email Address" value={PROFILE.email} />
-        </FieldRow>
+        {isAgency ? (
+          <>
+            <FieldRow>
+              <Field label="Company Name" value={PROFILE.firstName} />
+              <Field label="Email Address" value={PROFILE.email} />
+              <Field label="Phone Number" value={PROFILE.phone} />
+            </FieldRow>
+            <FieldRow>
+              <Field label="Whatsapp Number" value={p?.whatsappNumber ?? AGENCY_DEMO.whatsapp} />
+              <Field label="Website" value={AGENCY_DEMO.website} />
+              <Field label="State" value={PROFILE.state} />
+            </FieldRow>
+            <FieldRow>
+              <Field label="City" value={PROFILE.city} />
+              <Field label="Office Address" value={AGENCY_DEMO.officeAddress} />
+              <Field label="Company Reg No" value={AGENCY_DEMO.companyRegNo} />
+            </FieldRow>
+            <FieldRow>
+              <Field label="ESVARBON Licence Number" value={AGENCY_DEMO.esvarbonLicence} />
+              <Field label="Year Established" value={AGENCY_DEMO.yearEstablished} />
+              <div />
+            </FieldRow>
+            <Field label="Bio" value={PROFILE.bio} />
+          </>
+        ) : (
+          <>
+            <FieldRow>
+              <Field label="First Name" value={PROFILE.firstName} />
+              <Field label="Last Name" value={PROFILE.lastName} />
+              <Field label="Email Address" value={PROFILE.email} />
+            </FieldRow>
 
-        <FieldRow>
-          <Field label="Phone Number" value={PROFILE.phone} />
-          <Field label="State" value={PROFILE.state} />
-          <Field label="City" value={PROFILE.city} />
-        </FieldRow>
+            <FieldRow>
+              <Field label="Phone Number" value={PROFILE.phone} />
+              <Field label="State" value={PROFILE.state} />
+              <Field label="City" value={PROFILE.city} />
+            </FieldRow>
 
-        {!isSeeker && <Field label="Bio" value={PROFILE.bio} />}
+            {!isSeeker && <Field label="Bio" value={PROFILE.bio} />}
+          </>
+        )}
       </div>
 
 
@@ -329,8 +399,32 @@ export default function ProfilePage() {
     <EditProfileModal
       open={editOpen}
       onClose={() => setEditOpen(false)}
-      initial={{ state: PROFILE.state, city: PROFILE.city, bio: PROFILE.bio }}
-      onSave={(values) => setLocalEdits(values)}
+      variant={isAgency ? "agency" : "default"}
+      initial={
+        isAgency
+          ? {
+              state: clean(p?.state) || "Lagos",
+              city: clean(p?.city) || "Eti-Osa",
+              bio: clean(p?.bio),
+              whatsappNumber: clean(p?.whatsappNumber),
+              businessName: clean(p?.companyName) || me?.organization?.name || "Prime Properties",
+              businessRegNo: "",
+            }
+          : {
+              state: clean(p?.state) || "Lagos",
+              city: clean(p?.city) || "Eti-Osa",
+              bio: clean(p?.bio),
+            }
+      }
+      onSave={async (values) => {
+        try {
+          await updateMyProfile(values).unwrap();
+          toast("Profile updated", "success");
+        } catch (e) {
+          toast(unwrapApiError(e)?.message ?? "Couldn’t update your profile.", "error");
+          throw e; // keep the modal open on failure
+        }
+      }}
     />
     </>
   );

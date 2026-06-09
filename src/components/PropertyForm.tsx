@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useCreatePropertyMutation,
   useUpdatePropertyMutation,
 } from "@/services/propertyApi";
 import { useGetPropertyTypesQuery } from "@/services/referenceApi";
+import { useGetAgentsQuery } from "@/services/agentApi";
 import { unwrapApiError } from "@/services/api";
+import { getRole } from "@/lib/role";
 import type {
   CreatePropertyRequest,
   ListingType,
@@ -72,6 +74,7 @@ export type PropertyFormInitial = {
   yearBuilt?: string;
   existingPhotos?: string[];
   charges?: Charge[];
+  assignedAgentId?: string;
 };
 
 type Mode = "add" | "edit";
@@ -110,6 +113,31 @@ export default function PropertyForm({
   const [yearBuilt, setYearBuilt] = useState(initial.yearBuilt ?? "");
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>(initial.existingPhotos ?? []);
+  const [assignedAgentId, setAssignedAgentId] = useState(initial.assignedAgentId ?? "");
+  const [isAgency, setIsAgency] = useState(false);
+  useEffect(() => {
+    setIsAgency(getRole() === "Real Estate Agency or Developer");
+  }, []);
+  const { data: agentsPage } = useGetAgentsQuery(
+    { page: 0, size: 100 },
+    { skip: !isAgency }
+  );
+  const agentsFromBackend = agentsPage?.content ?? [];
+  // Demo fallback so the prototype dropdown isn't empty when the backend has
+  // no agents yet. Keys match /dashboard/agents-management entries so links
+  // stay consistent across the flow.
+  const DEMO_AGENTS = [
+    { userId: "kuku-adebanjo", firstName: "Kuku", lastName: "Adebanjo", organizationName: null },
+    { userId: "a1", firstName: "Amara", lastName: "Nwosu", organizationName: null },
+    { userId: "a2", firstName: "Emeka", lastName: "Okafor", organizationName: null },
+    { userId: "a3", firstName: "Zainab", lastName: "Bello", organizationName: null },
+    { userId: "a4", firstName: "Chinedu", lastName: "Umeh", organizationName: null },
+    { userId: "a5", firstName: "Fatima", lastName: "Yusuf", organizationName: null },
+    { userId: "a6", firstName: "Tunde", lastName: "Balogun", organizationName: null },
+    { userId: "a7", firstName: "Ngozi", lastName: "Eze", organizationName: null },
+    { userId: "a8", firstName: "Ifeanyi", lastName: "Sandra", organizationName: null },
+  ];
+  const agents = agentsFromBackend.length > 0 ? agentsFromBackend : DEMO_AGENTS;
   const [charges, setCharges] = useState<Charge[]>(
     initial.charges && initial.charges.length > 0 ? initial.charges : [{ id: "c1", title: "", amount: "" }]
   );
@@ -593,6 +621,52 @@ export default function PropertyForm({
           + Add new
         </button>
       </Section>
+
+      {isAgency && (
+        <Section title="Agent">
+          <FieldGroup label="Assign to">
+            <div
+              className="flex items-center"
+              style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px" }}
+            >
+              <select
+                value={assignedAgentId}
+                onChange={(e) => setAssignedAgentId(e.target.value)}
+                className="w-full outline-none bg-transparent appearance-none"
+                style={{
+                  fontSize: "14px",
+                  lineHeight: "24px",
+                  fontWeight: 400,
+                  color: assignedAgentId ? "#121212" : "#807E7E",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                <option value="" disabled hidden>
+                  Select agent to assign
+                </option>
+                {agents.map((a) => {
+                  const name =
+                    `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() ||
+                    a.organizationName ||
+                    "Agent";
+                  return (
+                    <option key={a.userId} value={a.userId} style={{ color: "#121212" }}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
+              <Image
+                src="/icons/dash/form-chevron.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="shrink-0"
+              />
+            </div>
+          </FieldGroup>
+        </Section>
+      )}
     </div>
   );
 }

@@ -6,20 +6,38 @@ import { useEffect, useState } from "react";
 const STATES = ["Lagos", "Abuja", "Rivers", "Oyo", "Kaduna", "Kano"];
 const CITIES_LAGOS = ["Eti-Osa", "Ikeja", "Lekki", "Victoria Island", "Yaba", "Surulere"];
 
+export type EditProfileValues = {
+  state: string;
+  city: string;
+  bio: string;
+  // Agency-only fields. Optional on the default variant; ignored by `onSave`
+  // unless `variant === "agency"`.
+  whatsappNumber?: string;
+  businessName?: string;
+  businessRegNo?: string;
+};
+
 export default function EditProfileModal({
   open,
   onClose,
   initial = { state: "Lagos", city: "Eti-Osa", bio: "" },
   onSave,
+  variant = "default",
 }: {
   open: boolean;
   onClose: () => void;
-  initial?: { state: string; city: string; bio: string };
-  onSave?: (values: { state: string; city: string; bio: string }) => void;
+  initial?: EditProfileValues;
+  onSave?: (values: EditProfileValues) => void | Promise<void>;
+  variant?: "default" | "agency";
 }) {
   const [state, setState] = useState(initial.state);
   const [city, setCity] = useState(initial.city);
   const [bio, setBio] = useState(initial.bio);
+  const [whatsappNumber, setWhatsapp] = useState(initial.whatsappNumber ?? "");
+  const [businessName, setBusinessName] = useState(initial.businessName ?? "");
+  const [businessRegNo, setBusinessRegNo] = useState(initial.businessRegNo ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const isAgency = variant === "agency";
 
   useEffect(() => {
     if (!open) return;
@@ -119,6 +137,30 @@ export default function EditProfileModal({
             <Select value={city} onChange={setCity} options={CITIES_LAGOS} />
           </FieldGroup>
 
+          {isAgency && (
+            <>
+              <FieldGroup label="Whatsapp Number">
+                <PhoneInput value={whatsappNumber} onChange={setWhatsapp} />
+              </FieldGroup>
+
+              <FieldGroup label="Business Name">
+                <TextInput
+                  value={businessName}
+                  onChange={setBusinessName}
+                  placeholder="Enter business name"
+                />
+              </FieldGroup>
+
+              <FieldGroup label="Business Reg No">
+                <TextInput
+                  value={businessRegNo}
+                  onChange={setBusinessRegNo}
+                  placeholder="Enter business registration number here"
+                />
+              </FieldGroup>
+            </>
+          )}
+
           <FieldGroup label="Bio">
             <textarea
               value={bio}
@@ -141,9 +183,20 @@ export default function EditProfileModal({
 
           <button
             type="button"
-            onClick={() => {
-              onSave?.({ state, city, bio });
-              onClose();
+            disabled={submitting}
+            onClick={async () => {
+              setSubmitting(true);
+              try {
+                const payload: EditProfileValues = isAgency
+                  ? { state, city, bio, whatsappNumber, businessName, businessRegNo }
+                  : { state, city, bio };
+                await onSave?.(payload);
+                onClose();
+              } catch {
+                /* keep the modal open; the page surfaces the error toast */
+              } finally {
+                setSubmitting(false);
+              }
             }}
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
             style={{
@@ -156,11 +209,12 @@ export default function EditProfileModal({
               borderRadius: "12px",
               fontSize: "14px",
               fontWeight: 500,
-              cursor: "pointer",
+              cursor: submitting ? "not-allowed" : "pointer",
+              opacity: submitting ? 0.7 : 1,
               marginTop: "8px",
             }}
           >
-            Save Changes
+            {submitting ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -183,6 +237,84 @@ function FieldGroup({ label, children }: { label: string; children: React.ReactN
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div
+      className="flex items-center"
+      style={{
+        background: "#F6F6F6",
+        borderRadius: "12px",
+        padding: "8px 16px",
+      }}
+    >
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full outline-none bg-transparent"
+        style={{
+          fontSize: "14px",
+          lineHeight: "24px",
+          fontWeight: 400,
+          color: "#121212",
+          letterSpacing: "-0.02em",
+        }}
+      />
+    </div>
+  );
+}
+
+function PhoneInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div
+      className="flex items-center"
+      style={{
+        background: "#F6F6F6",
+        borderRadius: "12px",
+        padding: "8px 16px",
+        gap: "16px",
+      }}
+    >
+      <div className="flex items-center" style={{ gap: "4px" }}>
+        <Image src="/icons/flag-us.svg" alt="" width={24} height={24} />
+        <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#807E7E" }}>
+          +1
+        </span>
+        <Image src="/icons/chevron-down.svg" alt="" width={16} height={16} />
+      </div>
+      <input
+        type="tel"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Enter phone number"
+        className="flex-1 outline-none bg-transparent"
+        style={{
+          fontSize: "14px",
+          lineHeight: "24px",
+          fontWeight: 400,
+          color: "#121212",
+          letterSpacing: "-0.02em",
+        }}
+      />
     </div>
   );
 }
