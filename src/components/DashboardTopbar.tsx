@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NotificationsBell from "@/components/NotificationsBell";
 
@@ -85,7 +86,12 @@ export default function DashboardTopbar({
         <span style={{ width: "1px", height: "32px", background: "#EDEDED" }} />
 
         
-        <div className="flex items-center" style={{ gap: "12px" }}>
+        <Link
+          href="/dashboard/profile"
+          aria-label="View profile"
+          className="flex items-center hover:opacity-80"
+          style={{ gap: "12px" }}
+        >
           <div className="relative shrink-0" style={{ width: "40px", height: "40px" }}>
             <div
               className="rounded-full flex items-center justify-center"
@@ -124,7 +130,7 @@ export default function DashboardTopbar({
           >
             {userName}
           </span>
-        </div>
+        </Link>
       </div>
     </header>
   );

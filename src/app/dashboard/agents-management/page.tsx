@@ -136,17 +136,15 @@ export default function AgentsManagementPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="flex items-center justify-between" style={{ gap: "16px" }}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <p style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
           See all your agents and their assigned properties
         </p>
 
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
           <div
-            className="flex items-center"
+            className="flex items-center w-full md:w-[320px] h-12 md:h-10"
             style={{
-              width: "320px",
-              height: "40px",
               background: "#F6F6F6",
               borderRadius: "12px",
               padding: "8px 16px",
@@ -159,7 +157,7 @@ export default function AgentsManagementPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Enter agent name, area or keyword..."
-              className="flex-1 outline-none bg-transparent"
+              className="flex-1 min-w-0 outline-none bg-transparent"
               style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#121212" }}
             />
           </div>
@@ -167,9 +165,8 @@ export default function AgentsManagementPage() {
           <button
             type="button"
             onClick={() => setModal("new")}
-            className="inline-flex items-center justify-center text-white hover:opacity-90"
+            className="inline-flex items-center justify-center text-white hover:opacity-90 w-full md:w-auto h-12 md:h-10 shrink-0"
             style={{
-              height: "40px",
               padding: "8px 20px",
               gap: "8px",
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
@@ -204,7 +201,7 @@ export default function AgentsManagementPage() {
             : "No agents match your search."}
         </div>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
           {visible.map((a) => (
             <AgentCard key={a.id} agent={a} onCancel={handleCancel} />
           ))}

@@ -102,93 +102,69 @@ export default function AgentDetailPage({
         </span>
       </button>
 
-      <div className="flex items-start justify-between" style={{ gap: "16px" }}>
-        <div className="flex items-center" style={{ gap: "16px", flex: 1, minWidth: 0 }}>
-          <div
-            className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center"
-            style={{ width: "72px", height: "72px", background: "#F5FCFF", color: "#305E82", fontSize: "22px", fontWeight: 600 }}
-          >
-            {staff.avatarUrl ? (
-              <Image src={staff.avatarUrl} alt={name} fill sizes="72px" unoptimized style={{ objectFit: "cover" }} />
-            ) : (
-              initialsOf(name)
-            )}
-          </div>
+      <div className="flex items-start" style={{ gap: "16px", minWidth: 0 }}>
+        <div
+          className="rounded-full relative overflow-hidden shrink-0 flex items-center justify-center"
+          style={{ width: "64px", height: "64px", background: "#F5FCFF", color: "#305E82", fontSize: "22px", fontWeight: 600 }}
+        >
+          {staff.avatarUrl ? (
+            <Image src={staff.avatarUrl} alt={name} fill sizes="64px" unoptimized style={{ objectFit: "cover" }} />
+          ) : (
+            initialsOf(name)
+          )}
+        </div>
 
+        <div className="flex flex-col" style={{ gap: "16px", minWidth: 0 }}>
           <div className="flex flex-col" style={{ gap: "8px", minWidth: 0 }}>
             <div className="flex items-center" style={{ gap: "8px" }}>
-              <h1 style={{ fontSize: "24px", lineHeight: "32px", fontWeight: 600, letterSpacing: "-0.02em", color: "#121212" }}>
+              <h1 className="text-[16px] md:text-[20px]" style={{ lineHeight: "24px", fontWeight: 600, letterSpacing: "-0.02em", color: "#121212" }}>
                 {name}
               </h1>
-              {verified && (
-                <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
-              )}
+              {verified && <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />}
             </div>
 
-            <div className="flex items-center" style={{ gap: "16px" }}>
+            {/* Location + Listings badge */}
+            <div className="flex items-center flex-wrap" style={{ gap: "16px" }}>
               <div className="flex items-center" style={{ gap: "8px" }}>
-                <Image src="/icons/dash/detail-location.svg" alt="" width={20} height={20} />
-                <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
-                  {location}
-                </span>
+                <Image src="/icons/dash/detail-location.svg" alt="" width={16} height={16} />
+                <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{location}</span>
               </div>
-              {/* Figma 709:78130 — solid #305E82 badge, white icon + text, Medium 12/18 */}
               <span
-                className="inline-flex items-center"
-                style={{
-                  gap: "8px",
-                  padding: "4px 12px",
-                  background: "#305E82",
-                  color: "#FFFFFF",
-                  borderRadius: "20px",
-                  fontSize: "12px",
-                  lineHeight: "18px",
-                  fontWeight: 500,
-                }}
+                className="inline-flex items-center justify-center"
+                style={{ gap: "8px", padding: "4px 8px", background: "#305E82", color: "#FFFFFF", borderRadius: "20px" }}
               >
-                <Image
-                  src="/icons/dash/icon-buildings.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                  style={{ filter: "brightness(0) invert(1)" }}
-                />
-                {assigned.length} {assigned.length === 1 ? "Listing" : "Listings"}
-              </span>
-              <div className="flex items-center" style={{ gap: "8px" }}>
-                <Image src="/icons/dash/icon-star.svg" alt="" width={20} height={20} />
-                <span style={{ fontSize: "12px", lineHeight: "24px", color: "#807E7E" }}>
-                  {DEFAULT_RATING}
+                <Image src="/icons/dash/icon-buildings.svg" alt="" width={16} height={16} style={{ filter: "brightness(0) invert(1)" }} />
+                <span style={{ fontSize: "11px", lineHeight: "18px", fontWeight: 500 }}>
+                  {assigned.length} {assigned.length === 1 ? "Listing" : "Listings"}
                 </span>
+              </span>
+            </div>
+
+            {/* Rating + Added */}
+            <div className="flex items-center flex-wrap" style={{ gap: "16px" }}>
+              <div className="flex items-center" style={{ gap: "8px" }}>
+                <Image src="/icons/dash/icon-star.svg" alt="" width={16} height={16} />
+                <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{DEFAULT_RATING}</span>
               </div>
               {addedAgo(staff.joinedAt) && (
-                <span style={{ fontSize: "14px", lineHeight: "24px", letterSpacing: "-0.02em", color: "#807E7E" }}>
+                <span style={{ fontSize: "12px", lineHeight: "20px", letterSpacing: "-0.02em", color: "#807E7E" }}>
                   {addedAgo(staff.joinedAt)}
                 </span>
               )}
             </div>
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setShowSuspend(true)}
-          className="inline-flex items-center justify-center hover:opacity-80"
-          style={{
-            height: "40px",
-            padding: "8px 16px",
-            gap: "8px",
-            background: "transparent",
-            border: "none",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#D80027",
-            cursor: "pointer",
-          }}
-        >
-          <Image src="/icons/dash/flag-red.svg" alt="" width={20} height={20} />
-          Suspend Agent
-        </button>
+          {/* Suspend Agent */}
+          <button
+            type="button"
+            onClick={() => setShowSuspend(true)}
+            className="inline-flex items-center self-start hover:opacity-80"
+            style={{ gap: "8px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <Image src="/icons/dash/flag-red.svg" alt="" width={16} height={16} />
+            <span style={{ fontSize: "12px", fontWeight: 500, color: "#D80027" }}>Suspend Agent</span>
+          </button>
+        </div>
       </div>
 
       {assigned.length === 0 ? (
@@ -199,7 +175,7 @@ export default function AgentDetailPage({
           No properties assigned to this agent yet.
         </div>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
           {assigned.map((p) => (
             <PropertyCard key={p.id} property={p} />
           ))}

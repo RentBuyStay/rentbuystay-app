@@ -29,21 +29,13 @@ export default function SettingsPage() {
 
   return (
     <div
-      className="flex"
-      style={{
-        margin: "-32px -40px",
-        minHeight: "calc(100vh - 80px)",
-      }}
+      className="flex -m-4 md:-m-8 lg:-mx-10 lg:-my-8"
+      style={{ minHeight: "calc(100vh - 80px)" }}
     >
-
+      {/* Menu — full-width on mobile (shown when no section is open); fixed
+          left pane on desktop. */}
       <div
-        className="flex flex-col shrink-0"
-        style={{
-          width: "516px",
-          padding: "32px 24px 32px 40px",
-          gap: "24px",
-          borderRight: "2px solid #FAFAFA",
-        }}
+        className={`${view === "empty" ? "flex" : "hidden"} md:flex flex-col shrink-0 w-full md:w-[516px] gap-6 p-4 md:py-8 md:pl-10 md:pr-6 md:border-r-2 md:border-[#FAFAFA]`}
       >
         {MENU.map((item) => {
           const active = view === item.view;
@@ -88,8 +80,21 @@ export default function SettingsPage() {
         })}
       </div>
 
+      {/* Content — hidden on mobile until a section is opened. */}
+      <div className={`${view === "empty" ? "hidden" : "flex"} md:flex flex-1 flex-col p-4 md:py-8 md:px-10`}>
+        {/* Mobile: back to the menu */}
+        {view !== "empty" && (
+          <button
+            type="button"
+            onClick={() => setView("empty")}
+            className="md:hidden inline-flex items-center self-start hover:opacity-80"
+            style={{ gap: "12px", background: "none", border: "none", padding: 0, marginBottom: "24px", cursor: "pointer" }}
+          >
+            <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} />
+            <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#525252" }}>Back</span>
+          </button>
+        )}
 
-      <div className="flex-1" style={{ padding: "32px 40px" }}>
         {view === "empty" && <EmptyState />}
         {view === "password" && <ChangePassword onCancel={() => setView("empty")} />}
         {view === "notifications" && <NotificationPreferences />}
@@ -256,13 +261,14 @@ function NotificationPreferences() {
             key={row.category}
             className="flex items-center justify-between"
             style={{
-              height: "100px",
+              minHeight: "100px",
               padding: "24px",
+              gap: "16px",
               background: "#F6F6F6",
               borderRadius: "20px",
             }}
           >
-            <div className="flex flex-col" style={{ gap: "8px", maxWidth: "calc(100% - 80px)" }}>
+            <div className="flex flex-col flex-1 min-w-0" style={{ gap: "8px" }}>
               <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
                 {row.title}
               </span>
