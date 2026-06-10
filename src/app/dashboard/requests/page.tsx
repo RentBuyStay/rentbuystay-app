@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useGetMeQuery } from "@/services/meApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import {
   useGetPropertyRequestsQuery,
   useDeletePropertyRequestMutation,
@@ -15,7 +16,6 @@ import { toRequestVM, type RequestVM, type RequestTag } from "@/lib/propertyRequ
 type RequestType = RequestTag;
 
 const TYPES: ("All" | RequestType)[] = ["All", "For Rent", "For Sale", "Shortlet"];
-const PROPERTY_TYPES = ["Any", "Apartment", "House", "Duplex", "Studio", "Bungalow", "Office Space"];
 
 type Tab = "All Requests" | "My Requests";
 const TABS: Tab[] = ["All Requests", "My Requests"];
@@ -30,11 +30,17 @@ export default function PropertyRequestsPage() {
 
   const { data: me } = useGetMeQuery();
   const { data, isLoading, isError } = useGetPropertyRequestsQuery({ page: 0, size: 50 });
+  // Real property-type names (the "class" names) — same source as the listing form.
+  const { data: propertyTypes } = useGetPropertyTypesQuery();
+  const propTypeOptions = [
+    { label: "Select type", value: "Any" },
+    ...(propertyTypes ?? []).map((t) => ({ label: t.displayName, value: t.displayName })),
+  ];
   const allRequests: RequestVM[] = (data?.content ?? []).map(toRequestVM);
 
   const matchesFilters = (r: RequestVM) => {
     if (typeFilter !== "All" && r.type !== typeFilter) return false;
-    if (propTypeFilter !== "Any" && !r.seeking.toLowerCase().includes(propTypeFilter.toLowerCase())) return false;
+    if (propTypeFilter !== "Any" && r.propertyType !== propTypeFilter) return false;
     return true;
   };
 
@@ -48,7 +54,7 @@ export default function PropertyRequestsPage() {
       
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-        <div className="flex items-center" style={{ gap: "0" }}>
+        <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ gap: "16px" }}>
           {TABS.map((t) => {
             const active = t === tab;
             return (
@@ -56,18 +62,16 @@ export default function PropertyRequestsPage() {
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className="hover:opacity-80"
+                className="hover:opacity-80 shrink-0 whitespace-nowrap"
                 style={{
-                  width: "140px",
-                  height: "40px",
-                  padding: "8px 16px",
+                  padding: "8px 12px",
                   fontSize: "14px",
                   lineHeight: "20px",
                   fontWeight: 500,
                   color: active ? "#305E82" : "#807E7E",
                   background: "transparent",
                   border: "none",
-                  borderBottom: active ? "2px solid #305E82" : "2px solid transparent",
+                  borderBottom: active ? "1px solid #305E82" : "1px solid transparent",
                   cursor: "pointer",
                 }}
               >
@@ -78,28 +82,31 @@ export default function PropertyRequestsPage() {
         </div>
 
         
-        <div className="flex flex-wrap items-center" style={{ gap: "12px" }}>
-          <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#807E7E", letterSpacing: "-0.02em" }}>
-            Filter:
-          </span>
-          <FilterSelect
-            value={typeFilter}
-            onChange={(v) => setTypeFilter(v as "All" | RequestType)}
-            options={TYPES.map((t) => ({ label: t === "All" ? "For ..." : t, value: t }))}
-          />
-          <FilterSelect
-            value={propTypeFilter}
-            onChange={setPropTypeFilter}
-            options={PROPERTY_TYPES.map((t) => ({ label: t === "Any" ? "Select type" : t, value: t }))}
-          />
-          
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <span className="shrink-0" style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#121212", letterSpacing: "-0.02em" }}>
+              Filter:
+            </span>
+            <FilterSelect
+              value={typeFilter}
+              onChange={(v) => setTypeFilter(v as "All" | RequestType)}
+              options={TYPES.map((t) => ({ label: t === "All" ? "For ..." : t, value: t }))}
+            />
+            <FilterSelect
+              value={propTypeFilter}
+              onChange={setPropTypeFilter}
+              options={propTypeOptions}
+              grow
+            />
+          </div>
+
+          {/* Post Request — icon-only on mobile, "+ Post Request" on desktop */}
           <Link
             href="/dashboard/requests/new"
-            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+            aria-label="Post Request"
+            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 gap-0 md:gap-2 px-4 md:px-5"
             style={{
-              height: "40px",
-              padding: "8px 20px",
-              gap: "8px",
+              height: "48px",
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
               border: "1px solid rgba(120,158,187,0.5)",
               borderRadius: "12px",
@@ -108,8 +115,8 @@ export default function PropertyRequestsPage() {
               whiteSpace: "nowrap",
             }}
           >
-            <span style={{ fontSize: "16px", lineHeight: "16px" }}>+</span>
-            Post Request
+            <span style={{ fontSize: "20px", lineHeight: 1 }}>+</span>
+            <span className="hidden md:inline">Post Request</span>
           </Link>
         </div>
       </div>
@@ -153,27 +160,32 @@ function FilterSelect({
   value,
   onChange,
   options,
+  grow,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { label: string; value: string }[];
+  /** When true, fills remaining width (the "Select type" field); otherwise a
+   *  fixed-narrow field (the "For …" field) — matches the Figma proportions. */
+  grow?: boolean;
 }) {
   return (
     <div
-      className="flex items-center"
+      className={`flex items-center md:flex-none md:w-[140px] ${
+        grow ? "flex-1 min-w-0" : "shrink-0 w-[96px]"
+      }`}
       style={{
         background: "#F6F6F6",
         borderRadius: "12px",
         padding: "8px 16px",
         gap: "8px",
-        height: "40px",
-        minWidth: "140px",
+        height: "48px",
       }}
     >
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="outline-none bg-transparent appearance-none flex-1"
+        className="outline-none bg-transparent appearance-none flex-1 min-w-0"
         style={{
           fontSize: "14px",
           lineHeight: "24px",
@@ -181,6 +193,7 @@ function FilterSelect({
           color: "#121212",
           letterSpacing: "-0.02em",
           cursor: "pointer",
+          textOverflow: "ellipsis",
         }}
       >
         {options.map((o) => (
@@ -210,88 +223,110 @@ function RequestCard({ request }: { request: RequestVM }) {
       .catch(() => {});
   }
 
-  return (
+  const avatar = (
     <div
-      className="bg-white flex flex-col"
-      style={{
-        width: "100%",
-        height: "316px",
-        border: "1px solid #F6F6F6",
-        borderRadius: "20px",
-        padding: "24px",
-        gap: "20px",
-      }}
+      className="rounded-full flex items-center justify-center shrink-0"
+      style={{ width: "40px", height: "40px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "14px", fontWeight: 600 }}
     >
-      
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell label="Seeking" value={request.seeking} valueColor="#121212" valueSize="lg" />
-        <StatCell label="Bedroom" value={String(request.bedrooms)} />
-      </div>
+      {request.initials}
+    </div>
+  );
+  const nameRow = (
+    <div className="flex items-center min-w-0" style={{ gap: "4px" }}>
+      <span className="truncate" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
+        {request.name}
+      </span>
+      <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} className="shrink-0" />
+    </div>
+  );
 
-      {/* Row 2 — Budget (navy blue) | Listed on */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell
-          label="Budget"
-          value={request.budget}
-          valueSuffix={request.budgetSuffix}
-          valueColor="#305E82"
-          valueSize="lg"
-        />
-        <StatCell label="Listed on" value={request.listed} />
-      </div>
-
-      {/* Row 3 — Area | Request by */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell label="Area" value={request.area} />
-        <StatCell label="Request by" value={request.by} />
-      </div>
-
-      
-      <div className="flex items-center justify-between" style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6" }}>
-        <div className="flex items-center" style={{ gap: "12px" }}>
-          <div
-            className="rounded-full flex items-center justify-center shrink-0"
+  return (
+    <>
+      {/* Desktop — two-column grid + "Message" button footer (Figma 348:31513) */}
+      <div
+        className="hidden md:flex flex-col bg-white"
+        style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "24px", gap: "20px" }}
+      >
+        <div className="flex flex-col" style={{ gap: "20px" }}>
+          <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+            <StatCell label="Seeking" value={request.seeking} valueSize="md" />
+            <StatCell label="Bedroom" value={String(request.bedrooms)} valueSize="md" />
+          </div>
+          <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+            <StatCell label="Budget" value={request.budget} valueSuffix={request.budgetSuffix} valueColor="#305E82" valueSize="lg" />
+            <StatCell label="Listed on" value={request.listed} valueSize="md" />
+          </div>
+          <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+            <StatCell label="Area" value={request.area} valueSize="md" />
+            <StatCell label="Request by" value={request.by} valueSize="md" />
+          </div>
+        </div>
+        <div className="flex items-center justify-between" style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6", gap: "12px" }}>
+          <div className="flex items-center min-w-0" style={{ gap: "12px" }}>
+            {avatar}
+            {nameRow}
+          </div>
+          <button
+            type="button"
+            onClick={handleMessage}
+            disabled={contacting}
+            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
             style={{
-              width: "40px",
-              height: "40px",
-              background: "#305E82",
-              color: "#FFFFFF",
+              height: "48px",
+              padding: "8px 24px",
+              gap: "8px",
+              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+              border: "1px solid rgba(120,158,187,0.5)",
+              borderRadius: "12px",
               fontSize: "14px",
-              fontWeight: 600,
+              fontWeight: 500,
+              cursor: contacting ? "not-allowed" : "pointer",
+              opacity: contacting ? 0.6 : 1,
             }}
           >
-            {request.initials}
-          </div>
-          <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
-            {request.name}
-          </span>
-          
-          <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
+            <Image src="/icons/dash/messages-2.svg" alt="" width={20} height={20} />
+            {contacting ? "Opening…" : "Message"}
+          </button>
         </div>
-        
-        <button
-          type="button"
-          onClick={handleMessage}
-          disabled={contacting}
-          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-          style={{
-            height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: contacting ? "not-allowed" : "pointer",
-            opacity: contacting ? 0.6 : 1,
-          }}
-        >
-          <Image src="/icons/dash/messages-2.svg" alt="" width={20} height={20} />
-          {contacting ? "Opening…" : "Message"}
-        </button>
       </div>
-    </div>
+
+      {/* Mobile — stacked, message icon in the Request-by row (Figma 825:66979) */}
+      <div
+        className="md:hidden flex flex-col bg-white"
+        style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "24px", gap: "20px" }}
+      >
+        <div className="flex flex-col" style={{ gap: "16px" }}>
+          <div className="flex items-start justify-between" style={{ gap: "16px" }}>
+            <StatCell label="Seeking" value={request.seeking} />
+            <StatCell label="Bedroom" value={String(request.bedrooms)} />
+          </div>
+          <StatCell label="Budget" value={request.budget} valueSuffix={request.budgetSuffix} valueColor="#305E82" valueSize="lg" />
+          <StatCell label="Area" value={request.area} />
+          <div className="flex items-end justify-between" style={{ gap: "16px" }}>
+            <StatCell label="Request by" value={request.by} />
+            <button
+              type="button"
+              onClick={handleMessage}
+              disabled={contacting}
+              aria-label="Message"
+              className="shrink-0 hover:opacity-80"
+              style={{ background: "none", border: "none", padding: 0, cursor: contacting ? "not-allowed" : "pointer", width: "24px", height: "24px", opacity: contacting ? 0.6 : 1 }}
+            >
+              <Image src="/icons/dash/messages-2-blue.svg" alt="" width={24} height={24} />
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between" style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6", gap: "12px" }}>
+          <div className="flex items-center min-w-0" style={{ gap: "8px" }}>
+            {avatar}
+            {nameRow}
+          </div>
+          <span className="shrink-0" style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 500, color: "#305E82" }}>
+            Listed on {request.listed}
+          </span>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -306,41 +341,42 @@ function MyRequestCard({ request }: { request: RequestVM }) {
 
   return (
     <div
-      className="bg-white flex flex-col"
+      className="bg-white flex flex-col w-full"
       style={{
-        width: "100%",
-        height: "316px",
         border: "1px solid #F6F6F6",
         borderRadius: "20px",
         padding: "24px",
         gap: "20px",
       }}
     >
-      {/* Row 1 — Seeking title | Bedroom */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell label="Seeking" value={request.seeking} valueColor="#121212" valueSize="lg" />
-        <StatCell label="Bedroom" value={String(request.bedrooms)} />
+      {/* Desktop details — two-column grid (16px values) */}
+      <div className="hidden md:flex flex-col" style={{ gap: "20px" }}>
+        <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+          <StatCell label="Seeking" value={request.seeking} valueSize="md" />
+          <StatCell label="Bedroom" value={String(request.bedrooms)} valueSize="md" />
+        </div>
+        <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+          <StatCell label="Budget" value={request.budget} valueSuffix={request.budgetSuffix} valueColor="#305E82" valueSize="lg" />
+          <StatCell label="Listed on" value={request.listed} valueSize="md" />
+        </div>
+        <div className="grid grid-cols-2" style={{ gap: "24px" }}>
+          <StatCell label="Area" value={request.area} valueSize="md" />
+          <StatCell label="Request by" value={request.by} valueSize="md" />
+        </div>
       </div>
 
-      {/* Row 2 — Budget (navy) | Listed on */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell
-          label="Budget"
-          value={request.budget}
-          valueSuffix={request.budgetSuffix}
-          valueColor="#305E82"
-          valueSize="lg"
-        />
+      {/* Mobile details — stacked (14px values) */}
+      <div className="md:hidden flex flex-col" style={{ gap: "16px" }}>
+        <div className="flex items-start justify-between" style={{ gap: "16px" }}>
+          <StatCell label="Seeking" value={request.seeking} />
+          <StatCell label="Bedroom" value={String(request.bedrooms)} />
+        </div>
+        <StatCell label="Budget" value={request.budget} valueSuffix={request.budgetSuffix} valueColor="#305E82" valueSize="lg" />
+        <StatCell label="Area" value={request.area} />
+        <StatCell label="Request by" value={request.by} />
         <StatCell label="Listed on" value={request.listed} />
       </div>
 
-      {/* Row 3 — Area | Request by */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <StatCell label="Area" value={request.area} />
-        <StatCell label="Request by" value={request.by} />
-      </div>
-
-      
       <div
         className="flex items-center"
         style={{ paddingTop: "16px", borderTop: "1px solid #F6F6F6", gap: "16px" }}
@@ -399,34 +435,36 @@ function StatCell({
   value,
   valueSuffix,
   valueColor = "#121212",
-  valueSize = "md",
+  valueSize = "sm",
 }: {
   label: string;
   value: string;
   valueSuffix?: string;
-  
   valueColor?: string;
-  /** "lg" = 16/24 SemiBold (Seeking title, Budget). "md" = 14/20 Medium (rest). */
-  valueSize?: "md" | "lg";
+  /** "sm" = 14/20 Medium (mobile values). "md" = 16/24 Medium (desktop values).
+   *  "lg" = 20/24 Bold (Budget, both). */
+  valueSize?: "sm" | "md" | "lg";
 }) {
   const isLg = valueSize === "lg";
+  const fontSize = isLg ? "20px" : valueSize === "md" ? "16px" : "14px";
+  const lineHeight = valueSize === "sm" ? "20px" : "24px";
   return (
-    <div className="flex flex-col" style={{ gap: "4px" }}>
+    <div className="flex flex-col min-w-0" style={{ gap: "4px" }}>
       <span style={{ fontSize: "12px", lineHeight: "16px", fontWeight: 400, color: "#807E7E" }}>
         {label}
       </span>
       <span
         style={{
-          fontSize: isLg ? "16px" : "14px",
-          lineHeight: isLg ? "24px" : "20px",
-          fontWeight: isLg ? 600 : 500,
+          fontSize,
+          lineHeight,
+          fontWeight: isLg ? 700 : 500,
           color: valueColor,
           letterSpacing: isLg ? "-0.02em" : "0",
         }}
       >
         {value}
         {valueSuffix && (
-          <span style={{ fontSize: "12px", fontWeight: 400, color: "#807E7E" }}>{valueSuffix}</span>
+          <span style={{ fontSize: "12px", fontWeight: 400, color: "#121212" }}>{valueSuffix}</span>
         )}
       </span>
     </div>

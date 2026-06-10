@@ -12,6 +12,8 @@ export type RequestVM = {
   posterUserId: string;
   seeking: string;
   type: RequestTag;
+  /** Real backend property-type name (the "class"), e.g. "Flats & Apartments". */
+  propertyType: string;
   bedrooms: string;
   area: string;
   by: string;
@@ -57,6 +59,7 @@ export function toRequestVM(r: PropertyRequestResponse): RequestVM {
     posterUserId: r.posterUserId,
     seeking: r.title,
     type: TAG_BY_LISTING[r.listingType] ?? "For Rent",
+    propertyType: r.propertyTypeName ?? "",
     bedrooms: r.bedrooms ? String(r.bedrooms) : "Studio",
     area: [r.city, r.state].filter(Boolean).join(", ") || "—",
     by: SEEKER_LABEL[r.seekerType] ?? r.seekerType,

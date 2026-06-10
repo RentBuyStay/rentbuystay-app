@@ -117,10 +117,10 @@ export default function ScheduleInspectionModal({
             <div className="flex flex-col w-full" style={{ gap: "8px" }}>
               <h2
                 style={{
-                  fontSize: "20px",
-                  lineHeight: "30px",
+                  fontSize: "18px",
+                  lineHeight: "24px",
                   fontWeight: 600,
-                  color: "#121212",
+                  color: "#131313",
                   textAlign: "center",
                 }}
               >
@@ -128,7 +128,7 @@ export default function ScheduleInspectionModal({
               </h2>
               <p
                 style={{
-                  fontSize: "16px",
+                  fontSize: "14px",
                   lineHeight: "24px",
                   fontWeight: 400,
                   color: "#807E7E",
@@ -188,10 +188,10 @@ export default function ScheduleInspectionModal({
         <div className="flex flex-col p-6 md:p-10">
           {/* Header */}
           <div className="flex flex-col" style={{ gap: "8px", paddingRight: "32px" }}>
-            <h2 style={{ fontSize: "20px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
+            <h2 style={{ fontSize: "18px", lineHeight: "24px", fontWeight: 600, color: "#131313" }}>
               Schedule Inspection
             </h2>
-            <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>
+            <p style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
               Fill the details below to schedule a property inspection.
             </p>
           </div>

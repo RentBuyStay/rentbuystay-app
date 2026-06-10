@@ -61,9 +61,10 @@ export default function MyPropertiesPage() {
       
 
       
-      <div className="flex items-center justify-between" style={{ gap: "16px", flexWrap: "wrap", rowGap: "16px" }}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-        <div className="flex items-center" style={{ gap: "0", flexWrap: "wrap" }}>
+        {/* Tabs — horizontally-scrollable pills on mobile, underline on desktop */}
+        <div className="flex items-center gap-2 md:gap-0 overflow-x-auto md:overflow-visible [&::-webkit-scrollbar]:hidden">
           {TABS.map((t) => {
             const active = t === activeTab;
             return (
@@ -71,17 +72,13 @@ export default function MyPropertiesPage() {
                 key={t}
                 type="button"
                 onClick={() => setActiveTab(t)}
+                className="shrink-0 whitespace-nowrap cursor-pointer text-xs md:text-sm font-medium"
                 style={{
-                  padding: "8px 16px",
+                  padding: "8px 12px",
+                  lineHeight: "20px",
                   background: "transparent",
                   color: active ? "#305E82" : "#807E7E",
-                  border: "none",
                   borderBottom: active ? "1px solid #305E82" : "1px solid transparent",
-                  fontSize: "14px",
-                  lineHeight: "20px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
                 }}
               >
                 {t} ({counts[t]})
@@ -90,19 +87,17 @@ export default function MyPropertiesPage() {
           })}
         </div>
 
-        <div className="flex items-center" style={{ gap: "16px", flex: "1 1 auto", justifyContent: "flex-end", minWidth: 0 }}>
-
+        {/* Search + Add */}
+        <div className="flex items-center gap-3 md:gap-4 md:shrink-0">
           <div
-            className="flex items-center"
+            className="flex items-center flex-1 md:flex-none md:w-[320px]"
             style={{
               background: "#F6F6F6",
               borderRadius: "12px",
               padding: "8px 16px",
               gap: "8px",
-              flex: "1 1 200px",
-              maxWidth: "320px",
               minWidth: 0,
-              height: "40px",
+              height: "44px",
             }}
           >
             <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
@@ -111,7 +106,7 @@ export default function MyPropertiesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Enter location, area or keyword..."
-              className="flex-1 outline-none bg-transparent"
+              className="flex-1 min-w-0 outline-none bg-transparent"
               style={{
                 fontSize: "14px",
                 lineHeight: "20px",
@@ -121,25 +116,23 @@ export default function MyPropertiesPage() {
             />
           </div>
 
-          
+          {/* Add — icon-only on mobile, "+ Add Property" on desktop */}
           <Link
             href="/dashboard/properties/new"
-            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+            aria-label="Add Property"
+            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 gap-0 md:gap-2 px-3 md:px-5"
             style={{
-              height: "40px",
-              padding: "8px 20px",
-              gap: "8px",
+              height: "44px",
               background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
               border: "1px solid rgba(120,158,187,0.5)",
               borderRadius: "12px",
               fontSize: "14px",
               fontWeight: 500,
               whiteSpace: "nowrap",
-              flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: "16px" }}>+</span>
-            Add Property
+            <span style={{ fontSize: "18px", lineHeight: 1 }}>+</span>
+            <span className="hidden md:inline">Add Property</span>
           </Link>
         </div>
       </div>
