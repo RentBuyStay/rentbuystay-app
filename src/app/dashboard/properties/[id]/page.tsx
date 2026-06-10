@@ -131,9 +131,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         <div className="flex flex-col" style={{ gap: "16px", flex: 1, minWidth: 0 }}>
           <div className="flex flex-col" style={{ gap: "8px" }}>
             <h1
+              className="text-base md:text-2xl leading-6 md:leading-8"
               style={{
-                fontSize: "24px",
-                lineHeight: "32px",
                 fontWeight: 600,
                 color: "#121212",
                 letterSpacing: "-0.02em",
@@ -149,7 +148,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          <div className="flex items-center" style={{ gap: "24px" }}>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 md:gap-6">
             <div className="flex items-center" style={{ gap: "8px" }}>
               <Image src="/icons/dash/metric-eye.svg" alt="" width={20} height={20} />
               <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
@@ -185,7 +184,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
 
-        <div className="flex items-center shrink-0" style={{ gap: "16px" }}>
+        {/* Desktop: Delete + Edit text buttons */}
+        <div className="hidden md:flex items-center shrink-0" style={{ gap: "16px" }}>
           <button
             type="button"
             onClick={handleDelete}
@@ -233,17 +233,36 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             Edit Property
           </button>
         </div>
+
+        {/* Mobile: Delete as an icon-only button (Edit moves to a bottom CTA) */}
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          aria-label="Delete property"
+          className="md:hidden flex items-center justify-center shrink-0 hover:opacity-80"
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "12px",
+            background: "#F6F6F6",
+            border: "none",
+            cursor: deleting ? "not-allowed" : "pointer",
+            opacity: deleting ? 0.6 : 1,
+          }}
+        >
+          <Image src="/icons/dash/trash.svg" alt="" width={20} height={20} />
+        </button>
       </div>
 
 
       <ImageSlider images={property.images} title={property.title} />
 
 
-      <div className="flex items-center justify-between" style={{ padding: "16px 0", borderBottom: "1px solid #F6F6F6" }}>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" style={{ padding: "16px 0", borderBottom: "1px solid #F6F6F6" }}>
         <span
+          className="text-2xl md:text-[32px] leading-9 md:leading-[56px]"
           style={{
-            fontSize: "32px",
-            lineHeight: "56px",
             fontWeight: 700,
             color: "#305E82",
             letterSpacing: "-0.02em",
@@ -251,7 +270,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         >
           {property.price}{property.priceSuffix}
         </span>
-        <div className="flex items-center" style={{ gap: "24px" }}>
+        <div className="flex items-center flex-wrap gap-x-6 gap-y-2 md:gap-6">
           <SpecItem icon="/icons/dash/card-maximize.svg" label={property.sqft} />
           <SpecItem icon="/icons/dash/card-bed.svg" label={`${property.beds} Beds`} />
           <SpecItem icon="/icons/dash/card-bath.svg" label={`${property.baths} Baths`} />
@@ -269,7 +288,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
 
       <Section title="Amenities & Features">
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px 24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: "16px 24px" }}>
           {property.amenities.map((a) => (
             <div key={a} className="flex items-center" style={{ gap: "8px" }}>
               <Image src="/icons/dash/check-circle-current.svg" alt="" width={20} height={20} />
@@ -281,7 +300,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
 
       <Section title="Property Details">
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           <DetailItem label="Property ID" value={property.referenceCode} />
           <DetailItem label="Type" value={property.type} />
           <DetailItem label="Status" value={property.status} />
@@ -292,7 +311,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
 
       {property.charges.length > 0 && (
         <Section title="Additional Charges">
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
             {property.charges.map((c, i) => (
               <DetailItem key={`${c.title}-${i}`} label={c.title} value={c.amount} />
             ))}
@@ -304,9 +323,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       {property.map && (
         <Section title="View Map">
           <div
+            className="w-full h-[280px] md:h-[424px]"
             style={{
-              width: "100%",
-              height: "424px",
               background: "#F6F6F6",
               borderRadius: "20px",
               overflow: "hidden",
@@ -324,6 +342,28 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </Section>
       )}
+
+      {/* Mobile: full-width Edit Property CTA (Delete is the trash icon up top) */}
+      <button
+        type="button"
+        onClick={() => router.push(`/dashboard/properties/${property.id}/edit`)}
+        className="md:hidden flex items-center justify-center text-white hover:opacity-90 transition-opacity w-full"
+        style={{
+          marginTop: "8px",
+          height: "48px",
+          padding: "8px 24px",
+          gap: "8px",
+          background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+          border: "1px solid rgba(120,158,187,0.5)",
+          borderRadius: "12px",
+          fontSize: "14px",
+          fontWeight: 500,
+          cursor: "pointer",
+        }}
+      >
+        <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} />
+        Edit Property
+      </button>
     </div>
   );
 }
@@ -342,10 +382,8 @@ function ImageSlider({ images, title }: { images: string[]; title: string }) {
 
   return (
     <div
-      className="relative"
+      className="relative w-full h-[300px] md:h-[450px]"
       style={{
-        width: "100%",
-        height: "450px",
         background: "#F6F6F6",
         borderRadius: "20px",
         overflow: "hidden",
@@ -368,20 +406,20 @@ function ImageSlider({ images, title }: { images: string[]; title: string }) {
         aria-label="Previous photo"
         className="absolute flex items-center justify-center hover:opacity-90"
         style={{
-          left: "24px",
+          left: "16px",
           top: "50%",
           transform: "translateY(-50%)",
-          width: "40px",
-          height: "40px",
-          borderRadius: "100%",
-          background: "rgba(18,18,18,0.5)",
+          width: "34px",
+          height: "34px",
+          borderRadius: "10px",
+          background: "rgba(18,18,18,0.25)",
           border: "none",
           color: "#FFFFFF",
           cursor: "pointer",
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M12 4L6 10L12 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       <button
@@ -390,44 +428,45 @@ function ImageSlider({ images, title }: { images: string[]; title: string }) {
         aria-label="Next photo"
         className="absolute flex items-center justify-center hover:opacity-90"
         style={{
-          right: "24px",
+          right: "16px",
           top: "50%",
           transform: "translateY(-50%)",
-          width: "40px",
-          height: "40px",
-          borderRadius: "100%",
-          background: "rgba(18,18,18,0.5)",
+          width: "34px",
+          height: "34px",
+          borderRadius: "10px",
+          background: "rgba(18,18,18,0.25)",
           border: "none",
           color: "#FFFFFF",
           cursor: "pointer",
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M8 4L14 10L8 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
 
       <div
-        className="absolute flex items-center"
+        className="absolute flex items-center justify-center"
         style={{
-          left: "24px",
-          bottom: "24px",
-          padding: "10px 16px",
+          left: "16px",
+          bottom: "16px",
+          height: "32px",
+          padding: "0 12px",
           background: "rgba(18,18,18,0.5)",
-          borderRadius: "10px",
-          gap: "6px",
+          borderRadius: "8px",
+          gap: "5px",
         }}
       >
-        <Image src="/icons/dash/detail-gallery.svg" alt="" width={20} height={20} />
-        <span style={{ fontSize: "14px", color: "#FFFFFF", fontWeight: 500 }}>
+        <Image src="/icons/dash/detail-gallery.svg" alt="" width={16} height={16} />
+        <span style={{ fontSize: "15px", lineHeight: "1", color: "#FFFFFF", fontWeight: 400 }}>
           {index + 1}/{total}
         </span>
       </div>
 
 
       <div
-        className="absolute flex items-center"
+        className="absolute hidden md:flex items-center"
         style={{ left: "50%", bottom: "24px", transform: "translateX(-50%)", gap: "6px" }}
       >
         {images.map((_, i) => (

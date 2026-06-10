@@ -25,11 +25,12 @@ import {
   useUnsavePropertyMutation,
 } from "@/services/propertyApi";
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
-import { useGetConversationsQuery } from "@/services/conversationApi";
+import { useGetConversationsQuery, useGetMessagesQuery } from "@/services/conversationApi";
 import { useGetAgencySummaryQuery } from "@/services/agentApi";
 import {
   useGetMyPropertyAnalyticsQuery,
   useGetAssignedPropertyAnalyticsQuery,
+  type MyPropertyAnalytics,
 } from "@/services/analyticsApi";
 
 /** Compact Naira for metric tiles: 0 → "₦0", 840000 → "₦840k", 1.2m → "₦1.2m". */
@@ -41,7 +42,7 @@ function formatRevenue(n: number): string {
   if (n >= 1_000) return `₦${Math.round(n / 1000)}k`;
   return `₦${(n ?? 0).toLocaleString()}`;
 }
-import { toSeekerListing, toPropertyVM, type PropertyStatusLabel } from "@/lib/property";
+import { toSeekerListing, toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 
@@ -89,6 +90,25 @@ const AGENCY_METRICS_UNVERIFIED: Metric[] = AGENCY_METRICS_VERIFIED.map((m) => (
   value: m.label === "Revenue" ? "₦0" : "0",
 }));
 
+/**
+ * The demo verification flow (VerifyPhoneModal) sets this localStorage flag on
+ * success. Honour it across ALL roles so the dashboard flips to the verified
+ * state immediately after verifying — same behaviour the agency already had.
+ */
+function useLocalVerified(): boolean {
+  const [v, setV] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setV(localStorage.getItem("rbs-dashboard-verified") === "1");
+    function onStorage(e: StorageEvent) {
+      if (e.key === "rbs-dashboard-verified") setV(e.newValue === "1");
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  return v;
+}
+
 export default function DashboardHome() {
   const [role, setRoleState] = useState<AccountRole | null>(null);
 
@@ -107,19 +127,9 @@ export default function DashboardHome() {
 
 function AgencyDashboardHome() {
   const { data: me } = useGetMeQuery();
-  // Honour the backend `me.verification.complete` and the localStorage flag
-  // that VerifyPhoneModal sets on phone confirm, so the demo flow flips the
-  // dashboard the moment the phone OTP succeeds — no backend round-trip needed.
-  const [localVerified, setLocalVerified] = useState(false);
-  useEffect(() => {
-    setLocalVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
-    function onStorage(e: StorageEvent) {
-      if (e.key === "rbs-dashboard-verified") setLocalVerified(e.newValue === "1");
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-  const verified = Boolean(me?.verification?.complete) || localVerified;
+  // Honour real KYC status (me.verification.complete) or the demo verification
+  // flag — shared across all roles so the dashboard flips right after verifying.
+  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
 
   // Real values from the backend: org summary (agent + property counts),
   // analytics/mine (views, inquiries, revenue + views delta), inspections
@@ -170,12 +180,12 @@ function AgencyDashboardHome() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "16px" }}>
         {metrics.map((m) => (
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -186,7 +196,7 @@ function AgentDashboardHome() {
   const { data: conversations } = useGetConversationsQuery();
 
   // Verification gating is driven by the real KYC status from GET /me.
-  const verified = Boolean(me?.verification?.complete);
+  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
   // Agents don't own properties — their views/revenue come from the listings
   // ASSIGNED to them (analytics/assigned), not analytics/mine.
   const { data: analytics } = useGetAssignedPropertyAnalyticsQuery(undefined, { skip: !verified });
@@ -206,12 +216,12 @@ function AgentDashboardHome() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "16px" }}>
         {metrics.map((m) => (
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -264,7 +274,7 @@ function SeekerDashboardPlaceholder() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "16px" }}>
         {metrics.map((m) => (
           <SeekerMetricTile key={m.label} metric={m} />
         ))}
@@ -299,7 +309,7 @@ function SeekerDashboardPlaceholder() {
             No recommendations yet. Browse properties to get started.
           </div>
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "24px 16px" }}>
             {recommended.map((listing) => (
               <SeekerPropertyCard
                 key={listing.id}
@@ -379,7 +389,7 @@ function OwnerDashboardHome() {
   const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
 
   // Verification gating is driven by the real KYC status from GET /me.
-  const verified = Boolean(me?.verification?.complete);
+  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
   const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
 
   // Real values: listing count from /me/properties; views/inquiries/revenue +
@@ -415,13 +425,13 @@ function OwnerDashboardHome() {
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "16px" }}>
         {metrics.map((m) => (
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
 
-      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -487,79 +497,52 @@ function UnverifiedDashboard() {
   return (
     <>
       <section
-        className="relative overflow-hidden"
+        className="relative overflow-hidden w-full rounded-[20px]"
         style={{
-          width: "100%",
-          height: "208px",
-          borderRadius: "20px",
           background: "linear-gradient(175deg, rgba(117,163,199,1) 0%, rgba(48,94,130,1) 100%)",
         }}
       >
-        <div
-          className="absolute flex flex-col"
-          style={{ left: "24px", top: "32px", width: "417px", gap: "16px" }}
-        >
-          <div className="flex flex-col" style={{ gap: "8px" }}>
-            <h2 className="text-white" style={{ fontSize: "24px", lineHeight: "32px", fontWeight: 600 }}>
-              Get verified to start listing
-            </h2>
-            <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "rgba(255,255,255,0.8)" }}>
-              Complete your verification to unlock listings, inquiries, and full access to your account.
-            </p>
+        <div className="flex items-center justify-between gap-4 p-6 md:px-6 md:py-8">
+          <div className="flex flex-col min-w-0" style={{ gap: "16px" }}>
+            <div className="flex flex-col" style={{ gap: "8px" }}>
+              <h2
+                className="text-white text-xl md:text-2xl leading-7 md:leading-8"
+                style={{ fontWeight: 600 }}
+              >
+                Get verified to start listing
+              </h2>
+              <p
+                className="text-sm md:text-base leading-5 md:leading-6"
+                style={{ fontWeight: 400, color: "rgba(255,255,255,0.8)" }}
+              >
+                Complete your verification to unlock listings, inquiries, and full access to your account.
+              </p>
+            </div>
+            <StartVerificationCTA />
           </div>
-          <StartVerificationCTA />
-        </div>
-        <div className="absolute" style={{ right: "64px", top: "22px", width: "164px", height: "164px" }}>
-          <Image src="/icons/dash/cta-verify-illu.svg" alt="" width={164} height={164} />
-        </div>
-      </section>
-
-      <section className="bg-white" style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}>
-        <div
-          className="flex items-center justify-between"
-          style={{ padding: "20px 24px", borderBottom: "1px solid #F6F6F6" }}
-        >
-          <h2 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
-            Your Properties
-          </h2>
-          <Link
-            href="/dashboard/properties"
-            className="flex items-center hover:opacity-80"
-            style={{ gap: "4px", fontSize: "14px", fontWeight: 500, color: "#305E82" }}
-          >
-            <span>View all</span>
-            <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={16} height={16} />
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center justify-center" style={{ padding: "64px 24px", gap: "24px" }}>
           <Image
-            src="/icons/dash/empty-state.svg"
+            src="/icons/dash/cta-verify-illu.svg"
             alt=""
-            width={180}
-            height={180}
-            style={{ width: "180px", height: "180px" }}
+            width={164}
+            height={164}
+            className="w-[88px] h-[88px] md:w-[164px] md:h-[164px] shrink-0"
           />
-          <div className="flex flex-col items-center" style={{ gap: "8px", maxWidth: "520px" }}>
-            <h3 style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
-              Nothing to show yet
-            </h3>
-            <p style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
-              You&rsquo;ve not posted any property yet, verify your account now and start connecting with buyers and renters.
-            </p>
-          </div>
         </div>
       </section>
+
+      {/* Real listings from GET /properties/mine — shows the empty-state
+          illustration when there are none, or the user's actual properties. */}
+      <YourProperties />
     </>
   );
 }
 
 
-function VerifiedDashboard() {
+function VerifiedDashboard({ analytics }: { analytics?: MyPropertyAnalytics }) {
   return (
     <>
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        <ViewsChart />
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px" }}>
+        <ViewsChart analytics={analytics} />
         <RecentInquiries />
       </div>
 
@@ -568,16 +551,21 @@ function VerifiedDashboard() {
   );
 }
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-const CHART_DATA = [
-  { day: "Sun", views: 6 },
-  { day: "Mon", views: 26 },
-  { day: "Tue", views: 27 },
-  { day: "Wed", views: 17 },
-  { day: "Thu", views: 6 },
-  { day: "Fri", views: 13 },
-  { day: "Sat", views: 30 },
-];
+// Build the last 7 days (UTC, oldest→newest) from the analytics dailyBreakdown
+// (ISO date → views). Missing days fill to 0 so the chart always has 7 points.
+function buildWeekViews(daily?: Record<string, number>): { day: string; views: number }[] {
+  const map = daily ?? {};
+  const now = new Date();
+  const out: { day: string; views: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+    const key = d.toISOString().slice(0, 10); // yyyy-mm-dd
+    out.push({ day: WEEKDAYS[d.getUTCDay()], views: Number(map[key] ?? 0) });
+  }
+  return out;
+}
 
 type ChartTooltipProps = {
   active?: boolean;
@@ -609,7 +597,12 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
   );
 }
 
-function ViewsChart() {
+function ViewsChart({ analytics }: { analytics?: MyPropertyAnalytics }) {
+  const data = buildWeekViews(analytics?.dailyBreakdown);
+  // Mark the peak day (only when there are any views) like the Figma.
+  const peak = data.reduce((a, b) => (b.views >= a.views ? b : a), data[0]);
+  const hasViews = data.some((d) => d.views > 0);
+
   return (
     <section
       className="bg-white flex flex-col"
@@ -621,7 +614,7 @@ function ViewsChart() {
 
       <div className="flex-1" style={{ width: "100%", minHeight: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={CHART_DATA} margin={{ top: 56, right: 16, bottom: 0, left: 16 }}>
+          <AreaChart data={data} margin={{ top: 56, right: 16, bottom: 0, left: 16 }}>
             <defs>
               <linearGradient id="viewsArea" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#305E82" stopOpacity={0.18} />
@@ -651,14 +644,16 @@ function ViewsChart() {
               activeDot={{ r: 5, fill: "#FFFFFF", stroke: "#305E82", strokeWidth: 2 }}
               isAnimationActive={false}
             />
-            <ReferenceDot
-              x="Tue"
-              y={27}
-              r={5}
-              fill="#FFFFFF"
-              stroke="#305E82"
-              strokeWidth={2}
-            />
+            {hasViews && (
+              <ReferenceDot
+                x={peak.day}
+                y={peak.views}
+                r={5}
+                fill="#FFFFFF"
+                stroke="#305E82"
+                strokeWidth={2}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -691,7 +686,6 @@ function RecentInquiries() {
         id: c.id,
         name,
         initials: initialsOf(other?.firstName, other?.lastName, name),
-        message: c.title || "Started a conversation with you",
         unread: (c.unreadCount ?? 0) > 0,
       };
     });
@@ -727,52 +721,14 @@ function RecentInquiries() {
         ) : (
           <div className="flex flex-col" style={{ gap: "16px" }}>
             {rows.map((i) => (
-              <Link
+              <InquiryRow
                 key={i.id}
-                href={`/dashboard/messages?c=${i.id}`}
-                className="flex items-start hover:opacity-80"
-                style={{ gap: "16px" }}
-              >
-                <div
-                  className="rounded-full flex items-center justify-center shrink-0"
-                  style={{
-                    width: "44px",
-                    height: "44px",
-                    background: "#F5F7F9",
-                    color: "#305E82",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {i.initials}
-                </div>
-                <div className="flex flex-col" style={{ gap: "4px", minWidth: 0, flex: 1 }}>
-                  <div className="flex items-center" style={{ gap: "6px" }}>
-                    <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
-                      {i.name}
-                    </span>
-                    {i.unread && (
-                      <span
-                        className="shrink-0 rounded-full"
-                        style={{ width: "8px", height: "8px", background: "#FFAE00" }}
-                      />
-                    )}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      lineHeight: "18px",
-                      fontWeight: 400,
-                      color: "#807E7E",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {i.message}
-                  </p>
-                </div>
-              </Link>
+                conversationId={i.id}
+                name={i.name}
+                initials={i.initials}
+                unread={i.unread}
+                meId={meId}
+              />
             ))}
           </div>
         )}
@@ -781,6 +737,71 @@ function RecentInquiries() {
   );
 }
 
+
+// One Recent Inquiry row. The conversations list endpoint doesn't carry a
+// message preview, so fetch the conversation's messages and show the latest
+// body (matching the Figma, which shows the real message text).
+function InquiryRow({
+  conversationId,
+  name,
+  initials,
+  unread,
+  meId,
+}: {
+  conversationId: string;
+  name: string;
+  initials: string;
+  unread: boolean;
+  meId?: string;
+}) {
+  const { data: messages } = useGetMessagesQuery({ id: conversationId, limit: 20 });
+  const list = messages ?? [];
+  let latest = list.length ? list[0] : null;
+  for (const m of list) {
+    if (!latest || m.createdAt.localeCompare(latest.createdAt) >= 0) latest = m;
+  }
+  const preview = latest
+    ? `${latest.senderUserId === meId ? "You: " : ""}${latest.body}`
+    : "Started a conversation with you";
+
+  return (
+    <Link
+      href={`/dashboard/messages?c=${conversationId}`}
+      className="flex items-start hover:opacity-80"
+      style={{ gap: "16px" }}
+    >
+      <div
+        className="rounded-full flex items-center justify-center shrink-0"
+        style={{ width: "44px", height: "44px", background: "#F5F7F9", color: "#305E82", fontSize: "13px", fontWeight: 600 }}
+      >
+        {initials}
+      </div>
+      <div className="flex flex-col" style={{ gap: "4px", minWidth: 0, flex: 1 }}>
+        <div className="flex items-center" style={{ gap: "6px" }}>
+          <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
+            {name}
+          </span>
+          {unread && (
+            <span className="shrink-0 rounded-full" style={{ width: "8px", height: "8px", background: "#FFAE00" }} />
+          )}
+        </div>
+        <p
+          style={{
+            fontSize: "12px",
+            lineHeight: "18px",
+            fontWeight: 400,
+            color: "#807E7E",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {preview}
+        </p>
+      </div>
+    </Link>
+  );
+}
 
 const STATUS_STYLES: Record<PropertyStatusLabel, { bg: string; color: string }> = {
   Active: { bg: "#ECFDF3", color: "#027A48" },
@@ -824,36 +845,30 @@ function YourProperties() {
         </Link>
       </div>
 
-      <div style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
-        <div className="flex" style={{ background: "#FFFFFF", borderBottom: "1px solid #F6F6F6" }}>
-          {PROPERTY_COLS.map((c) => (
-            <div
-              key={c.key}
-              style={{
-                flex: `1 1 ${c.width}px`,
-                padding: "12px 24px",
-                fontSize: "12px",
-                lineHeight: "20px",
-                fontWeight: 500,
-                color: "#807E7E",
-              }}
-            >
-              {c.label}
-            </div>
-          ))}
-        </div>
-
+      <div className="hidden md:block" style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
         {rows.length === 0 ? (
-          <div
-            className="flex items-center justify-center text-center"
-            style={{ padding: "48px 24px", fontSize: "14px", color: "#807E7E", background: "#FFFFFF" }}
-          >
-            {isLoading
-              ? "Loading your listings…"
-              : "You haven’t listed any properties yet."}
-          </div>
+          <EmptyProperties loading={isLoading} />
         ) : (
-          rows.map(({ vm, type }) => (
+          <>
+            <div className="flex" style={{ background: "#FFFFFF", borderBottom: "1px solid #F6F6F6" }}>
+              {PROPERTY_COLS.map((c) => (
+                <div
+                  key={c.key}
+                  style={{
+                    flex: `1 1 ${c.width}px`,
+                    padding: "12px 24px",
+                    fontSize: "12px",
+                    lineHeight: "20px",
+                    fontWeight: 500,
+                    color: "#807E7E",
+                  }}
+                >
+                  {c.label}
+                </div>
+              ))}
+            </div>
+
+            {rows.map(({ vm, type }) => (
             <div
               key={vm.id}
               className="flex items-center"
@@ -866,6 +881,7 @@ function YourProperties() {
                   fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
                   fontSize: "14px",
                   color: "#121212",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {vm.referenceCode}
@@ -908,14 +924,170 @@ function YourProperties() {
                   className="hover:opacity-80"
                   style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
                 >
-                  <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} style={{ filter: "invert(28%) sepia(58%) saturate(485%) hue-rotate(170deg)" }} />
+                  {/* Plain img (not next/image) so the icon stays a fixed 20px
+                      regardless of row height / zoom — next/image's responsive
+                      sizing was rescaling it when the Property ID wrapped. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/icons/dash/edit-blue.svg" alt="" width={20} height={20} style={{ width: "20px", height: "20px", maxWidth: "none", flexShrink: 0, display: "block" }} />
                 </button>
               </div>
             </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Mobile: full-width cards instead of the table */}
+      {/* Mobile: full property cards (matches the Figma owner dashboard) */}
+      <div className="md:hidden flex flex-col" style={{ gap: "16px" }}>
+        {rows.length === 0 ? (
+          <div className="bg-white" style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}>
+            <EmptyProperties loading={isLoading} />
+          </div>
+        ) : (
+          rows.map(({ vm }) => (
+            <MiniPropertyCard
+              key={vm.id}
+              property={vm}
+              onEdit={() => router.push(`/dashboard/properties/${vm.id}/edit`)}
+            />
           ))
         )}
       </div>
     </section>
+  );
+}
+
+// Shared empty / loading state for the "Your Properties" sections (table + cards).
+function EmptyProperties({ loading }: { loading?: boolean }) {
+  if (loading) {
+    return (
+      <div
+        className="flex items-center justify-center text-center"
+        style={{ padding: "48px 24px", fontSize: "14px", color: "#807E7E", background: "#FFFFFF" }}
+      >
+        Loading your listings…
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center justify-center" style={{ padding: "48px 24px", gap: "24px" }}>
+      <Image
+        src="/icons/dash/empty-state.svg"
+        alt=""
+        width={180}
+        height={180}
+        className="w-[120px] h-[120px] md:w-[180px] md:h-[180px]"
+      />
+      <div className="flex flex-col items-center" style={{ gap: "8px", maxWidth: "520px" }}>
+        <h3 style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
+          Nothing to show yet
+        </h3>
+        <p style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
+          You&rsquo;ve not posted any property yet, verify your account now and start connecting with buyers and renters.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Full property card used by the dashboard "Your Properties" on mobile —
+// image + tag, price + status + edit, title/location, beds·baths·sqft.
+function MiniPropertyCard({
+  property,
+  onEdit,
+}: {
+  property: PropertyVM;
+  onEdit: () => void;
+}) {
+  return (
+    <Link
+      href={`/dashboard/properties/${property.id}`}
+      className="block bg-white relative hover:shadow-md transition-shadow w-full"
+      style={{ height: "414px", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}
+    >
+      <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
+        <Image src={property.image} alt={property.title} fill style={{ objectFit: "cover" }} sizes="100vw" />
+        <span
+          className="absolute"
+          style={{
+            right: "16px",
+            bottom: "16px",
+            padding: "4px 12px",
+            background: "#FFAE00",
+            color: "#FFFFFF",
+            borderRadius: "50px",
+            fontSize: "12px",
+            lineHeight: "20px",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {property.tag}
+        </span>
+      </div>
+
+      <div className="absolute flex flex-col" style={{ left: "16px", right: "16px", top: "242px", gap: "8px" }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center" style={{ gap: "8px", minWidth: 0 }}>
+            <span
+              style={{ fontSize: "20px", lineHeight: "28px", fontWeight: 600, color: "#305E82", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}
+            >
+              {property.price}
+              {property.priceSuffix && (
+                <span style={{ fontSize: "14px", fontWeight: 400, color: "#807E7E" }}>{property.priceSuffix}</span>
+              )}
+            </span>
+            <StatusBadge status={property.status} />
+          </div>
+          <button
+            type="button"
+            aria-label={`Edit ${property.title}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="hover:opacity-80 shrink-0"
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons/dash/edit-blue.svg" alt="" width={20} height={20} style={{ width: "20px", height: "20px", maxWidth: "none", flexShrink: 0, display: "block" }} />
+          </button>
+        </div>
+
+        <div className="flex flex-col" style={{ gap: "4px" }}>
+          <h3 style={{ fontSize: "16px", lineHeight: "20px", fontWeight: 500, color: "#121212", letterSpacing: "-0.02em" }}>
+            {property.title}
+          </h3>
+          <div className="flex items-center" style={{ gap: "4px" }}>
+            <Image src="/icons/dash/card-location.svg" alt="" width={16} height={16} />
+            <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{property.location}</span>
+          </div>
+        </div>
+
+        <div
+          className="flex items-center"
+          style={{ gap: "12px", paddingTop: "12px", borderTop: "1px solid #F6F6F6", marginTop: "4px", fontSize: "12px", color: "#807E7E" }}
+        >
+          <span className="flex items-center" style={{ gap: "6px" }}>
+            <Image src="/icons/dash/card-maximize.svg" alt="" width={16} height={16} />
+            {property.sqft}
+          </span>
+          <span style={{ color: "#EDEDED" }}>|</span>
+          <span className="flex items-center" style={{ gap: "6px" }}>
+            <Image src="/icons/dash/card-bed.svg" alt="" width={16} height={16} />
+            {property.beds} {property.beds === 1 ? "Bed" : "Beds"}
+          </span>
+          <span style={{ color: "#EDEDED" }}>|</span>
+          <span className="flex items-center" style={{ gap: "6px" }}>
+            <Image src="/icons/dash/card-bath.svg" alt="" width={16} height={16} />
+            {property.baths} {property.baths === 1 ? "Bath" : "Baths"}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 

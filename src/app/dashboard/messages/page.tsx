@@ -77,16 +77,16 @@ export default function MessagesPage() {
 
   return (
     <div
-      className="flex bg-white"
+      className="flex bg-white -m-4 md:-m-8 lg:-mx-10 lg:-my-8"
       style={{
-        margin: "-32px -40px",
         height: "calc(100vh - 80px)",
         border: "1px solid #F6F6F6",
       }}
     >
+      {/* On mobile only one pane shows: the list, or (when a chat is open) the thread. */}
       <aside
-        className="flex flex-col shrink-0"
-        style={{ width: "400px", borderRight: "1px solid #F6F6F6", overflow: "hidden" }}
+        className={`flex-col shrink-0 w-full md:w-[400px] ${selected ? "hidden md:flex" : "flex"}`}
+        style={{ borderRight: "1px solid #F6F6F6", overflow: "hidden" }}
       >
         <div
           className="flex items-center"
@@ -176,9 +176,7 @@ export default function MessagesPage() {
                           {c.title}
                         </span>
                       )}
-                      <span className="line-clamp-1" style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>
-                        {c.unreadCount > 0 ? `${c.unreadCount} unread` : "Tap to open"}
-                      </span>
+                      <ConvPreview conversationId={c.id} unreadCount={c.unreadCount} />
                     </div>
                   </button>
                 </li>
@@ -188,7 +186,7 @@ export default function MessagesPage() {
         )}
       </aside>
 
-      <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
+      <div className={`flex-col flex-1 min-w-0 ${selected ? "flex" : "hidden md:flex"}`}>
         {!activeConv ? (
           <div className="flex flex-col items-center justify-center" style={{ flex: 1, gap: "24px" }}>
             <div className="flex items-center justify-center rounded-full" style={{ width: "180px", height: "180px", background: "#F4F8FB" }}>
@@ -209,10 +207,30 @@ export default function MessagesPage() {
             conversation={activeConv}
             myId={me?.id}
             canSchedule={me?.userType === "PROPERTY_SEEKER"}
+            onBack={() => setSelected(null)}
           />
         )}
       </div>
     </div>
+  );
+}
+
+/* ---------------- list-item preview ---------------- */
+
+// The conversations endpoint has no message preview, so fetch the latest
+// message body per row (matches the Figma, which shows the real message).
+function ConvPreview({ conversationId, unreadCount }: { conversationId: string; unreadCount: number }) {
+  const { data: messages } = useGetMessagesQuery({ id: conversationId, limit: 20 });
+  const list = messages ?? [];
+  let latest = list.length ? list[0] : null;
+  for (const m of list) {
+    if (!latest || m.createdAt.localeCompare(latest.createdAt) >= 0) latest = m;
+  }
+  const text = latest?.body || (unreadCount > 0 ? `${unreadCount} unread` : "Tap to open");
+  return (
+    <span className="line-clamp-1" style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>
+      {text}
+    </span>
   );
 }
 
@@ -222,12 +240,15 @@ function ConversationView({
   conversation,
   myId,
   canSchedule,
+  onBack,
 }: {
   conversation: ConversationResponse;
   myId?: string;
   // Scheduling an inspection is a seeker action (the backend forbids hosts from
   // requesting inspections on their own properties), so hide it for owners/agents.
   canSchedule?: boolean;
+  // Mobile: return to the conversation list.
+  onBack?: () => void;
 }) {
   const [composer, setComposer] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -272,6 +293,15 @@ function ConversationView({
         style={{ height: "104px", padding: "20px 24px", borderBottom: "1px solid #F6F6F6" }}
       >
         <div className="flex items-center" style={{ gap: "12px" }}>
+          <button
+            type="button"
+            aria-label="Back to conversations"
+            onClick={onBack}
+            className="md:hidden hover:opacity-80 shrink-0"
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "24px", height: "24px" }}
+          >
+            <Image src="/icons/arrow-left.svg" alt="" width={24} height={24} />
+          </button>
           <div
             className="rounded-full flex items-center justify-center shrink-0"
             style={{ width: "48px", height: "48px", background: "#305E82", color: "#FFFFFF", fontSize: "16px", fontWeight: 600 }}
@@ -290,12 +320,12 @@ function ConversationView({
             </div>
           </div>
         </div>
-        <div className="flex items-center" style={{ gap: "16px" }}>
-          <button type="button" aria-label="Call" className="hover:opacity-80" style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Image src="/icons/dash/call.svg" alt="" width={20} height={20} />
+        <div className="flex items-center" style={{ gap: "24px" }}>
+          <button type="button" aria-label="Call" className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+            <Image src="/icons/dash/call-blue.svg" alt="" width={24} height={24} />
           </button>
-          <button type="button" aria-label="WhatsApp" className="hover:opacity-80" style={{ width: "40px", height: "40px", borderRadius: "100%", background: "#F4F8FB", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Image src="/icons/dash/whatsapp.svg" alt="" width={20} height={20} />
+          <button type="button" aria-label="WhatsApp" className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+            <Image src="/icons/dash/whatsapp.svg" alt="" width={24} height={24} />
           </button>
         </div>
       </div>
@@ -306,7 +336,11 @@ function ConversationView({
             No messages yet. Send the first one below.
           </div>
         ) : (
-          messages.map((m) => {
+          // API returns newest-first; render oldest→newest so the latest sits
+          // at the bottom of the thread.
+          [...messages]
+            .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+            .map((m) => {
             const mine = m.senderUserId === myId;
             return (
               <div key={m.id} className="flex" style={{ justifyContent: mine ? "flex-end" : "flex-start" }}>
@@ -360,11 +394,9 @@ function ConversationView({
           type="button"
           onClick={handleSend}
           disabled={!composer.trim() || sending}
-          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 px-4 md:px-6 gap-0 md:gap-2"
           style={{
             height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
             background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
             border: "1px solid rgba(120,158,187,0.5)",
             borderRadius: "12px",
@@ -374,7 +406,8 @@ function ConversationView({
             cursor: composer.trim() && !sending ? "pointer" : "not-allowed",
           }}
         >
-          Send
+          {/* Mobile: icon only (Figma); desktop: "Send" + icon */}
+          <span className="hidden md:inline">Send</span>
           <Image src="/icons/dash/send-msg.svg" alt="" width={16} height={16} />
         </button>
       </div>

@@ -83,16 +83,11 @@ export default function NotificationsBell() {
 
       {open && (
         <div
-          className="absolute bg-white"
+          className="bg-white fixed left-4 right-4 top-[84px] z-[100] md:absolute md:left-auto md:right-0 md:top-9 md:w-[380px] md:max-w-[calc(100vw-48px)]"
           style={{
-            top: "36px",
-            right: 0,
-            width: "380px",
-            maxWidth: "calc(100vw - 48px)",
             border: "1px solid #F6F6F6",
             borderRadius: "16px",
             boxShadow: "0 12px 32px rgba(18,18,18,0.12)",
-            zIndex: 100,
             overflow: "hidden",
           }}
         >

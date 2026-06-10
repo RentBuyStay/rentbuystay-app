@@ -26,6 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [role, setRole] = useState<AccountRole | null>(null);
   const [checked, setChecked] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { data: me } = useGetMeQuery();
 
   useEffect(() => {
@@ -53,14 +54,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
-      <div className="flex bg-white" style={{ minHeight: "100vh" }}>
-        <DashboardSidebar role={role} />
-        <div className="flex flex-col" style={{ flex: 1, minWidth: 0 }}>
+      {/* overflow-x-clip lets the content push off-screen-right without a
+          scrollbar, while keeping the desktop sticky sidebar working. When the
+          drawer is open the backdrop is the sidebar blue, so the content's
+          rounded-left corners reveal blue (matching the Figma). */}
+      <div
+        className="flex overflow-x-clip"
+        style={{ minHeight: "100vh", background: drawerOpen ? "#305E82" : "#FFFFFF" }}
+      >
+        {/* Full-width tint strip across the very bottom (matches the logout
+            row colour) so the content's bottom-left curve "rhythms" with it. */}
+        {drawerOpen && (
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[5]"
+            style={{ height: "64px", background: "rgba(117,163,199,0.4)" }}
+            aria-hidden="true"
+          />
+        )}
+        {/* Drawer sits at the left, revealed when the content is pushed right */}
+        <DashboardSidebar role={role} onClose={() => setDrawerOpen(false)} />
+
+        <div
+          className={`relative z-20 md:z-auto flex flex-col flex-1 min-w-0 bg-white transition-transform duration-200 ease-out ${
+            drawerOpen
+              ? "translate-x-[242px] rounded-l-[30px] overflow-hidden h-screen md:translate-x-0 md:rounded-none md:overflow-visible md:h-auto"
+              : ""
+          }`}
+        >
+          {/* Scrim over the pushed content (mobile only) */}
+          {drawerOpen && (
+            <div
+              className="md:hidden absolute inset-0 z-[55]"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden="true"
+            />
+          )}
           <DashboardTopbar
             userName={userName}
             userInitials={userInitials}
+            onMenuClick={() => setDrawerOpen(true)}
           />
-          <main style={{ padding: "32px 40px", flex: 1 }}>{children}</main>
+          <main className="p-4 md:p-8 lg:px-10 lg:py-8" style={{ flex: 1 }}>{children}</main>
         </div>
       </div>
     </ToastProvider>

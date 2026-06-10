@@ -72,50 +72,57 @@ export default function VerificationPage() {
     <div className="flex flex-col" style={{ gap: "24px" }}>
 
       <div
-        className="flex items-center justify-between"
+        className="flex items-center justify-between gap-3 rounded-[20px] p-4 md:px-6 md:py-8"
         style={{
-          padding: "32px 24px",
-          borderRadius: "20px",
           border: "1px solid #F6F6F6",
           background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
         }}
       >
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex items-center min-w-0" style={{ gap: "12px" }}>
           <Image
             src="/icons/dash/qore-shield.svg"
             alt=""
             width={80}
             height={80}
-            style={{ width: "80px", height: "80px" }}
+            className="w-10 h-10 md:w-20 md:h-20 shrink-0"
           />
-          <div className="flex flex-col" style={{ gap: "8px" }}>
-            <h2
-              style={{
-                fontSize: "24px",
-                lineHeight: "32px",
-                fontWeight: 600,
-                color: "#FFFFFF",
-              }}
-            >
-              Qore ID Verification
-            </h2>
+          <div className="flex flex-col min-w-0" style={{ gap: "8px" }}>
+            <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
+              <h2
+                className="text-base md:text-2xl leading-6 md:leading-8"
+                style={{ fontWeight: 600, color: "#FFFFFF" }}
+              >
+                Qore ID Verification
+              </h2>
+              {/* In Progress — inline next to the title on mobile */}
+              <span
+                className="md:hidden inline-flex items-center justify-center shrink-0"
+                style={{
+                  padding: "2px 8px",
+                  background: "#FFF7E9",
+                  color: "#EA651A",
+                  borderRadius: "16px",
+                  fontSize: "10px",
+                  lineHeight: "18px",
+                  fontWeight: 500,
+                }}
+              >
+                In Progress
+              </span>
+            </div>
             <p
-              style={{
-                fontSize: "12px",
-                lineHeight: "24px",
-                fontWeight: 400,
-                color: "rgba(255,255,255,0.8)",
-                whiteSpace: "pre-line",
-              }}
+              className="text-[11px] md:text-xs leading-[18px] md:leading-6"
+              style={{ fontWeight: 400, color: "rgba(255,255,255,0.8)" }}
             >
-              Complete identity verification to unlock full platform{"\n"}
-              trust badges and priority listing placement.
+              Complete identity verification to unlock full platform trust badges and
+              priority listing placement.
             </p>
           </div>
         </div>
 
+        {/* In Progress — far right on desktop */}
         <span
-          className="inline-flex items-center justify-center"
+          className="hidden md:inline-flex items-center justify-center shrink-0"
           style={{
             padding: "2px 12px",
             background: "#FFF7E9",
@@ -156,17 +163,15 @@ export default function VerificationPage() {
 
 
       <div
+        className="w-full rounded-[20px] px-4 py-6 md:px-6 md:py-10"
         style={{
-          width: "100%",
-          padding: "40px 24px",
           border: "1px solid #F6F6F6",
-          borderRadius: "20px",
           background: "#FFFFFF",
         }}
       >
-        <div className="flex flex-col" style={{ gap: "32px" }}>
+        <div className="flex flex-col gap-6 md:gap-8">
           {steps.map((step, i) => (
-            <div key={step.number} className="flex flex-col" style={{ gap: "32px" }}>
+            <div key={step.number} className="flex flex-col gap-6 md:gap-8">
               <StepRow step={step} onModalOpen={(m) => m === "phone" && setPhoneModalOpen(true)} />
               {i < steps.length - 1 && (
                 <hr style={{ border: "none", borderTop: "1px solid #F6F6F6", margin: 0 }} />
@@ -187,19 +192,65 @@ export default function VerificationPage() {
 }
 
 function StepRow({ step, onModalOpen }: { step: Step; onModalOpen: (m: "phone") => void }) {
+  const completed = step.status === "completed";
+
+  const completedBadge = (
+    <span
+      className="inline-flex items-center justify-center shrink-0"
+      style={{
+        padding: "2px 8px",
+        background: "#ECFDF3",
+        color: "#027A48",
+        borderRadius: "16px",
+        fontSize: "12px",
+        lineHeight: "18px",
+        fontWeight: 500,
+      }}
+    >
+      Completed
+    </span>
+  );
+
+  let actionEl: React.ReactNode = null;
+  if (step.action?.kind === "modal") {
+    const action = step.action;
+    actionEl = (
+      <button
+        type="button"
+        onClick={() => onModalOpen(action.modal)}
+        className="flex items-center hover:opacity-80 shrink-0"
+        style={{ gap: "8px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#305E82" }}>
+          {action.label}
+        </span>
+        <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
+      </button>
+    );
+  } else if (step.action?.kind === "link") {
+    actionEl = (
+      <Link
+        href={step.action.href}
+        className="flex items-center hover:opacity-80 shrink-0"
+        style={{ gap: "8px" }}
+      >
+        <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#305E82" }}>
+          {step.action.label}
+        </span>
+        <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
+      </Link>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-      <div className="flex items-start" style={{ gap: "16px" }}>
+    <div className="flex items-start md:items-center justify-between" style={{ gap: "16px" }}>
+      <div className="flex items-start min-w-0" style={{ gap: "16px" }}>
         <NumberCircle number={step.number} status={step.status} />
-        <div className="flex flex-col" style={{ gap: "8px" }}>
-          <div className="flex items-center" style={{ gap: "8px" }}>
+        <div className="flex flex-col min-w-0" style={{ gap: "8px" }}>
+          <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
             <span
-              style={{
-                fontSize: "16px",
-                lineHeight: "24px",
-                fontWeight: 600,
-                color: "#121212",
-              }}
+              className="text-sm md:text-base"
+              style={{ lineHeight: "24px", fontWeight: 600, color: "#121212" }}
             >
               {step.title}
             </span>
@@ -219,78 +270,25 @@ function StepRow({ step, onModalOpen }: { step: Step; onModalOpen: (m: "phone") 
                 Not Done
               </span>
             )}
+            {/* Completed badge — inline next to the title on mobile */}
+            {completed && <span className="md:hidden">{completedBadge}</span>}
           </div>
           <p
-            style={{
-              fontSize: "14px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: "#807E7E",
-            }}
+            className="text-xs md:text-sm leading-5 md:leading-6"
+            style={{ fontWeight: 400, color: "#807E7E" }}
           >
             {step.body}
           </p>
+          {/* Action — below the body on mobile */}
+          {actionEl && <div className="md:hidden">{actionEl}</div>}
         </div>
       </div>
 
-
-      {step.status === "completed" ? (
-        <span
-          className="inline-flex items-center justify-center shrink-0"
-          style={{
-            padding: "2px 8px",
-            background: "#ECFDF3",
-            color: "#027A48",
-            borderRadius: "16px",
-            fontSize: "12px",
-            lineHeight: "18px",
-            fontWeight: 500,
-          }}
-        >
-          Completed
-        </span>
-      ) : step.action?.kind === "modal" ? (
-        (() => {
-          const action = step.action;
-          return (
-            <button
-              type="button"
-              onClick={() => onModalOpen(action.modal)}
-              className="flex items-center hover:opacity-80 shrink-0"
-              style={{ gap: "8px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-            >
-              <span
-                style={{
-                  fontSize: "14px",
-                  lineHeight: "24px",
-                  fontWeight: 500,
-                  color: "#305E82",
-                }}
-              >
-                {action.label}
-              </span>
-              <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
-            </button>
-          );
-        })()
-      ) : step.action?.kind === "link" ? (
-        <Link
-          href={step.action.href}
-          className="flex items-center hover:opacity-80 shrink-0"
-          style={{ gap: "8px" }}
-        >
-          <span
-            style={{
-              fontSize: "14px",
-              lineHeight: "24px",
-              fontWeight: 500,
-              color: "#305E82",
-            }}
-          >
-            {step.action.label}
-          </span>
-          <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
-        </Link>
+      {/* Right column — desktop only */}
+      {completed ? (
+        <span className="hidden md:inline-flex">{completedBadge}</span>
+      ) : actionEl ? (
+        <div className="hidden md:flex">{actionEl}</div>
       ) : null}
     </div>
   );
@@ -300,15 +298,12 @@ function NumberCircle({ number, status }: { number: number; status: StepStatus }
   const completed = status === "completed";
   return (
     <div
-      className="flex items-center justify-center shrink-0"
+      className="flex items-center justify-center shrink-0 w-6 h-6 md:w-[34px] md:h-8 text-xs md:text-base"
       style={{
-        width: "34px",
-        height: "32px",
         borderRadius: "100px",
         background: completed ? "#CCF0D8" : "#FFF7E9",
         border: `1px solid ${completed ? "#14AE5C" : "#EA651A"}`,
         color: completed ? "#14AE5C" : "#EA651A",
-        fontSize: "16px",
         lineHeight: "24px",
         fontWeight: 600,
       }}

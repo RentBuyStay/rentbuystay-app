@@ -163,7 +163,15 @@ const BADGE_ICON_BY_ROLE: Partial<Record<AccountRole, string>> = {
 
 const TINT = "rgba(117,163,199,0.4)";
 
-export default function DashboardSidebar({ role }: { role: AccountRole }) {
+export default function DashboardSidebar({
+  role,
+  onClose,
+}: {
+  role: AccountRole;
+  /** kept for API compat; the drawer is revealed by the push layout, not a slide */
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -184,16 +192,13 @@ export default function DashboardSidebar({ role }: { role: AccountRole }) {
   }
   return (
     <aside
-      className="flex flex-col text-white shrink-0"
+      className="flex flex-col text-white shrink-0 fixed md:sticky top-0 left-0 z-10 md:z-auto w-[242px] md:w-[272px]"
       style={{
-        width: "272px",
         background: "#305E82",
         height: "100vh",
-        position: "sticky",
-        top: 0,
       }}
     >
-      
+
       <div style={{ paddingTop: "24px" }}>
         <Image
           src="/icons/dash/rbs-dash-logo.svg"
@@ -201,7 +206,7 @@ export default function DashboardSidebar({ role }: { role: AccountRole }) {
           width={272}
           height={56}
           priority
-          style={{ width: "272px", height: "56px" }}
+          className="w-full h-auto"
         />
       </div>
 
@@ -260,6 +265,7 @@ export default function DashboardSidebar({ role }: { role: AccountRole }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onClose}
                   className="flex items-center transition-colors"
                   style={{
                     height: "48px",
@@ -286,9 +292,8 @@ export default function DashboardSidebar({ role }: { role: AccountRole }) {
       <button
         type="button"
         onClick={handleLogout}
-        className="flex items-center justify-between hover:opacity-90"
+        className="flex items-center justify-between hover:opacity-90 w-full"
         style={{
-          width: "272px",
           height: "64px",
           padding: "12px 24px",
           background: TINT,

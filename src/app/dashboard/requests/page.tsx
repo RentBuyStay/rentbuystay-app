@@ -46,8 +46,8 @@ export default function PropertyRequestsPage() {
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
       
-      <div className="flex items-center justify-between">
-        
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
         <div className="flex items-center" style={{ gap: "0" }}>
           {TABS.map((t) => {
             const active = t === tab;
@@ -78,7 +78,7 @@ export default function PropertyRequestsPage() {
         </div>
 
         
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex flex-wrap items-center" style={{ gap: "12px" }}>
           <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#807E7E", letterSpacing: "-0.02em" }}>
             Filter:
           </span>
@@ -139,7 +139,7 @@ export default function PropertyRequestsPage() {
             : "No requests match your filters."}
         </div>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px" }}>
           {isMy
             ? visibleMine.map((r) => <MyRequestCard key={r.id} request={r} />)
             : visibleAll.map((r) => <RequestCard key={r.id} request={r} />)}

@@ -27,38 +27,47 @@ const TITLES: { match: (path: string) => boolean; title: string }[] = [
 export default function DashboardTopbar({
   userName = "Prince Akpolo",
   userInitials = "PA",
+  onMenuClick,
 }: {
   userName?: string;
   userInitials?: string;
+  onMenuClick?: () => void;
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const title = TITLES.find((t) => t.match(pathname))?.title ?? "Dashboard";
 
   return (
     <header
-      className="flex items-center justify-between bg-white"
+      className="flex items-center justify-between bg-white px-6 md:px-10"
       style={{
         height: "80px",
-        padding: "0 40px",
         borderBottom: "1px solid #F6F6F6",
         position: "sticky",
         top: 0,
         zIndex: 50,
       }}
     >
-      
-      <h1
-        style={{
-          fontSize: "20px",
-          lineHeight: "32px",
-          fontWeight: 600,
-          color: "#121212",
-        }}
-      >
-        {title}
-      </h1>
+      <div className="flex items-center" style={{ gap: "16px" }}>
+        {/* Hamburger — mobile only (opens the nav drawer) */}
+        <button
+          type="button"
+          aria-label="Open menu"
+          onClick={onMenuClick}
+          className="md:hidden hover:opacity-80"
+          style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px" }}
+        >
+          <Image src="/icons/dash/menu-burger.svg" alt="" width={24} height={24} />
+        </button>
 
-      <div className="flex items-center" style={{ gap: "24px" }}>
+        <h1
+          className="text-base md:text-xl font-semibold"
+          style={{ lineHeight: "32px", color: "#121212" }}
+        >
+          {title}
+        </h1>
+      </div>
+
+      <div className="flex items-center" style={{ gap: "16px" }}>
 
         <NotificationsBell />
 
@@ -105,6 +114,7 @@ export default function DashboardTopbar({
             />
           </div>
           <span
+            className="hidden md:inline"
             style={{
               fontSize: "14px",
               lineHeight: "24px",

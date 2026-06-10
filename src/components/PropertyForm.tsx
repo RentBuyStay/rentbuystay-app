@@ -94,6 +94,7 @@ export default function PropertyForm({
   const [createProperty, { isLoading: creating }] = useCreatePropertyMutation();
   const [updateProperty, { isLoading: updating }] = useUpdatePropertyMutation();
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [title, setTitle] = useState(initial.title ?? "");
   const [propertyType, setPropertyType] = useState(initial.propertyType ?? "");
   const [listingType, setListingType] = useState(initial.listingType ?? "");
@@ -119,6 +120,15 @@ export default function PropertyForm({
   useEffect(() => {
     setIsAgency(getRole() === "Real Estate Agency or Developer");
   }, []);
+
+  // Lock background scroll while the success modal is open.
+  useEffect(() => {
+    if (!showSuccess) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showSuccess]);
   // The agency's own staff power the assign-agent picker. Only a real staff
   // member can be assigned, so we never fall back to demo ids here.
   const { data: me } = useGetMeQuery(undefined, { skip: !isAgency });
@@ -243,14 +253,25 @@ export default function PropertyForm({
       } else if (!editing) {
         await createProperty(body).unwrap();
       }
-      router.push("/dashboard/properties");
+      // Show the success modal (Figma) instead of navigating straight away.
+      setShowSuccess(true);
     } catch (e) {
       setError(unwrapApiError(e)?.message ?? "Could not save the listing. Please try again.");
     }
   }
 
   return (
+    <>
     <div className="flex flex-col" style={{ gap: "40px" }}>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="inline-flex items-center self-start hover:opacity-80"
+        style={{ gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        <Image src="/icons/arrow-left.svg" alt="" width={20} height={20} />
+        <span style={{ fontSize: "16px", lineHeight: "24px", color: "#121212" }}>Back</span>
+      </button>
 
       <div className="flex items-start justify-between" style={{ gap: "16px" }}>
         <div className="flex flex-col" style={{ gap: "8px" }}>
@@ -262,7 +283,7 @@ export default function PropertyForm({
           </p>
         </div>
 
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="hidden md:flex items-center" style={{ gap: "16px" }}>
           <button
             type="button"
             onClick={() => router.push("/dashboard/properties")}
@@ -314,7 +335,7 @@ export default function PropertyForm({
           <TextInput value={title} onChange={setTitle} placeholder="Enter property title" />
         </FieldGroup>
 
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           <FieldGroup label="Property Type">
             <Select
               value={propertyType}
@@ -333,7 +354,7 @@ export default function PropertyForm({
           </FieldGroup>
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           <FieldGroup label="Price (₦)">
             <TextInput value={price} onChange={setPrice} placeholder="0.00" inputMode="decimal" />
           </FieldGroup>
@@ -347,7 +368,7 @@ export default function PropertyForm({
           </FieldGroup>
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           <FieldGroup label="State">
             <Select value={stateField} onChange={setStateField} options={STATES} placeholder="Select state" />
           </FieldGroup>
@@ -378,7 +399,7 @@ export default function PropertyForm({
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter property full address"
-              className="flex-1 outline-none bg-transparent"
+              className="flex-1 min-w-0 outline-none bg-transparent"
               style={{
                 fontSize: "14px",
                 lineHeight: "24px",
@@ -389,6 +410,7 @@ export default function PropertyForm({
             />
             <button
               type="button"
+              aria-label="Mark location on map"
               className="inline-flex items-center shrink-0 hover:underline"
               style={{
                 fontSize: "12px",
@@ -403,7 +425,8 @@ export default function PropertyForm({
               }}
             >
               <Image src="/icons/dash/gps.svg" alt="" width={20} height={20} />
-              Mark location on map
+              {/* Icon only on mobile; full label from md up */}
+              <span className="hidden md:inline">Mark location on map</span>
             </button>
           </div>
         </div>
@@ -492,7 +515,7 @@ export default function PropertyForm({
 
 
       <Section title="Room Details">
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           <FieldGroup label="Bedrooms">
             <NumberStepper value={bedrooms} onChange={setBedrooms} />
           </FieldGroup>
@@ -570,7 +593,11 @@ export default function PropertyForm({
       <Section title="Additional Charges">
         <div className="flex flex-col" style={{ gap: "12px" }}>
           {charges.map((c, i) => (
-            <div key={c.id} className="grid items-end" style={{ gridTemplateColumns: "2fr 1fr 40px", gap: "12px" }}>
+            <div
+              key={c.id}
+              className="flex flex-col md:grid md:items-end"
+              style={{ gridTemplateColumns: "2fr 1fr 40px", gap: "12px" }}
+            >
               <FieldGroup label={i === 0 ? "Charge Title" : ""}>
                 <TextInput
                   value={c.title}
@@ -578,33 +605,40 @@ export default function PropertyForm({
                   placeholder="Write charge/fee title (e.g. caution fee, commission, etc.)"
                 />
               </FieldGroup>
-              <FieldGroup label={i === 0 ? "Amount (₦)" : ""}>
-                <TextInput
-                  value={c.amount}
-                  onChange={(v) => updateCharge(c.id, "amount", v)}
-                  placeholder="0.00"
-                  inputMode="decimal"
-                />
-              </FieldGroup>
-              <button
-                type="button"
-                onClick={() => removeCharge(c.id)}
-                aria-label="Remove charge"
-                disabled={charges.length === 1}
-                style={{
-                  height: "40px",
-                  width: "40px",
-                  borderRadius: "12px",
-                  background: "#F6F6F6",
-                  border: "1px solid #EDEDED",
-                  color: "#807E7E",
-                  cursor: charges.length === 1 ? "not-allowed" : "pointer",
-                  opacity: charges.length === 1 ? 0.4 : 1,
-                  fontSize: "16px",
-                }}
-              >
-                ×
-              </button>
+              {/* On desktop these flow into the grid (md:contents); on mobile they
+                  share one row: amount fills, delete stays 40px. */}
+              <div className="flex items-end md:contents" style={{ gap: "12px" }}>
+                <div className="flex-1 md:flex-none">
+                  <FieldGroup label={i === 0 ? "Amount (₦)" : ""}>
+                    <TextInput
+                      value={c.amount}
+                      onChange={(v) => updateCharge(c.id, "amount", v)}
+                      placeholder="0.00"
+                      inputMode="decimal"
+                    />
+                  </FieldGroup>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeCharge(c.id)}
+                  aria-label="Remove charge"
+                  disabled={charges.length === 1}
+                  className="shrink-0"
+                  style={{
+                    height: "40px",
+                    width: "40px",
+                    borderRadius: "12px",
+                    background: "#F6F6F6",
+                    border: "1px solid #EDEDED",
+                    color: "#807E7E",
+                    cursor: charges.length === 1 ? "not-allowed" : "pointer",
+                    opacity: charges.length === 1 ? 0.4 : 1,
+                    fontSize: "16px",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -666,7 +700,110 @@ export default function PropertyForm({
           </FieldGroup>
         </Section>
       )}
+
+      {/* Mobile: full-width stacked actions (desktop shows them in the header) */}
+      <div className="md:hidden flex flex-col" style={{ gap: "16px" }}>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saving}
+          className="text-white hover:opacity-90 transition-opacity w-full"
+          style={{
+            height: "48px",
+            padding: "8px 24px",
+            fontSize: "14px",
+            fontWeight: 500,
+            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+            border: "1px solid rgba(120,158,187,0.5)",
+            borderRadius: "12px",
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          {submitLabel}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/properties")}
+          className="w-full hover:opacity-80"
+          style={{
+            height: "48px",
+            padding: "8px 24px",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#121212",
+            background: "#FFFFFF",
+            border: "1px solid #EDEDED",
+            borderRadius: "12px",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
     </div>
+
+      {/* Success modal (Figma) — bottom sheet on mobile, centred on desktop */}
+      {showSuccess && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-end md:items-center justify-center md:p-4"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setShowSuccess(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white w-full md:w-[503px] md:max-w-full rounded-t-[25px] md:rounded-[24px] flex flex-col items-center p-6 md:p-10"
+          >
+            <button
+              type="button"
+              onClick={() => setShowSuccess(false)}
+              aria-label="Close"
+              className="absolute hover:opacity-70 top-6 right-6 md:top-10 md:right-10"
+              style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            >
+              <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
+            </button>
+
+            <div className="flex flex-col items-center w-full" style={{ gap: "24px", paddingTop: "24px" }}>
+              <Image
+                src="/icons/noti-success.svg"
+                alt=""
+                width={165}
+                height={112}
+                style={{ width: "165px", height: "112.5px" }}
+              />
+              <div className="flex flex-col w-full" style={{ gap: "8px" }}>
+                <h2 style={{ fontSize: "20px", lineHeight: "30px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
+                  {editing ? "Changes Saved Successfully" : "Property Listing Successful"}
+                </h2>
+                <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
+                  {editing
+                    ? "Your property details have been updated. Your listing is live with the most recent information you just submitted."
+                    : "Your property listing has been submitted successfully. It will be active immediately after review by one of our admin."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/properties")}
+                className="flex items-center justify-center text-white hover:opacity-90 transition-opacity w-full"
+                style={{
+                  height: "48px",
+                  padding: "8px 24px",
+                  gap: "8px",
+                  background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+                  border: "1px solid rgba(120,158,187,0.5)",
+                  borderRadius: "12px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                }}
+              >
+                View My Properties
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

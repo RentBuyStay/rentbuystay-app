@@ -56,30 +56,23 @@ export default function EditProfileModal({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-end md:items-center justify-center md:p-4"
       style={{ background: "rgba(18,18,18,0.5)", zIndex: 10000 }}
       onClick={onClose}
     >
+      {/* Bottom sheet on mobile; centred dialog on desktop */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white"
-        style={{
-          width: "720px",
-          maxWidth: "100%",
-          maxHeight: "calc(100vh - 32px)",
-          borderRadius: "24px",
-          overflowY: "auto",
-        }}
+        className="relative bg-white w-full md:w-[720px] md:max-w-full rounded-t-[25px] md:rounded-[24px] overflow-y-auto"
+        style={{ maxHeight: "calc(100vh - 32px)" }}
       >
 
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute hover:opacity-70"
+          className="absolute hover:opacity-70 top-6 right-6 md:top-10 md:right-10"
           style={{
-            top: "40px",
-            right: "40px",
             width: "24px",
             height: "24px",
             background: "none",
@@ -91,44 +84,33 @@ export default function EditProfileModal({
           <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
         </button>
 
+        <div className="flex flex-col p-6 md:p-10">
+          {/* Header */}
+          <div className="flex flex-col" style={{ gap: "8px", paddingRight: "32px" }}>
+            <h2
+              style={{
+                fontSize: "20px",
+                lineHeight: "24px",
+                fontWeight: 600,
+                color: "#121212",
+              }}
+            >
+              Edit Profile
+            </h2>
+            <p
+              style={{
+                fontSize: "12px",
+                lineHeight: "20px",
+                fontWeight: 400,
+                color: "#807E7E",
+              }}
+            >
+              Update your profile information
+            </p>
+          </div>
 
-        <div
-          className="flex flex-col"
-          style={{ position: "absolute", left: "40px", top: "40px", width: "363px", gap: "8px" }}
-        >
-          <h2
-            style={{
-              fontSize: "20px",
-              lineHeight: "24px",
-              fontWeight: 600,
-              color: "#121212",
-            }}
-          >
-            Edit Profile
-          </h2>
-          <p
-            style={{
-              fontSize: "12px",
-              lineHeight: "20px",
-              fontWeight: 400,
-              color: "#807E7E",
-            }}
-          >
-            Update your profile information
-          </p>
-        </div>
-
-
-        <div
-          className="relative flex flex-col"
-          style={{
-            paddingLeft: "40px",
-            paddingRight: "40px",
-            paddingTop: "132px",
-            paddingBottom: "40px",
-            gap: "16px",
-          }}
-        >
+          {/* Form */}
+          <div className="flex flex-col" style={{ gap: "16px", marginTop: "24px" }}>
           <FieldGroup label="State">
             <Select value={state} onChange={setState} options={STATES} />
           </FieldGroup>
@@ -215,6 +197,7 @@ export default function EditProfileModal({
           >
             {submitting ? "Saving…" : "Save Changes"}
           </button>
+          </div>
         </div>
       </div>
     </div>

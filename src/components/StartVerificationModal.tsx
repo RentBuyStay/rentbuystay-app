@@ -30,81 +30,61 @@ export default function StartVerificationModal({
 
   return (
     <div
-      className="fixed inset-0 z-10000 flex items-center justify-center p-4"
+      className="fixed inset-0 z-10000 flex items-end md:items-center justify-center md:p-4"
       style={{ background: "rgba(18,18,18,0.25)", zIndex: 10000 }}
       onClick={onClose}
     >
+      {/* Bottom sheet on mobile; centred dialog on desktop */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white"
-        style={{ width: "503px", maxWidth: "100%", height: "414px", borderRadius: "24px" }}
+        className="relative bg-white w-full md:w-[503px] md:max-w-full rounded-t-[25px] md:rounded-[24px] flex flex-col items-center p-6 md:p-10"
       >
-        
-        <div
-          className="absolute flex flex-col items-center"
-          style={{ left: "40px", top: "40px", width: "423px", gap: "32px" }}
-        >
-          
+        <div className="flex flex-col items-center w-full" style={{ gap: "24px" }}>
           <Image
             src="/icons/dash/verify-illu.svg"
             alt=""
             width={120}
             height={120}
-            style={{ width: "120px", height: "120px" }}
+            className="w-[104px] h-[104px] md:w-[120px] md:h-[120px]"
           />
 
-          
-          <div className="flex flex-col" style={{ gap: "16px", width: "100%" }}>
+          <div className="flex flex-col w-full" style={{ gap: "8px" }}>
             <h2
-              style={{
-                fontSize: "20px",
-                lineHeight: "30px",
-                fontWeight: 600,
-                color: "#121212",
-                textAlign: "center",
-              }}
+              className="text-lg md:text-xl leading-6 md:leading-[30px]"
+              style={{ fontWeight: 600, color: "#121212", textAlign: "center" }}
             >
               Get verified to start listing
             </h2>
             <p
-              style={{
-                fontSize: "16px",
-                lineHeight: "24px",
-                fontWeight: 400,
-                color: "#807E7E",
-                textAlign: "center",
-              }}
+              className="text-sm md:text-base"
+              style={{ lineHeight: "24px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}
             >
               Complete your verification to unlock listings, inquiries, and full access to your account.
             </p>
           </div>
-        </div>
 
-        
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onProceed?.();
-          }}
-          className="absolute flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-          style={{
-            left: "40px",
-            top: "326px",
-            width: "423px",
-            height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Start Verification
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onProceed?.();
+            }}
+            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity w-full"
+            style={{
+              height: "48px",
+              padding: "8px 24px",
+              gap: "8px",
+              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+              border: "1px solid rgba(120,158,187,0.5)",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Start Verification
+          </button>
+        </div>
       </div>
     </div>
   );

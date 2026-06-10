@@ -33,11 +33,10 @@ export default function ScheduleInspectionModal({
   // so filter down to what's actually schedulable.
   const { data: me } = useGetMeQuery();
   const { data: propPage } = useGetActivePropertiesQuery({ size: 50 }, { skip: !open });
+  // Only listings the user can actually inspect: ACTIVE ones, excluding their own.
+  // When opened in a host context, narrow to that host's listings.
   const properties = (propPage?.content ?? []).filter(
-    (p) =>
-      p.status === "ACTIVE" &&
-      p.ownerUserId !== me?.id &&
-      (!hostUserId || p.ownerUserId === hostUserId || p.assignedAgentUserId === hostUserId)
+    (p) => p.ownerUserId !== me?.id && (!hostUserId || p.ownerUserId === hostUserId)
   );
   const [scheduleInspection, { isLoading: scheduling }] = useScheduleInspectionMutation();
 
@@ -88,31 +87,26 @@ export default function ScheduleInspectionModal({
   if (sent) {
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center p-4"
+        className="fixed inset-0 flex items-end md:items-center justify-center md:p-4"
         style={{ background: "rgba(18,18,18,0.5)", zIndex: 10000 }}
         onClick={onClose}
       >
+        {/* Bottom sheet on mobile; centred dialog on desktop */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative bg-white"
-          style={{ width: "503px", maxWidth: "100%", height: "462px", borderRadius: "24px" }}
+          className="relative bg-white w-full md:w-[503px] md:max-w-full rounded-t-[25px] md:rounded-[24px] flex flex-col items-center p-6 md:p-10"
         >
-          
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute hover:opacity-70"
-            style={{ top: "40px", right: "40px", width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            className="absolute hover:opacity-70 top-6 right-6 md:top-10 md:right-10"
+            style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
           >
             <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
           </button>
 
-          
-          <div
-            className="absolute flex flex-col items-center"
-            style={{ left: "40px", top: "88px", width: "423px", gap: "24px" }}
-          >
+          <div className="flex flex-col items-center w-full" style={{ gap: "24px", paddingTop: "24px" }}>
             <Image
               src="/icons/noti-success.svg"
               alt=""
@@ -120,7 +114,7 @@ export default function ScheduleInspectionModal({
               height={112}
               style={{ width: "165px", height: "112.5px" }}
             />
-            <div className="flex flex-col" style={{ gap: "8px", width: "100%" }}>
+            <div className="flex flex-col w-full" style={{ gap: "8px" }}>
               <h2
                 style={{
                   fontSize: "20px",
@@ -145,29 +139,24 @@ export default function ScheduleInspectionModal({
                 they confirm, cancel or reschedule the appointment.
               </p>
             </div>
+            <Link
+              href="/dashboard/appointments"
+              onClick={onClose}
+              className="flex items-center justify-center text-white hover:opacity-90 transition-opacity w-full"
+              style={{
+                height: "48px",
+                padding: "8px 24px",
+                gap: "8px",
+                background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+                border: "1px solid rgba(120,158,187,0.5)",
+                borderRadius: "12px",
+                fontSize: "14px",
+                fontWeight: 500,
+              }}
+            >
+              Go to Appointments
+            </Link>
           </div>
-
-          
-          <Link
-            href="/dashboard/appointments"
-            onClick={onClose}
-            className="absolute flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-            style={{
-              left: "40px",
-              top: "374.5px",
-              width: "423px",
-              height: "48px",
-              padding: "8px 24px",
-              gap: "8px",
-              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-              border: "1px solid rgba(120,158,187,0.5)",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: 500,
-            }}
-          >
-            Go to Appointments
-          </Link>
         </div>
       </div>
     );
@@ -175,44 +164,40 @@ export default function ScheduleInspectionModal({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-end md:items-center justify-center md:p-4"
       style={{ background: "rgba(18,18,18,0.5)", zIndex: 10000 }}
       onClick={onClose}
     >
+      {/* Bottom sheet on mobile; centred dialog on desktop */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white"
-        style={{ width: "612px", maxWidth: "100%", maxHeight: "calc(100vh - 32px)", borderRadius: "24px", overflowY: "auto" }}
+        className="relative bg-white w-full md:w-[612px] md:max-w-full rounded-t-[25px] md:rounded-[24px] overflow-y-auto"
+        style={{ maxHeight: "calc(100vh - 32px)" }}
       >
-        
+
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute hover:opacity-70"
-          style={{ top: "40px", right: "40px", width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          className="absolute hover:opacity-70 top-6 right-6 md:top-10 md:right-10"
+          style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
         >
           <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
         </button>
 
-        
-        <div
-          className="absolute flex flex-col"
-          style={{ left: "40px", top: "40px", width: "363px", gap: "8px" }}
-        >
-          <h2 style={{ fontSize: "20px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
-            Schedule Inspection
-          </h2>
-          <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>
-            Fill the details below to schedule a property inspection.
-          </p>
-        </div>
+        <div className="flex flex-col p-6 md:p-10">
+          {/* Header */}
+          <div className="flex flex-col" style={{ gap: "8px", paddingRight: "32px" }}>
+            <h2 style={{ fontSize: "20px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
+              Schedule Inspection
+            </h2>
+            <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>
+              Fill the details below to schedule a property inspection.
+            </p>
+          </div>
 
-        
-        <div
-          className="relative flex flex-col"
-          style={{ paddingLeft: "40px", paddingRight: "40px", paddingTop: "132px", paddingBottom: "40px", gap: "16px" }}
-        >
+          {/* Form */}
+          <div className="flex flex-col" style={{ gap: "16px", marginTop: "24px" }}>
           {/* Property dropdown — real ACTIVE listings (value = id) */}
           <FieldGroup label="Property">
             <div className="flex items-center" style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}>
@@ -236,7 +221,7 @@ export default function ScheduleInspectionModal({
             </div>
           </FieldGroup>
 
-          
+
           <FieldGroup label="Preferred Date">
             <div
               className="flex items-center justify-between relative"
@@ -302,7 +287,7 @@ export default function ScheduleInspectionModal({
             />
           </FieldGroup>
 
-          
+
           {error && (
             <p role="alert" style={{ fontSize: "13px", lineHeight: "18px", fontWeight: 500, color: "#E30045" }}>
               {error}
@@ -330,6 +315,7 @@ export default function ScheduleInspectionModal({
           >
             {scheduling ? "Sending…" : "Send Request"}
           </button>
+          </div>
         </div>
       </div>
     </div>

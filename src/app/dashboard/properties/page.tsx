@@ -183,8 +183,8 @@ export default function MyPropertiesPage() {
         </div>
       ) : (
         <div
-          className="grid"
-          style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          style={{ gap: "24px 16px" }}
         >
           {visible.map((p) => (
             <PropertyCard key={p.id} property={p} />
@@ -254,10 +254,8 @@ function PropertyCard({ property }: { property: PropertyVM }) {
   return (
     <Link
       href={`/dashboard/properties/${property.id}`}
-      className="block bg-white relative hover:shadow-md transition-shadow"
+      className="block bg-white relative hover:shadow-md transition-shadow w-full"
       style={{
-        width: "100%",
-        maxWidth: "352px",
         height: "414px",
         border: "1px solid #F6F6F6",
         borderRadius: "20px",

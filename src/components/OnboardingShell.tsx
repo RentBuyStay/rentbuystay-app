@@ -2,28 +2,16 @@ import Image from "next/image";
 
 export default function OnboardingShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex bg-white" style={{ width: "100%", height: "100vh", minHeight: "640px" }}>
-      
-      <div
-        className="overflow-y-auto"
-        style={{ width: "740px", maxWidth: "740px", flexShrink: 0 }}
-      >
-        <div
-          className="flex flex-col"
-          style={{
-            paddingLeft: "140px",
-            paddingRight: "140px",
-            paddingTop: "120px",
-            paddingBottom: "120px",
-            width: "100%",
-            gap: "40px",
-          }}
-        >
+    <div className="flex bg-white w-full min-h-screen lg:h-screen">
+      {/* Form column — full width on mobile (single column, no side image),
+          fixed 740px on desktop. Padding matches Figma: 16px on mobile. */}
+      <div className="w-full lg:w-[740px] lg:max-w-[740px] lg:shrink-0 overflow-y-auto">
+        <div className="flex flex-col w-full gap-8 lg:gap-10 px-4 py-12 md:px-10 lg:px-[140px] lg:py-[120px]">
           {children}
         </div>
       </div>
 
-      
+      {/* Side image — desktop only */}
       <div
         className="flex-1 hidden lg:block"
         style={{ padding: "24px", paddingLeft: "0", height: "100vh" }}
