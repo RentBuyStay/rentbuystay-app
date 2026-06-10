@@ -62,10 +62,8 @@ export default function SeekerPropertyCard({
   return (
     <Link
       href={`/dashboard/browse/${listing.id}`}
-      className="block bg-white relative hover:shadow-md transition-shadow"
+      className="block bg-white relative hover:shadow-md transition-shadow w-full"
       style={{
-        width: "100%",
-        maxWidth: "352px",
         height: "534px",
         border: "1px solid #F6F6F6",
         borderRadius: "20px",
@@ -229,18 +227,18 @@ export default function SeekerPropertyCard({
             onClick={contactOwner}
             aria-label={`Call ${listing.seller.name}`}
             className="hover:opacity-70"
-            style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", padding: 0, width: "20px", height: "20px", cursor: "pointer" }}
           >
-            <Image src="/icons/dash/call-dark.svg" alt="" width={24} height={24} />
+            <Image src="/icons/dash/call-dark.svg" alt="" width={20} height={20} />
           </button>
           <button
             type="button"
             onClick={contactOwner}
             aria-label={`Message ${listing.seller.name}`}
             className="hover:opacity-70"
-            style={{ background: "none", border: "none", padding: 0, width: "24px", height: "24px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", padding: 0, width: "18px", height: "18px", cursor: "pointer" }}
           >
-            <Image src="/icons/dash/messages-2-dark.svg" alt="" width={24} height={24} />
+            <Image src="/icons/dash/messages-2-dark.svg" alt="" width={18} height={18} />
           </button>
         </div>
       </div>

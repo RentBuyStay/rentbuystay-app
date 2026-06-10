@@ -37,7 +37,7 @@ export default function SavedPropertiesPage() {
   }
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 16px" }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "24px 16px" }}>
       {listings.map((listing) => (
         <SeekerPropertyCard
           key={listing.id}

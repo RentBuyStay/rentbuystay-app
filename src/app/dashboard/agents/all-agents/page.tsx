@@ -38,6 +38,7 @@ function toVM(a: AgentListItem): AgentVM {
 
 const VERIFIED_OPTIONS = ["All", "Verified", "Unverified"];
 const RATING_OPTIONS = ["All Ratings", "4.5+", "4.0+", "3.5+"];
+const LISTING_TYPES = ["Sale", "Rent", "Shortlet"];
 const PAGE_SIZE = 12;
 
 export default function AllAgentsPage() {
@@ -46,6 +47,9 @@ export default function AllAgentsPage() {
   const [query, setQuery] = useState("");
   const [verifiedFilter, setVerifiedFilter] = useState(VERIFIED_OPTIONS[0]);
   const [rating, setRating] = useState(RATING_OPTIONS[0]);
+  // Listing-type pill beside the search box (Figma). Agents carry no listing
+  // type on the backend, so this is a UI control only.
+  const [listingType, setListingType] = useState(LISTING_TYPES[0]);
   const [page, setPage] = useState(0);
 
   const { data, isLoading } = useGetAgentsQuery({
@@ -83,9 +87,9 @@ export default function AllAgentsPage() {
         <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#525252" }}>Back</span>
       </button>
 
-      <div className="flex items-end justify-between" style={{ gap: "16px" }}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col" style={{ gap: "4px" }}>
-          <h1 style={{ fontSize: "20px", lineHeight: "32px", fontWeight: 600, color: "#121212", letterSpacing: "-0.02em" }}>
+          <h1 className="text-[16px] md:text-[20px]" style={{ lineHeight: "32px", fontWeight: 600, color: "#121212", letterSpacing: "-0.02em" }}>
             All Agents
           </h1>
           <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
@@ -93,41 +97,68 @@ export default function AllAgentsPage() {
           </span>
         </div>
 
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex items-center flex-wrap" style={{ gap: "12px" }}>
           <span style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>Filter:</span>
           <SmallDropdown value={verifiedFilter} onChange={setVerifiedFilter} options={VERIFIED_OPTIONS} />
           <SmallDropdown value={rating} onChange={setRating} options={RATING_OPTIONS} />
         </div>
       </div>
 
-      <div className="flex items-center" style={{ gap: "16px" }}>
-        <div className="flex items-center" style={{ flex: 1, height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
-          <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
-            placeholder="Enter agent name..."
-            className="flex-1 outline-none bg-transparent"
-            style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#121212" }}
-          />
+      {/* Search bar — two rows on mobile (type + search / filter-icon + wide Search) */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+        <div className="flex items-center gap-2 md:contents">
+          <div className="flex items-center shrink-0" style={{ height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
+            <select
+              value={listingType}
+              onChange={(e) => setListingType(e.target.value)}
+              className="outline-none bg-transparent appearance-none"
+              style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 400, color: "#121212", letterSpacing: "-0.02em", paddingRight: "4px" }}
+            >
+              {LISTING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} style={{ pointerEvents: "none" }} />
+          </div>
+
+          <div className="flex items-center min-w-0 flex-1" style={{ height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
+            <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && runSearch()}
+              placeholder="Enter agent name..."
+              className="flex-1 min-w-0 outline-none bg-transparent"
+              style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#121212" }}
+            />
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={runSearch}
-          className="flex items-center justify-center text-white hover:opacity-90"
-          style={{
-            width: "160px", height: "48px", padding: "8px 24px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontSize: "14px", fontWeight: 500, cursor: "pointer",
-          }}
-        >
-          Search
-        </button>
+        <div className="flex items-center gap-2 md:contents">
+          <button
+            type="button"
+            onClick={runSearch}
+            aria-label="Filter"
+            className="md:hidden inline-flex items-center justify-center shrink-0 w-12 hover:opacity-80"
+            style={{ height: "48px", background: "#F6F6F6", border: "none", borderRadius: "12px", cursor: "pointer" }}
+          >
+            <Image src="/icons/dash/filter-setting.svg" alt="" width={16} height={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={runSearch}
+            className="flex items-center justify-center text-white hover:opacity-90 flex-1 md:flex-none md:w-[160px]"
+            style={{
+              height: "48px", padding: "8px 24px",
+              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+              border: "1px solid rgba(120,158,187,0.5)",
+              borderRadius: "12px",
+              fontSize: "14px", fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            Search
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -135,7 +166,7 @@ export default function AllAgentsPage() {
       ) : agents.length === 0 ? (
         <EmptyBox>No agents found.</EmptyBox>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
           {agents.map((a) => (
             <AgentRowCard key={a.userId} agent={a} />
           ))}
@@ -160,8 +191,8 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 
 function SmallDropdown({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <div className="flex items-center" style={{ height: "40px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="outline-none bg-transparent appearance-none" style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>
+    <div className="flex items-center" style={{ height: "40px", background: "#F6F6F6", borderRadius: "12px", padding: "4px 8px", gap: "16px" }}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="outline-none bg-transparent appearance-none" style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#121212", letterSpacing: "-0.02em" }}>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
       <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} style={{ pointerEvents: "none" }} />

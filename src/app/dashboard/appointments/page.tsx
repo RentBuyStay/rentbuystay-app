@@ -34,7 +34,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="flex items-center" style={{ gap: "16px" }}>
+      <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ gap: "16px" }}>
         {TABS.map((t) => {
           const active = tab === t.key;
           const count = all.filter((a) => groupOf(a.rawStatus) === t.key).length;
@@ -43,11 +43,9 @@ export default function AppointmentsPage() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className="hover:opacity-80 transition-opacity"
+              className="hover:opacity-80 transition-opacity shrink-0 whitespace-nowrap"
               style={{
-                minWidth: "120px",
-                height: "40px",
-                padding: "8px 16px",
+                padding: "8px 12px",
                 background: "none",
                 border: "none",
                 borderBottom: active ? "1px solid #305E82" : "1px solid transparent",
@@ -107,79 +105,99 @@ function AppointmentCard({ appointment }: { appointment: AppointmentVM }) {
   const [confirmInspection, { isLoading: confirming }] = useConfirmInspectionMutation();
   const [cancelInspection, { isLoading: cancelling }] = useCancelInspectionMutation();
 
-  return (
-    <div
-      className="flex items-center justify-between bg-white"
-      style={{ padding: "24px", border: "1px solid #F6F6F6", borderRadius: "20px", gap: "24px" }}
-    >
-      <div className="flex items-center" style={{ gap: "24px" }}>
-        <div className="flex flex-col" style={{ width: "82px", gap: "8px" }}>
-          <div style={{ fontSize: "18px", lineHeight: "24px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
-            {time}
-          </div>
-          <div style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
-            {date}
-          </div>
+  const busy = confirming || cancelling;
+  function handleCancel() {
+    if (window.confirm("Cancel this appointment?")) cancelInspection(id);
+  }
+
+  const propertyBlock = (
+    <div className="flex flex-col" style={{ gap: "8px" }}>
+      <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>{property}</div>
+      {location && (
+        <div className="flex items-center" style={{ gap: "8px" }}>
+          <Image src="/icons/dash/card-location.svg" alt="" width={16} height={16} />
+          <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#305E82" }}>{location}</span>
         </div>
-
-        <span style={{ width: "1px", height: "96px", background: "#F6F6F6" }} />
-
-        <div className="flex flex-col" style={{ width: "236px", gap: "16px" }}>
-          <div className="flex flex-col" style={{ gap: "8px" }}>
-            <div style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
-              {property}
-            </div>
-            {location && (
-              <div className="flex items-center" style={{ gap: "8px" }}>
-                <Image src="/icons/dash/card-location.svg" alt="" width={16} height={16} />
-                <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
-                  {location}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center" style={{ gap: "16px" }}>
-            <div className="flex items-center" style={{ gap: "8px" }}>
-              <div
-                className="rounded-full flex items-center justify-center shrink-0"
-                style={{ width: "32px", height: "32px", background: "#F5F7F9", color: "#305E82", fontSize: "13px", lineHeight: "20px", fontWeight: 600 }}
-              >
-                {initials}
-              </div>
-              <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
-                {name}
-              </span>
-            </div>
-            <Link
-              href={`/dashboard/properties/${propertyId}`}
-              className="hover:opacity-80"
-              style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#305E82" }}
-            >
-              View Property
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col items-end" style={{ width: "320px", gap: "24px" }}>
-        <StatusBadge status={status} />
-        <Actions
-          status={rawStatus}
-          isHost={isHost}
-          busy={confirming || cancelling}
-          onConfirm={() => confirmInspection(id)}
-          onCancel={() => {
-            if (window.confirm("Cancel this appointment?")) cancelInspection(id);
-          }}
-          onReschedule={() => setRescheduleOpen(true)}
-        />
-      </div>
-
-      {rescheduleOpen && (
-        <RescheduleModal id={id} onClose={() => setRescheduleOpen(false)} />
       )}
     </div>
+  );
+  const personRow = (
+    <div className="flex items-center" style={{ gap: "16px" }}>
+      <div className="flex items-center" style={{ gap: "8px" }}>
+        <div
+          className="rounded-full flex items-center justify-center shrink-0"
+          style={{ width: "32px", height: "32px", background: "#F5F7F9", color: "#305E82", fontSize: "13px", lineHeight: "20px", fontWeight: 600 }}
+        >
+          {initials}
+        </div>
+        <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>{name}</span>
+      </div>
+      <Link href={`/dashboard/properties/${propertyId}`} className="hover:opacity-80" style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#305E82" }}>
+        View Property
+      </Link>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop — time | content ......... badge / actions */}
+      <div className="hidden md:flex items-center justify-between bg-white" style={{ padding: "24px", border: "1px solid #F6F6F6", borderRadius: "20px", gap: "24px" }}>
+        <div className="flex items-center" style={{ gap: "24px" }}>
+          <div className="flex flex-col" style={{ width: "82px", gap: "8px" }}>
+            <div style={{ fontSize: "18px", lineHeight: "24px", fontWeight: 600, color: "#121212", textAlign: "center" }}>{time}</div>
+            <div style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>{date}</div>
+          </div>
+          <span style={{ width: "1px", height: "96px", background: "#F6F6F6" }} />
+          <div className="flex flex-col" style={{ width: "236px", gap: "16px" }}>
+            {propertyBlock}
+            {personRow}
+          </div>
+        </div>
+        <div className="flex flex-col items-end" style={{ width: "320px", gap: "24px" }}>
+          <StatusBadge status={status} />
+          <Actions status={rawStatus} isHost={isHost} busy={busy} onConfirm={() => confirmInspection(id)} onCancel={handleCancel} onReschedule={() => setRescheduleOpen(true)} />
+        </div>
+      </div>
+
+      {/* Mobile — time + badge row, content, full-width action buttons */}
+      <div className="md:hidden bg-white flex flex-col" style={{ padding: "16px", border: "1px solid #F6F6F6", borderRadius: "20px", gap: "16px" }}>
+        <div className="flex items-start justify-between" style={{ gap: "12px" }}>
+          <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
+            <span style={{ fontSize: "20px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>{time}</span>
+            <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{date}</span>
+          </div>
+          <StatusBadge status={status} />
+        </div>
+        {propertyBlock}
+        <div className="flex items-center justify-between" style={{ gap: "12px" }}>{personRow}</div>
+        {rawStatus !== "COMPLETED" && (
+          <div className="flex items-stretch" style={{ gap: "12px" }}>
+            {rawStatus !== "CANCELLED" && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={busy}
+                className="flex-1 flex items-center justify-center hover:opacity-80"
+                style={{ height: "48px", borderRadius: "12px", background: "transparent", border: "none", fontSize: "14px", fontWeight: 500, color: "#E30045", cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1 }}
+              >
+                Cancel Appointment
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => (rawStatus === "PENDING" && isHost ? confirmInspection(id) : setRescheduleOpen(true))}
+              disabled={busy}
+              className="flex-1 flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+              style={{ height: "48px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "1px solid rgba(120,158,187,0.5)", borderRadius: "12px", fontSize: "14px", fontWeight: 500, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1 }}
+            >
+              {rawStatus === "PENDING" && isHost ? "Confirm" : "Reschedule"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {rescheduleOpen && <RescheduleModal id={id} onClose={() => setRescheduleOpen(false)} />}
+    </>
   );
 }
 
@@ -316,14 +334,14 @@ function RescheduleModal({ id, onClose }: { id: string; onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-end md:items-center justify-center md:p-4"
       style={{ background: "rgba(18,18,18,0.5)", zIndex: 10000 }}
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white flex flex-col"
-        style={{ width: "440px", maxWidth: "100%", borderRadius: "20px", padding: "24px", gap: "16px" }}
+        className="bg-white flex flex-col w-full md:w-[440px] md:max-w-full rounded-t-[25px] md:rounded-[20px]"
+        style={{ padding: "24px", gap: "16px" }}
       >
         <h2 style={{ fontSize: "18px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
           Reschedule appointment

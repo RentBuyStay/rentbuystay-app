@@ -120,7 +120,7 @@ export default function SubscriptionPage() {
           No plans available right now.
         </div>
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: "24px" }}>
           {plans.map((p, i) => (
             <PricingCard
               key={p.id}
@@ -138,7 +138,7 @@ export default function SubscriptionPage() {
         Billing History
       </h2>
 
-      <div style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
+      <div className="hidden md:block" style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
         <div className="flex" style={{ background: "#FFFFFF", borderBottom: "1px solid #F6F6F6" }}>
           {BILLING_COLS.map((c) => (
             <div
@@ -180,6 +180,31 @@ export default function SubscriptionPage() {
           ))
         )}
       </div>
+
+      {/* Mobile: billing cards */}
+      <div className="md:hidden flex flex-col" style={{ gap: "12px" }}>
+        {billingLoading ? (
+          <div className="bg-white text-center" style={{ border: "1px solid #F6F6F6", borderRadius: "16px", padding: "40px", fontSize: "14px", color: "#807E7E" }}>Loading billing history…</div>
+        ) : billingRows.length === 0 ? (
+          <div className="bg-white text-center" style={{ border: "1px solid #F6F6F6", borderRadius: "16px", padding: "40px", fontSize: "14px", color: "#807E7E" }}>No billing history yet.</div>
+        ) : (
+          billingRows.map((r) => (
+            <div key={r.id} className="bg-white flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "16px", padding: "16px", gap: "12px" }}>
+              <div className="flex items-start justify-between" style={{ gap: "12px" }}>
+                <span className="min-w-0 truncate" style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace", fontSize: "13px", color: "#121212" }}>
+                  {r.ref}
+                </span>
+                <StatusBadge status={r.status} />
+              </div>
+              <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>{r.plan}</span>
+              <div className="flex items-center justify-between" style={{ paddingTop: "12px", borderTop: "1px solid #F6F6F6", gap: "12px" }}>
+                <span style={{ fontSize: "16px", lineHeight: "20px", fontWeight: 600, color: "#305E82" }}>{r.amount}</span>
+                <span style={{ fontSize: "12px", color: "#807E7E" }}>{r.date}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -202,10 +227,10 @@ function CurrentPlanBanner({
 
   return (
     <div
-      className="flex items-center justify-between"
-      style={{ padding: "24px", borderRadius: "20px", border: "1px solid #F6F6F6", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)" }}
+      className="flex items-start justify-between"
+      style={{ padding: "24px", borderRadius: "20px", border: "1px solid #F6F6F6", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", gap: "16px" }}
     >
-      <div className="flex flex-col" style={{ gap: "16px" }}>
+      <div className="flex flex-col min-w-0" style={{ gap: "16px" }}>
         <span style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 500, color: "rgba(255,255,255,0.8)" }}>
           Current Plan
         </span>
@@ -214,7 +239,7 @@ function CurrentPlanBanner({
             {planName}
           </span>
           {hasSub && endsAt && (
-            <div className="flex items-center" style={{ gap: "8px" }}>
+            <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
               <span style={{ fontSize: "12px", lineHeight: "24px", color: "rgba(255,255,255,0.8)" }}>
                 {expired ? "Expired on" : "Renews on"}{" "}
                 <span style={{ fontWeight: 600, color: "#FFFFFF" }}>{fmtDate(endsAt)}</span>
@@ -230,16 +255,24 @@ function CurrentPlanBanner({
             </div>
           )}
         </div>
+        {/* Manage Subscription — in the left column on mobile (Figma) */}
+        <Link href="/dashboard/subscription/manage" className="md:hidden flex items-center hover:opacity-90" style={{ gap: "8px" }}>
+          <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#FFFFFF" }}>
+            Manage Subscription
+          </span>
+          <Image src="/icons/dash/arrow-right-white.svg" alt="" width={20} height={20} />
+        </Link>
       </div>
 
-      <div className="flex flex-col items-end" style={{ gap: "16px" }}>
+      <div className="flex flex-col items-end shrink-0" style={{ gap: "16px" }}>
         <span
           className="inline-flex items-center justify-center"
           style={{ padding: "2px 12px", background: statusBg, color: "#FFFFFF", borderRadius: "16px", fontSize: "12px", lineHeight: "18px", fontWeight: 500 }}
         >
           {statusLabel}
         </span>
-        <Link href="/dashboard/subscription/manage" className="flex items-center hover:opacity-90" style={{ gap: "8px" }}>
+        {/* Manage Subscription — on the right on desktop */}
+        <Link href="/dashboard/subscription/manage" className="hidden md:flex items-center hover:opacity-90" style={{ gap: "8px" }}>
           <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#FFFFFF" }}>
             Manage Subscription
           </span>

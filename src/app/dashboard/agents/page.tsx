@@ -100,7 +100,7 @@ export default function DiscoverAgentsPage() {
         ) : agencies.length === 0 ? (
           <EmptyBox>No agencies found.</EmptyBox>
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
             {agencies.map((a) => (
               <AgencyCard key={a.id} agency={a} />
             ))}
@@ -114,7 +114,7 @@ export default function DiscoverAgentsPage() {
         ) : agents.length === 0 ? (
           <EmptyBox>No agents found.</EmptyBox>
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "24px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "24px" }}>
             {agents.map((a) => (
               <AgentCard key={a.id} agent={a} />
             ))}
@@ -147,109 +147,117 @@ function FilterBar({
   location: string;
   setLocation: (v: string) => void;
 }) {
+  const locationSelect = (
+    <div
+      className="flex items-center shrink-0"
+      style={{ height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}
+    >
+      <select
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        className="outline-none bg-transparent appearance-none"
+        style={{
+          fontSize: "14px",
+          lineHeight: "24px",
+          fontWeight: 400,
+          color: "#121212",
+          letterSpacing: "-0.02em",
+          paddingRight: "8px",
+        }}
+      >
+        {LOCATIONS.map((l) => (
+          <option key={l} value={l}>{l}</option>
+        ))}
+      </select>
+      <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} style={{ pointerEvents: "none" }} />
+    </div>
+  );
+
+  const searchField = (
+    <div
+      className="flex items-center flex-1 min-w-0"
+      style={{ height: "48px", background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", gap: "8px" }}
+    >
+      <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Enter agency or agent name..."
+        className="flex-1 min-w-0 outline-none bg-transparent"
+        style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#121212", letterSpacing: "-0.02em" }}
+      />
+    </div>
+  );
+
+  const searchButton = (className: string) => (
+    <button
+      type="button"
+      className={`flex items-center justify-center text-white hover:opacity-90 ${className}`}
+      style={{
+        height: "48px",
+        padding: "8px 24px",
+        background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+        border: "1px solid rgba(120,158,187,0.5)",
+        borderRadius: "12px",
+        fontSize: "14px",
+        fontWeight: 500,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Search
+    </button>
+  );
+
+  const filterButton = (className: string, showText: boolean) => (
+    <button
+      type="button"
+      aria-label="Filter"
+      className={`inline-flex items-center justify-center hover:opacity-80 ${className}`}
+      style={{
+        height: "48px",
+        padding: "8px 16px",
+        gap: "8px",
+        background: "#F6F6F6",
+        border: "none",
+        borderRadius: "12px",
+        fontSize: "14px",
+        lineHeight: "24px",
+        fontWeight: 400,
+        color: "#121212",
+        cursor: "pointer",
+      }}
+    >
+      <Image src="/icons/dash/filter-setting.svg" alt="" width={16} height={16} />
+      {showText && <span>Filter</span>}
+    </button>
+  );
+
   return (
     <div className="flex flex-col" style={{ gap: "16px" }}>
       <p style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
         Find agents and agencies to talk to about your needs.
       </p>
 
-      <div className="flex items-center" style={{ gap: "16px" }}>
-        <div
-          className="flex items-center"
-          style={{
-            height: "48px",
-            background: "#F6F6F6",
-            borderRadius: "12px",
-            padding: "8px 16px",
-            gap: "8px",
-          }}
-        >
-          <select
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="outline-none bg-transparent appearance-none"
-            style={{
-              fontSize: "14px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: "#121212",
-              letterSpacing: "-0.02em",
-              paddingRight: "8px",
-            }}
-          >
-            {LOCATIONS.map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
-          <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} style={{ pointerEvents: "none" }} />
+      {/* Desktop: single row */}
+      <div className="hidden md:flex items-center" style={{ gap: "16px" }}>
+        {locationSelect}
+        {searchField}
+        {searchButton("w-[160px]")}
+        {filterButton("", true)}
+      </div>
+
+      {/* Mobile: two rows — location + search, then icon-only filter + wide Search */}
+      <div className="flex flex-col md:hidden" style={{ gap: "8px" }}>
+        <div className="flex items-center" style={{ gap: "8px" }}>
+          {locationSelect}
+          {searchField}
         </div>
-
-        <div
-          className="flex items-center"
-          style={{
-            flex: 1,
-            height: "48px",
-            background: "#F6F6F6",
-            borderRadius: "12px",
-            padding: "8px 16px",
-            gap: "8px",
-          }}
-        >
-          <Image src="/icons/dash/search-normal.svg" alt="" width={20} height={20} />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Enter agency or agent name..."
-            className="flex-1 outline-none bg-transparent"
-            style={{
-              fontSize: "14px",
-              lineHeight: "20px",
-              fontWeight: 400,
-              color: "#121212",
-              letterSpacing: "-0.02em",
-            }}
-          />
+        <div className="flex items-center" style={{ gap: "8px" }}>
+          {filterButton("w-12 shrink-0 justify-center", false)}
+          {searchButton("flex-1")}
         </div>
-
-        <button
-          type="button"
-          className="flex items-center justify-center text-white hover:opacity-90"
-          style={{
-            width: "160px",
-            height: "48px",
-            padding: "8px 24px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Search
-        </button>
-
-        <button
-          type="button"
-          className="inline-flex items-center justify-center hover:opacity-80"
-          style={{
-            height: "48px",
-            padding: "8px 16px",
-            gap: "8px",
-            background: "#F6F6F6",
-            border: "none",
-            borderRadius: "12px",
-            fontSize: "14px",
-            lineHeight: "24px",
-            fontWeight: 400,
-            color: "#121212",
-            cursor: "pointer",
-          }}
-        >
-          <Image src="/icons/dash/filter-setting.svg" alt="" width={16} height={16} />
-          Filter
-        </button>
       </div>
     </div>
   );
@@ -268,8 +276,8 @@ function Section({
     <div className="flex flex-col" style={{ gap: "16px" }}>
       <div className="flex items-center justify-between">
         <h2
+          className="text-[16px] md:text-[20px]"
           style={{
-            fontSize: "20px",
             lineHeight: "32px",
             fontWeight: 600,
             color: "#121212",

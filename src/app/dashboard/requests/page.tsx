@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useGetMeQuery } from "@/services/meApi";
 import { useGetPropertyTypesQuery } from "@/services/referenceApi";
@@ -10,7 +10,7 @@ import {
   useGetPropertyRequestsQuery,
   useDeletePropertyRequestMutation,
 } from "@/services/propertyRequestApi";
-import { useOpenDirectConversationMutation } from "@/services/conversationApi";
+import ReplyToRequestModal from "@/components/ReplyToRequestModal";
 import { toRequestVM, type RequestVM, type RequestTag } from "@/lib/propertyRequest";
 
 type RequestType = RequestTag;
@@ -209,18 +209,12 @@ function FilterSelect({
 }
 
 function RequestCard({ request }: { request: RequestVM }) {
-  const router = useRouter();
-  const [openDirect, { isLoading: contacting }] = useOpenDirectConversationMutation();
+  const [replyOpen, setReplyOpen] = useState(false);
 
   function handleMessage(e: React.MouseEvent) {
     e.stopPropagation();
     if (!request.posterUserId) return;
-    // Open (or reuse) a direct chat with the poster, then jump to Messages with
-    // that conversation selected so the user composes/sends there.
-    openDirect(request.posterUserId)
-      .unwrap()
-      .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
-      .catch(() => {});
+    setReplyOpen(true);
   }
 
   const avatar = (
@@ -269,7 +263,6 @@ function RequestCard({ request }: { request: RequestVM }) {
           <button
             type="button"
             onClick={handleMessage}
-            disabled={contacting}
             className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
             style={{
               height: "48px",
@@ -280,12 +273,11 @@ function RequestCard({ request }: { request: RequestVM }) {
               borderRadius: "12px",
               fontSize: "14px",
               fontWeight: 500,
-              cursor: contacting ? "not-allowed" : "pointer",
-              opacity: contacting ? 0.6 : 1,
+              cursor: "pointer",
             }}
           >
             <Image src="/icons/dash/messages-2.svg" alt="" width={20} height={20} />
-            {contacting ? "Opening…" : "Message"}
+            Message
           </button>
         </div>
       </div>
@@ -307,10 +299,9 @@ function RequestCard({ request }: { request: RequestVM }) {
             <button
               type="button"
               onClick={handleMessage}
-              disabled={contacting}
               aria-label="Message"
               className="shrink-0 hover:opacity-80"
-              style={{ background: "none", border: "none", padding: 0, cursor: contacting ? "not-allowed" : "pointer", width: "24px", height: "24px", opacity: contacting ? 0.6 : 1 }}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer", width: "24px", height: "24px" }}
             >
               <Image src="/icons/dash/messages-2-blue.svg" alt="" width={24} height={24} />
             </button>
@@ -326,6 +317,14 @@ function RequestCard({ request }: { request: RequestVM }) {
           </span>
         </div>
       </div>
+
+      <ReplyToRequestModal
+        open={replyOpen}
+        onClose={() => setReplyOpen(false)}
+        posterUserId={request.posterUserId}
+        name={request.name}
+        initials={request.initials}
+      />
     </>
   );
 }

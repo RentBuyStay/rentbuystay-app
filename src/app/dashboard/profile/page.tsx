@@ -175,27 +175,23 @@ export default function ProfilePage() {
 
       <div className="flex items-center justify-between" style={{ gap: "16px" }}>
         <div className="flex items-center" style={{ gap: "16px" }}>
-          <div className="relative" style={{ width: "120px", height: "120px" }}>
+          <div className="relative shrink-0 w-[72px] h-[72px] md:w-[120px] md:h-[120px]">
             {PROFILE.avatarUrl ? (
               <Image
                 src={PROFILE.avatarUrl}
                 alt={`${PROFILE.firstName} ${PROFILE.lastName}`.trim()}
-                width={120}
-                height={120}
+                fill
                 unoptimized
-                style={{ width: "120px", height: "120px", borderRadius: "100%", objectFit: "cover" }}
+                sizes="120px"
+                style={{ borderRadius: "100%", objectFit: "cover" }}
               />
             ) : (
               <div
-                className="flex items-center justify-center"
+                className="flex items-center justify-center w-full h-full text-[25px] md:text-[42px]"
                 style={{
-                  width: "120px",
-                  height: "120px",
                   borderRadius: "100%",
                   background: "rgba(48,94,130,0.05)",
                   color: "#305E82",
-                  fontSize: "42px",
-                  lineHeight: "61px",
                   fontWeight: 700,
                 }}
               >
@@ -205,20 +201,10 @@ export default function ProfilePage() {
             <button
               type="button"
               aria-label="Change photo"
-              className="absolute flex items-center justify-center hover:opacity-90"
-              style={{
-                bottom: 0,
-                right: 0,
-                width: "32px",
-                height: "32px",
-                padding: "8px",
-                background: "#305E82",
-                borderRadius: "20px",
-                border: "none",
-                cursor: "pointer",
-              }}
+              className="absolute flex items-center justify-center hover:opacity-90 w-5 h-5 md:w-8 md:h-8 rounded-[10px] md:rounded-[20px]"
+              style={{ bottom: 0, right: 0, background: "#305E82", border: "none", cursor: "pointer" }}
             >
-              <Image src="/icons/dash/camera.svg" alt="" width={16} height={16} />
+              <img src="/icons/dash/camera.svg" alt="" className="w-[11px] h-[11px] md:w-4 md:h-4" />
             </button>
           </div>
 
@@ -226,12 +212,8 @@ export default function ProfilePage() {
             <div className="flex flex-col" style={{ gap: "8px" }}>
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <span
-                  style={{
-                    fontSize: "24px",
-                    lineHeight: "32px",
-                    fontWeight: 600,
-                    color: "#121212",
-                  }}
+                  className="text-[16px] md:text-[24px]"
+                  style={{ lineHeight: "32px", fontWeight: 600, color: "#121212" }}
                 >
                   {(isAgency ? PROFILE.firstName : `${PROFILE.firstName} ${PROFILE.lastName}`.trim()) || DASH}
                 </span>
@@ -240,34 +222,34 @@ export default function ProfilePage() {
                 )}
               </div>
               <span
-                style={{
-                  fontSize: "14px",
-                  lineHeight: "24px",
-                  fontWeight: 400,
-                  color: "#807E7E",
-                }}
+                className="text-[12px] md:text-[14px]"
+                style={{ lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}
               >
                 {isAgency ? org.email : PROFILE.email}
               </span>
             </div>
-            <span
-              style={{
-                fontSize: "12px",
-                lineHeight: "24px",
-                fontWeight: 500,
-                color: "#FFAE00",
-              }}
-            >
+            <span style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 500, color: "#FFAE00" }}>
               Member since {PROFILE.memberSince}
             </span>
           </div>
         </div>
 
-
+        {/* Mobile: edit icon only */}
         <button
           type="button"
           onClick={() => setEditOpen(true)}
-          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
+          aria-label="Edit Profile"
+          className="md:hidden shrink-0 hover:opacity-80"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          <Image src="/icons/dash/edit-blue.svg" alt="" width={24} height={24} />
+        </button>
+
+        {/* Desktop: full Edit Profile button */}
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          className="hidden md:flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
           style={{
             height: "48px",
             padding: "8px 24px",
@@ -286,46 +268,31 @@ export default function ProfilePage() {
       </div>
 
 
-      <div className="flex flex-col" style={{ gap: "24px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
         {isAgency ? (
           <>
-            <FieldRow>
-              <Field label="Company Name" value={org.name} />
-              <Field label="Email Address" value={PROFILE.email} />
-              <Field label="Phone Number" value={org.phone} />
-            </FieldRow>
-            <FieldRow>
-              <Field label="Whatsapp Number" value={org.whatsapp} />
-              <Field label="Website" value={org.website} />
-              <Field label="State" value={org.state} />
-            </FieldRow>
-            <FieldRow>
-              <Field label="City" value={org.city} />
-              <Field label="Office Address" value={org.officeAddress} />
-              <Field label="Company Reg No" value={org.companyRegNo} />
-            </FieldRow>
-            <FieldRow>
-              <Field label="ESVARBON Licence Number" value={org.esvarbonLicence} />
-              <Field label="Year Established" value={org.yearEstablished} />
-              <div />
-            </FieldRow>
-            <Field label="Bio" value={org.bio} />
+            <Field label="Company Name" value={org.name} />
+            <Field label="Email Address" value={PROFILE.email} />
+            <Field label="Phone Number" value={org.phone} />
+            <Field label="Whatsapp Number" value={org.whatsapp} />
+            <Field label="Website" value={org.website} />
+            <Field label="State" value={org.state} />
+            <Field label="City" value={org.city} />
+            <Field label="Office Address" value={org.officeAddress} />
+            <Field label="Company Reg No" value={org.companyRegNo} />
+            <Field label="ESVARBON Licence Number" value={org.esvarbonLicence} />
+            <Field label="Year Established" value={org.yearEstablished} />
+            <Field label="Bio" value={org.bio} className="col-span-full" />
           </>
         ) : (
           <>
-            <FieldRow>
-              <Field label="First Name" value={PROFILE.firstName} />
-              <Field label="Last Name" value={PROFILE.lastName} />
-              <Field label="Email Address" value={PROFILE.email} />
-            </FieldRow>
-
-            <FieldRow>
-              <Field label="Phone Number" value={PROFILE.phone} />
-              <Field label="State" value={PROFILE.state} />
-              <Field label="City" value={PROFILE.city} />
-            </FieldRow>
-
-            {!isSeeker && <Field label="Bio" value={PROFILE.bio} />}
+            <Field label="First Name" value={PROFILE.firstName} />
+            <Field label="Last Name" value={PROFILE.lastName} />
+            <Field label="Email Address" value={PROFILE.email} />
+            <Field label="Phone Number" value={PROFILE.phone} />
+            <Field label="State" value={PROFILE.state} />
+            <Field label="City" value={PROFILE.city} />
+            {!isSeeker && <Field label="Bio" value={PROFILE.bio} className="col-span-full" />}
           </>
         )}
       </div>
@@ -339,16 +306,16 @@ export default function ProfilePage() {
         <h2
           style={{
             fontSize: "16px",
-            lineHeight: "32px",
-            fontWeight: 500,
-            color: "#121212",
+            lineHeight: "24px",
+            fontWeight: 600,
+            color: "#131313",
           }}
         >
           Subscription
         </h2>
 
         <div
-          className="flex items-center justify-between"
+          className="flex items-start justify-between"
           style={{
             padding: "24px",
             borderRadius: "20px",
@@ -369,12 +336,8 @@ export default function ProfilePage() {
             </span>
             <div className="flex flex-col" style={{ gap: "8px" }}>
               <span
-                style={{
-                  fontSize: "24px",
-                  lineHeight: "32px",
-                  fontWeight: 600,
-                  color: "#FFFFFF",
-                }}
+                className="text-[16px] md:text-[24px]"
+                style={{ lineHeight: "32px", fontWeight: 600, color: "#FFFFFF" }}
               >
                 {sub.name}
               </span>
@@ -395,6 +358,18 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {/* Manage — left column on mobile (Figma) */}
+            <Link
+              href="/dashboard/subscription/manage"
+              className="md:hidden flex items-center hover:opacity-90"
+              style={{ gap: "8px" }}
+            >
+              <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#FFFFFF" }}>
+                Manage Subscription
+              </span>
+              <Image src="/icons/dash/arrow-right-white.svg" alt="" width={20} height={20} />
+            </Link>
           </div>
 
           <div className="flex flex-col items-end" style={{ gap: "16px" }}>
@@ -412,9 +387,10 @@ export default function ProfilePage() {
             >
               {sub.statusLabel}
             </span>
+            {/* Manage — right column on desktop */}
             <Link
               href="/dashboard/subscription/manage"
-              className="flex items-center hover:opacity-90"
+              className="hidden md:flex items-center hover:opacity-90"
               style={{ gap: "8px" }}
             >
               <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#FFFFFF" }}>
@@ -475,21 +451,18 @@ export default function ProfilePage() {
 
 function FieldRow({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="grid"
-      style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}
-    >
+    <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
       {children}
     </div>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className="flex flex-col" style={{ gap: "8px" }}>
+    <div className={`flex flex-col ${className ?? ""}`} style={{ gap: "8px" }}>
       <span
         style={{
-          fontSize: "13px",
+          fontSize: "12px",
           lineHeight: "20px",
           fontWeight: 400,
           color: "#807E7E",
@@ -500,8 +473,8 @@ function Field({ label, value }: { label: string; value: string }) {
       </span>
       <span
         style={{
-          fontSize: "16px",
-          lineHeight: "32px",
+          fontSize: "14px",
+          lineHeight: "24px",
           fontWeight: 500,
           color: "#121212",
           letterSpacing: "-0.02em",
