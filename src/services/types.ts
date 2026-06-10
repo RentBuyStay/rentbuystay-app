@@ -281,9 +281,12 @@ export type AgencyStaffItem = {
   whatsappNumber?: string;
   avatarUrl?: string;
   userType?: UserType;
-  status?: string;
+  status?: string; // PENDING | ACTIVE | SUSPENDED | DEACTIVATED
   city?: string;
   state?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  listingCount?: number;
   joinedAt?: string;
 };
 

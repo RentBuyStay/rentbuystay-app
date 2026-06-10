@@ -74,6 +74,12 @@ export const endpoints = {
 
   // Agency staff + invitations (org owner)
   orgStaff: (orgId: string) => `/organizations/${orgId}/staff`,
+  orgStaffMember: (orgId: string, userId: string) =>
+    `/organizations/${orgId}/staff/${userId}`,
+  orgStaffSuspend: (orgId: string, userId: string) =>
+    `/organizations/${orgId}/staff/${userId}/suspend`,
+  orgStaffUnsuspend: (orgId: string, userId: string) =>
+    `/organizations/${orgId}/staff/${userId}/unsuspend`,
   orgInvitations: (orgId: string) => `/organizations/${orgId}/invitations`,
   orgInvitation: (orgId: string, invitationId: string) =>
     `/organizations/${orgId}/invitations/${invitationId}`,

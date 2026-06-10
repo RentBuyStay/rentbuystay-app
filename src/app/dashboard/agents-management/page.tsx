@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useGetMeQuery } from "@/services/meApi";
-import { useGetMyPropertiesQuery } from "@/services/propertyApi";
 import {
   useGetAgencyStaffQuery,
   useGetInvitationsQuery,
@@ -40,17 +39,20 @@ type CardAgent = {
   invitationId?: string;
 };
 
-// Placeholder until the backend adds agent ratings to the staff/agent DTO.
-const DEFAULT_RATING = "0.0";
+function ratingLabel(n?: number): string {
+  return n != null && n > 0 ? n.toFixed(1) : "0.0";
+}
 
 function staffToCard(s: AgencyStaffItem): CardAgent {
   const name = `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim() || s.email || "Agent";
+  const n = s.listingCount ?? 0;
   return {
     id: s.userId,
     name,
     avatarUrl: s.avatarUrl,
     location: [s.city, s.state].filter(Boolean).join(", ") || "—",
-    rating: DEFAULT_RATING,
+    rating: ratingLabel(s.averageRating),
+    listings: `${n} listing${n === 1 ? "" : "s"}`,
     verified: s.status?.toUpperCase() === "ACTIVE",
   };
 }
@@ -97,22 +99,9 @@ export default function AgentsManagementPage() {
   const { data: invitations } = useGetInvitationsQuery(orgId as string, { skip: !orgId });
   const [cancelInvitation] = useCancelInvitationMutation();
 
-  // Per-agent listings count: one query for the org's listings, counted by
-  // assignedAgentUserId. (Backend AgencyStaffItem has no listingCount yet.)
-  const { data: propsPage } = useGetMyPropertiesQuery({ page: 0, size: 100 });
-  const listingCounts = new Map<string, number>();
-  for (const p of propsPage?.content ?? []) {
-    if (p.assignedAgentUserId) {
-      listingCounts.set(p.assignedAgentUserId, (listingCounts.get(p.assignedAgentUserId) ?? 0) + 1);
-    }
-  }
-
-  // Accepted staff first, then still-pending invitations.
-  const staffCards = (staffPage?.content ?? []).map((s) => {
-    const card = staffToCard(s);
-    const n = listingCounts.get(s.userId) ?? 0;
-    return { ...card, listings: `${n} listing${n === 1 ? "" : "s"}` };
-  });
+  // Accepted staff first, then still-pending invitations. Rating + listing
+  // count now come straight from the staff DTO.
+  const staffCards = (staffPage?.content ?? []).map(staffToCard);
   const pendingCards = (invitations ?? [])
     .filter((i) => i.status?.toUpperCase() === "PENDING")
     .map(invitationToCard);

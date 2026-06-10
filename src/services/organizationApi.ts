@@ -52,6 +52,36 @@ export const organizationApi = api.injectEndpoints({
       invalidatesTags: [{ type: "Invitations", id: "LIST" }],
     }),
 
+    // Agency owner suspends one of their own agents.
+    suspendStaff: builder.mutation<null, { orgId: string; userId: string; reason?: string }>({
+      query: ({ orgId, userId, reason }) => ({
+        url: endpoints.orgStaffSuspend(orgId, userId),
+        method: "POST",
+        body: reason ? { reason } : {},
+      }),
+      transformResponse: (res: ApiEnvelope<null>) => res.data,
+      invalidatesTags: [{ type: "AgencyStaff", id: "LIST" }],
+    }),
+
+    unsuspendStaff: builder.mutation<null, { orgId: string; userId: string }>({
+      query: ({ orgId, userId }) => ({
+        url: endpoints.orgStaffUnsuspend(orgId, userId),
+        method: "POST",
+      }),
+      transformResponse: (res: ApiEnvelope<null>) => res.data,
+      invalidatesTags: [{ type: "AgencyStaff", id: "LIST" }],
+    }),
+
+    // Permanently remove an agent from the agency.
+    removeStaff: builder.mutation<null, { orgId: string; userId: string }>({
+      query: ({ orgId, userId }) => ({
+        url: endpoints.orgStaffMember(orgId, userId),
+        method: "DELETE",
+      }),
+      transformResponse: (res: ApiEnvelope<null>) => res.data,
+      invalidatesTags: [{ type: "AgencyStaff", id: "LIST" }],
+    }),
+
     // Public: the invited agent sets their password and joins the org.
     acceptInvitation: builder.mutation<
       InvitationResponse,
@@ -73,5 +103,8 @@ export const {
   useGetInvitationsQuery,
   useInviteStaffMutation,
   useCancelInvitationMutation,
+  useSuspendStaffMutation,
+  useUnsuspendStaffMutation,
+  useRemoveStaffMutation,
   useAcceptInvitationMutation,
 } = organizationApi;

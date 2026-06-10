@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { useGetMeQuery } from "@/services/meApi";
-import { useGetAgencyStaffQuery } from "@/services/organizationApi";
+import { useGetAgencyStaffQuery, useSuspendStaffMutation } from "@/services/organizationApi";
 import { useGetMyPropertiesQuery } from "@/services/propertyApi";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
 import { toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 
 const STATUS_COLORS: Record<PropertyStatusLabel, { bg: string; color: string }> = {
@@ -17,8 +19,9 @@ const STATUS_COLORS: Record<PropertyStatusLabel, { bg: string; color: string }> 
   Draft: { bg: "#F2F4F7", color: "#475467" },
 };
 
-// Placeholder until the backend adds agent ratings to the staff/agent DTO.
-const DEFAULT_RATING = "0.0";
+function ratingLabel(n?: number): string {
+  return n != null && n > 0 ? n.toFixed(1) : "0.0";
+}
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -47,6 +50,8 @@ export default function AgentDetailPage({
   const router = useRouter();
   const { id } = use(params);
   const [showSuspend, setShowSuspend] = useState(false);
+  const { toast } = useToast();
+  const [suspendStaff, { isLoading: suspending }] = useSuspendStaffMutation();
 
   const { data: me } = useGetMeQuery();
   const orgId = me?.organizationId;
@@ -144,7 +149,7 @@ export default function AgentDetailPage({
             <div className="flex items-center flex-wrap" style={{ gap: "16px" }}>
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <Image src="/icons/dash/icon-star.svg" alt="" width={16} height={16} />
-                <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{DEFAULT_RATING}</span>
+                <span style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E" }}>{ratingLabel(staff.averageRating)}</span>
               </div>
               {addedAgo(staff.joinedAt) && (
                 <span style={{ fontSize: "12px", lineHeight: "20px", letterSpacing: "-0.02em", color: "#807E7E" }}>
@@ -185,10 +190,18 @@ export default function AgentDetailPage({
       {showSuspend && (
         <SuspendAgentModal
           agentName={name}
+          loading={suspending}
           onClose={() => setShowSuspend(false)}
-          onConfirm={() => {
-            setShowSuspend(false);
-            router.push("/dashboard/agents-management");
+          onConfirm={async () => {
+            if (!orgId) return;
+            try {
+              await suspendStaff({ orgId, userId: id }).unwrap();
+              toast("Agent suspended", "success");
+              setShowSuspend(false);
+              router.push("/dashboard/agents-management");
+            } catch (e) {
+              toast(unwrapApiError(e)?.message ?? "Couldn’t suspend the agent.", "error");
+            }
           }}
         />
       )}
@@ -301,10 +314,12 @@ function SuspendAgentModal({
   agentName,
   onClose,
   onConfirm,
+  loading,
 }: {
   agentName: string;
   onClose: () => void;
   onConfirm: () => void;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -353,6 +368,7 @@ function SuspendAgentModal({
             <button
               type="button"
               onClick={onConfirm}
+              disabled={loading}
               className="flex items-center justify-center text-white hover:opacity-90"
               style={{
                 width: "100%",
@@ -362,10 +378,11 @@ function SuspendAgentModal({
                 borderRadius: "12px",
                 fontSize: "16px",
                 fontWeight: 500,
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.7 : 1,
               }}
             >
-              Suspend Agent
+              {loading ? "Suspending…" : "Suspend Agent"}
             </button>
             <button
               type="button"
