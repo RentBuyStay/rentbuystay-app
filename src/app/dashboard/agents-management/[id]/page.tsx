@@ -323,83 +323,76 @@ function SuspendAgentModal({
 }) {
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center"
-      style={{ background: "rgba(18,18,18,0.5)", zIndex: 50, padding: "24px" }}
+      className="fixed inset-0 z-[10000] flex items-end md:items-center justify-center md:p-4"
+      style={{ background: "rgba(18,18,18,0.5)" }}
       onClick={onClose}
     >
+      {/* Bottom sheet on mobile; centred dialog on desktop */}
       <div
-        className="bg-white relative"
-        style={{ width: "503px", maxWidth: "100%", borderRadius: "24px", padding: "32px" }}
+        className="relative bg-white w-full md:w-[503px] md:max-w-full rounded-t-[25px] md:rounded-[24px] flex flex-col p-6 md:p-10"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-end" style={{ marginBottom: "8px" }}>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="hover:opacity-70"
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              width: "24px",
-              height: "24px",
-              cursor: "pointer",
-              color: "#807E7E",
-              fontSize: "24px",
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        </div>
-        <div className="flex flex-col items-center" style={{ gap: "24px", padding: "0 24px 8px" }}>
-          <Image src="/icons/dash/noti-warning.svg" alt="" width={120} height={120} />
-          <div className="flex flex-col items-center text-center" style={{ gap: "12px" }}>
-            <h2 style={{ fontSize: "20px", lineHeight: "30px", fontWeight: 600, color: "#121212" }}>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute hover:opacity-70 top-6 right-6 md:top-10 md:right-10"
+          style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          <Image src="/icons/modal-cancel.svg" alt="" width={24} height={24} />
+        </button>
+
+        <div className="flex flex-col items-center" style={{ gap: "24px" }}>
+          <Image src="/icons/dash/noti-warning.svg" alt="" width={165} height={112} style={{ width: "165px", height: "112.5px" }} />
+          <div className="flex flex-col w-full" style={{ gap: "8px" }}>
+            <h2 className="text-[18px] md:text-[20px]" style={{ lineHeight: "24px", fontWeight: 600, color: "#131313", textAlign: "center" }}>
               Suspend Agent?
             </h2>
-            <p style={{ fontSize: "16px", lineHeight: "24px", color: "#807E7E", maxWidth: "400px" }}>
+            <p className="text-[14px] md:text-[16px]" style={{ lineHeight: "24px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
               Are you sure you want to suspend {agentName ? `${agentName} as an` : "this"} agent? This
               action cannot be undone, and the agent will not be able to perform any action anymore.
             </p>
           </div>
-          <div className="flex flex-col items-center" style={{ gap: "16px", width: "100%" }}>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={loading}
-              className="flex items-center justify-center text-white hover:opacity-90"
-              style={{
-                width: "100%",
-                height: "56px",
-                background: "#E30045",
-                border: "none",
-                borderRadius: "12px",
-                fontSize: "16px",
-                fontWeight: 500,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? "Suspending…" : "Suspend Agent"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "8px",
-                fontSize: "16px",
-                fontWeight: 500,
-                color: "#121212",
-                cursor: "pointer",
-              }}
-            >
-              Cancel
-            </button>
-          </div>
+        </div>
+
+        <div className="flex flex-col" style={{ gap: "16px", marginTop: "32px" }}>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex items-center justify-center text-white hover:opacity-90"
+            style={{
+              height: "48px",
+              padding: "8px 24px",
+              background: "#E30045",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? "Suspending…" : "Suspend Agent"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center hover:opacity-80"
+            style={{
+              height: "48px",
+              padding: "8px 24px",
+              background: "#FFFFFF",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#121212",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
