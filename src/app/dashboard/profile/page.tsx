@@ -407,7 +407,7 @@ export default function ProfilePage() {
     <EditProfileModal
       open={editOpen}
       onClose={() => setEditOpen(false)}
-      variant={isAgency ? "agency" : "default"}
+      variant={isAgency ? "agency" : isSeeker ? "seeker" : "default"}
       initial={
         isAgency
           ? {
@@ -417,6 +417,22 @@ export default function ProfilePage() {
               whatsappNumber: clean(o?.whatsappNumber),
               businessName: o?.name || "",
               businessRegNo: o?.registrationNumber || "",
+            }
+          : isSeeker
+          ? {
+              state: clean(p?.state) || "Lagos",
+              city: clean(p?.city) || "Eti-Osa",
+              bio: "",
+              firstName: clean(p?.firstName),
+              lastName: clean(p?.lastName),
+              email: clean(me?.email),
+              phone: clean(p?.phoneNumber),
+              lookingFor: prefs?.lookingFor ? LOOKING_FOR_LABEL[prefs.lookingFor] ?? prefs.lookingFor : "",
+              propertyType: prefs?.propertyTypeName ?? "",
+              bedrooms: prefs?.bedrooms != null ? String(prefs.bedrooms) : "",
+              minPrice: prefs?.minPrice != null ? formatPrice(prefs.minPrice, prefs.currency) : "",
+              maxPrice: prefs?.maxPrice != null ? formatPrice(prefs.maxPrice, prefs.currency) : "",
+              preferredLocations: (prefs?.preferredLocations ?? []).map((l) => l.name),
             }
           : {
               state: clean(p?.state) || "Lagos",
@@ -435,6 +451,9 @@ export default function ProfilePage() {
               bio: values.bio,
               whatsappNumber: values.whatsappNumber || undefined,
             }).unwrap();
+          } else if (isSeeker) {
+            // Seeker edit: only state/city are persistable today.
+            await updateMyProfile({ state: values.state, city: values.city }).unwrap();
           } else {
             await updateMyProfile(values).unwrap();
           }
@@ -496,32 +515,29 @@ function PropertyPreferencesSection({ prefs }: { prefs?: SeekerPreferencesRespon
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#305E82" }}>
+      <h2 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#305E82" }}>
         Property Preferences
       </h2>
 
-      <FieldRow>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
         <Field label="Looking for" value={lookingFor} />
         <Field label="Property Type" value={propertyType} />
         <Field label="Bedroom" value={bedrooms} />
-      </FieldRow>
-
-      <FieldRow>
         <Field label="Min. Price" value={minPrice} />
         <Field label="Max. Price" value={maxPrice} />
         <div className="flex flex-col" style={{ gap: "8px" }}>
-          <span style={{ fontSize: "13px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E", letterSpacing: "-0.02em" }}>
             Preferred Locations
           </span>
           {locations.length === 0 ? (
-            <span style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>{DASH}</span>
+            <span style={{ fontSize: "14px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>{DASH}</span>
           ) : (
             <div className="flex flex-wrap" style={{ gap: "8px" }}>
               {locations.map((l) => (
                 <span
                   key={l.id}
                   className="inline-flex items-center justify-center"
-                  style={{ padding: "4px 12px", background: "rgba(120,158,187,0.1)", color: "#305E82", borderRadius: "8px", fontSize: "13px", lineHeight: "20px", fontWeight: 500, whiteSpace: "nowrap" }}
+                  style={{ padding: "4px 12px", background: "rgba(120,158,187,0.1)", color: "#305E82", borderRadius: "8px", fontSize: "12px", lineHeight: "24px", fontWeight: 500, whiteSpace: "nowrap" }}
                 >
                   {l.name}
                 </span>
@@ -529,7 +545,7 @@ function PropertyPreferencesSection({ prefs }: { prefs?: SeekerPreferencesRespon
             </div>
           )}
         </div>
-      </FieldRow>
+      </div>
     </div>
   );
 }
