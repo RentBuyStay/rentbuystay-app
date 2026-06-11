@@ -21,13 +21,22 @@ export type EditProfileValues = {
   lastName?: string;
   email?: string;
   phone?: string;
-  lookingFor?: string;
-  propertyType?: string;
-  bedrooms?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  preferredLocations?: string[];
+  lookingFor?: string; // RENT | BUY | SHORTLET
+  propertyTypeId?: number;
+  bedrooms?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  preferredLocations?: string[]; // display-only chips (editing needs a locations picker)
 };
+
+export type PropertyTypeOption = { id: number; name: string };
+
+const LOOKING_FOR: { value: string; label: string }[] = [
+  { value: "RENT", label: "To Rent" },
+  { value: "BUY", label: "To Buy" },
+  { value: "SHORTLET", label: "Shortlet" },
+];
+const BEDROOM_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
 export default function EditProfileModal({
   open,
@@ -35,12 +44,14 @@ export default function EditProfileModal({
   initial = { state: "Lagos", city: "Eti-Osa", bio: "" },
   onSave,
   variant = "default",
+  propertyTypeOptions = [],
 }: {
   open: boolean;
   onClose: () => void;
   initial?: EditProfileValues;
   onSave?: (values: EditProfileValues) => void | Promise<void>;
   variant?: "default" | "agency" | "seeker";
+  propertyTypeOptions?: PropertyTypeOption[];
 }) {
   const [state, setState] = useState(initial.state);
   const [city, setCity] = useState(initial.city);
@@ -48,6 +59,15 @@ export default function EditProfileModal({
   const [whatsappNumber, setWhatsapp] = useState(initial.whatsappNumber ?? "");
   const [businessName, setBusinessName] = useState(initial.businessName ?? "");
   const [businessRegNo, setBusinessRegNo] = useState(initial.businessRegNo ?? "");
+  // Seeker editable fields.
+  const [firstName, setFirstName] = useState(initial.firstName ?? "");
+  const [lastName, setLastName] = useState(initial.lastName ?? "");
+  const [phone, setPhone] = useState(initial.phone ?? "");
+  const [lookingFor, setLookingFor] = useState(initial.lookingFor ?? "");
+  const [propertyTypeId, setPropertyTypeId] = useState<number | undefined>(initial.propertyTypeId);
+  const [bedrooms, setBedrooms] = useState(initial.bedrooms != null ? String(initial.bedrooms) : "");
+  const [minPrice, setMinPrice] = useState(initial.minPrice != null ? String(initial.minPrice) : "");
+  const [maxPrice, setMaxPrice] = useState(initial.maxPrice != null ? String(initial.maxPrice) : "");
   const [submitting, setSubmitting] = useState(false);
   const isAgency = variant === "agency";
 
@@ -115,16 +135,16 @@ export default function EditProfileModal({
           {/* Fields — 1 column on mobile, 2 columns on desktop */}
           <div className="grid grid-cols-1 md:grid-cols-2 mt-6" style={{ gap: "16px" }}>
             <FieldGroup label="First Name">
-              <TextInput value={initial.firstName ?? ""} onChange={() => {}} placeholder="Enter your first name here" readOnly />
+              <TextInput value={firstName} onChange={setFirstName} placeholder="Enter your first name here" />
             </FieldGroup>
             <FieldGroup label="Last Name">
-              <TextInput value={initial.lastName ?? ""} onChange={() => {}} placeholder="Enter your last name here" readOnly />
+              <TextInput value={lastName} onChange={setLastName} placeholder="Enter your last name here" />
             </FieldGroup>
             <FieldGroup label="Email">
               <TextInput value={initial.email ?? ""} onChange={() => {}} placeholder="Enter your email address here" readOnly />
             </FieldGroup>
             <FieldGroup label="Phone Number">
-              <TextInput value={initial.phone ?? ""} onChange={() => {}} placeholder="Enter phone number" readOnly />
+              <TextInput value={phone} onChange={setPhone} placeholder="Enter phone number" />
             </FieldGroup>
 
             <FieldGroup label="State">
@@ -135,19 +155,34 @@ export default function EditProfileModal({
             </FieldGroup>
 
             <FieldGroup label="Looking for">
-              <TextInput value={initial.lookingFor ?? ""} onChange={() => {}} placeholder="Select category (e.g. for Rent, for Sale, Shortlet)" readOnly />
+              <NativeSelect
+                value={lookingFor}
+                onChange={setLookingFor}
+                placeholder="Select category"
+                options={LOOKING_FOR}
+              />
             </FieldGroup>
             <FieldGroup label="Property Type">
-              <TextInput value={initial.propertyType ?? ""} onChange={() => {}} placeholder="Select type (e.g. Flats/Apartment, house, duplex)" readOnly />
+              <NativeSelect
+                value={propertyTypeId != null ? String(propertyTypeId) : ""}
+                onChange={(v) => setPropertyTypeId(v ? Number(v) : undefined)}
+                placeholder="Select type"
+                options={propertyTypeOptions.map((o) => ({ value: String(o.id), label: o.name }))}
+              />
             </FieldGroup>
             <FieldGroup label="Bedrooms">
-              <TextInput value={initial.bedrooms ?? ""} onChange={() => {}} placeholder="Select no. of bedrooms" readOnly />
+              <NativeSelect
+                value={bedrooms}
+                onChange={setBedrooms}
+                placeholder="Select no. of bedrooms"
+                options={BEDROOM_OPTIONS.map((b) => ({ value: b, label: b }))}
+              />
             </FieldGroup>
             <FieldGroup label="Min. Price (₦)">
-              <TextInput value={initial.minPrice ?? ""} onChange={() => {}} placeholder="0.00" readOnly />
+              <TextInput value={minPrice} onChange={(v) => setMinPrice(v.replace(/[^\d]/g, ""))} placeholder="0.00" />
             </FieldGroup>
             <FieldGroup label="Max. Price (₦)">
-              <TextInput value={initial.maxPrice ?? ""} onChange={() => {}} placeholder="0.00" readOnly />
+              <TextInput value={maxPrice} onChange={(v) => setMaxPrice(v.replace(/[^\d]/g, ""))} placeholder="0.00" />
             </FieldGroup>
             <FieldGroup label="Preferred Locations">
               {initial.preferredLocations && initial.preferredLocations.length > 0 ? (
@@ -163,13 +198,13 @@ export default function EditProfileModal({
                   ))}
                 </div>
               ) : (
-                <TextInput value="" onChange={() => {}} placeholder="Type here and press “Enter”" readOnly />
+                <TextInput value="" onChange={() => {}} placeholder="No preferred locations set" readOnly />
               )}
             </FieldGroup>
           </div>
 
           <p className="mt-3" style={{ fontSize: "12px", lineHeight: "18px", color: "#807E7E" }}>
-            Only State and City can be updated for now — the other details are read-only until the backend supports editing them.
+            Email is changed from a separate verification flow, and preferred locations stay as set.
           </p>
 
           <button
@@ -178,7 +213,19 @@ export default function EditProfileModal({
             onClick={async () => {
               setSubmitting(true);
               try {
-                await onSave?.({ state, city, bio: "" });
+                await onSave?.({
+                  state,
+                  city,
+                  bio: "",
+                  firstName,
+                  lastName,
+                  phone,
+                  lookingFor: lookingFor || undefined,
+                  propertyTypeId,
+                  bedrooms: bedrooms ? Number(bedrooms) : undefined,
+                  minPrice: minPrice ? Number(minPrice) : undefined,
+                  maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                });
                 onClose();
               } catch {
                 /* keep open; page surfaces the error */
@@ -458,6 +505,47 @@ function PhoneInput({
           letterSpacing: "-0.02em",
         }}
       />
+    </div>
+  );
+}
+
+function NativeSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  return (
+    <div
+      className="flex items-center"
+      style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "48px" }}
+    >
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full outline-none bg-transparent appearance-none"
+        style={{
+          fontSize: "14px",
+          lineHeight: "24px",
+          fontWeight: 400,
+          color: value ? "#121212" : "#807E7E",
+          letterSpacing: "-0.02em",
+          cursor: "pointer",
+        }}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={o.value} style={{ color: "#121212" }}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <Image src="/icons/dash/form-chevron.svg" alt="" width={16} height={16} className="shrink-0" style={{ pointerEvents: "none" }} />
     </div>
   );
 }

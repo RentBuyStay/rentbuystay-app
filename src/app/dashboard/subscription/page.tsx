@@ -76,10 +76,10 @@ export default function SubscriptionPage() {
   async function handleSubscribe(planId: string) {
     setError(null);
     const plan = plans.find((p) => p.id === planId);
-    // Free plans can't go through Paystack (the backend 500s on a ₦0 charge),
-    // and there's no free-activation endpoint, so don't fire a doomed request.
+    // Free plans don't go through Paystack — `initiate` rejects a ₦0 plan, and
+    // the backend activates the free plan automatically once KYC is verified.
     if (plan && plan.price <= 0) {
-      setError(`${plan.name} is free — no checkout is required.`);
+      setError(`${plan.name} is free — it’s activated automatically once your account is verified.`);
       return;
     }
     setPendingPlanId(planId);

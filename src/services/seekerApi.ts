@@ -1,6 +1,10 @@
 import { api } from "./api";
 import { endpoints } from "./endpoints";
-import type { ApiEnvelope, SeekerPreferencesResponse } from "./types";
+import type {
+  ApiEnvelope,
+  SeekerPreferencesResponse,
+  UpdateSeekerPreferencesRequest,
+} from "./types";
 
 export const seekerApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -10,8 +14,17 @@ export const seekerApi = api.injectEndpoints({
       transformResponse: (res: ApiEnvelope<SeekerPreferencesResponse | null>) => res.data ?? null,
       providesTags: [{ type: "Me", id: "PREFERENCES" }],
     }),
+
+    updateSeekerPreferences: builder.mutation<
+      SeekerPreferencesResponse,
+      UpdateSeekerPreferencesRequest
+    >({
+      query: (body) => ({ url: endpoints.mePreferences, method: "PUT", body }),
+      transformResponse: (res: ApiEnvelope<SeekerPreferencesResponse>) => res.data,
+      invalidatesTags: [{ type: "Me", id: "PREFERENCES" }],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetSeekerPreferencesQuery } = seekerApi;
+export const { useGetSeekerPreferencesQuery, useUpdateSeekerPreferencesMutation } = seekerApi;

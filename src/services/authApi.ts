@@ -3,6 +3,7 @@ import { endpoints } from "./endpoints";
 import { logOut, setCredentials } from "@/features/auth/authSlice";
 import type {
   ApiEnvelope,
+  ChangePasswordRequest,
   LoginRequest,
   LogoutRequest,
   PasswordResetConfirmRequest,
@@ -106,6 +107,16 @@ export const authApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<null>,
     }),
+
+    // Logged-in password change.
+    changePassword: builder.mutation<null, ChangePasswordRequest>({
+      query: (body) => ({
+        url: endpoints.passwordChange,
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrap<null>,
+    }),
   }),
   overrideExisting: false,
 });
@@ -120,4 +131,5 @@ export const {
   useResendOtpMutation,
   useRequestPasswordResetMutation,
   useConfirmPasswordResetMutation,
+  useChangePasswordMutation,
 } = authApi;

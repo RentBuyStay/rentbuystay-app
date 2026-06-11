@@ -63,6 +63,12 @@ export type PasswordResetConfirmRequest = {
   newPassword: string;
 };
 
+/** Body for POST /auth/password/change (logged-in password change). */
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 /** Error code returned (HTTP 401) when logging in from an unrecognised device. */
 export const NEW_DEVICE_REQUIRES_OTP = "NEW_DEVICE_REQUIRES_OTP";
 
@@ -208,6 +214,17 @@ export type SeekerPreferencesResponse = {
   preferredLocations?: LocationOption[];
 };
 
+/** Body for PUT /me/preferences. preferredLocations are location IDs (max 3). */
+export type UpdateSeekerPreferencesRequest = {
+  lookingFor?: "RENT" | "BUY" | "SHORTLET";
+  propertyTypeId?: number;
+  bedrooms?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  currency?: string;
+  preferredLocations?: number[];
+};
+
 // --- Agents & agencies (Discover) ---
 
 export type AgentListItem = {
@@ -243,6 +260,9 @@ export type UpdateProfileRequest = {
   companyRegNumber?: string;
   whatsappNumber?: string;
   avatarUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
 };
 
 /** Body for PATCH /me/organization — agency org-level fields (display read from

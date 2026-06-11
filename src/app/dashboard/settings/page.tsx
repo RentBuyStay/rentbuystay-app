@@ -1,11 +1,18 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferenceMutation,
 } from "@/services/notificationApi";
+import { useChangePasswordMutation } from "@/services/authApi";
+import { useDeactivateAccountMutation } from "@/services/meApi";
+import { logOut } from "@/features/auth/authSlice";
+import { useAppDispatch } from "@/store/hooks";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
 import type { NotificationCategory } from "@/services/types";
 
 type View = "empty" | "password" | "notifications" | "help" | "deactivate";
@@ -130,12 +137,47 @@ function ChangePassword({ onCancel }: { onCancel: () => void }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [changePassword, { isLoading }] = useChangePasswordMutation();
+  const { toast } = useToast();
+
+  async function handleSave() {
+    setError(null);
+    if (!current || !next || !confirm) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    if (next.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (next !== confirm) {
+      setError("New password and confirmation don’t match.");
+      return;
+    }
+    try {
+      await changePassword({ currentPassword: current, newPassword: next }).unwrap();
+      toast("Password updated", "success");
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      onCancel();
+    } catch (e) {
+      setError(unwrapApiError(e)?.message ?? "Couldn’t change your password.");
+    }
+  }
 
   return (
     <div className="flex flex-col" style={{ width: "100%", maxWidth: "548px", gap: "24px" }}>
       <PasswordField label="Current Password" value={current} onChange={setCurrent} />
       <PasswordField label="New Password" value={next} onChange={setNext} />
       <PasswordField label="Confirm New Password" value={confirm} onChange={setConfirm} />
+
+      {error && (
+        <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045" }}>
+          {error}
+        </p>
+      )}
 
       <div className="flex items-center justify-end" style={{ gap: "16px", marginTop: "8px" }}>
         <button
@@ -157,6 +199,8 @@ function ChangePassword({ onCancel }: { onCancel: () => void }) {
         </button>
         <button
           type="button"
+          onClick={handleSave}
+          disabled={isLoading}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
           style={{
             height: "48px",
@@ -166,10 +210,11 @@ function ChangePassword({ onCancel }: { onCancel: () => void }) {
             borderRadius: "12px",
             fontSize: "14px",
             fontWeight: 500,
-            cursor: "pointer",
+            cursor: isLoading ? "not-allowed" : "pointer",
+            opacity: isLoading ? 0.7 : 1,
           }}
         >
-          Save Changes
+          {isLoading ? "Saving…" : "Save Changes"}
         </button>
       </div>
     </div>
@@ -430,5 +475,84 @@ function GetHelp() {
 }
 
 function Deactivate() {
-  return <EmptyState />;
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { toast } = useToast();
+  const [deactivate, { isLoading }] = useDeactivateAccountMutation();
+  const [confirming, setConfirming] = useState(false);
+
+  async function handleDeactivate() {
+    try {
+      await deactivate().unwrap();
+      dispatch(logOut());
+      router.replace("/log-in");
+    } catch (e) {
+      toast(unwrapApiError(e)?.message ?? "Couldn’t deactivate your account.", "error");
+    }
+  }
+
+  return (
+    <div className="flex flex-col" style={{ width: "100%", maxWidth: "548px", gap: "24px" }}>
+      <div className="flex flex-col" style={{ gap: "8px", padding: "16px", background: "#FEF3F2", borderRadius: "12px" }}>
+        <h2 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#B42318" }}>
+          Deactivate Account
+        </h2>
+        <p style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>
+          Your profile and listings will be hidden and you’ll be signed out. You can reactivate any
+          time by logging back in.
+        </p>
+      </div>
+
+      {confirming ? (
+        <div className="flex items-center" style={{ gap: "16px" }}>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="hover:opacity-80"
+            style={{ height: "48px", padding: "8px 16px", background: "none", border: "none", fontSize: "14px", fontWeight: 500, color: "#121212", cursor: "pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDeactivate}
+            disabled={isLoading}
+            className="flex items-center justify-center text-white hover:opacity-90"
+            style={{
+              height: "48px",
+              padding: "8px 24px",
+              background: "#E30045",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? "Deactivating…" : "Yes, Deactivate"}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="flex items-center justify-center self-start hover:opacity-80"
+          style={{
+            height: "48px",
+            padding: "8px 24px",
+            background: "#FFFFFF",
+            border: "1px solid #E30045",
+            borderRadius: "12px",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#E30045",
+            cursor: "pointer",
+          }}
+        >
+          Deactivate Account
+        </button>
+      )}
+    </div>
+  );
 }

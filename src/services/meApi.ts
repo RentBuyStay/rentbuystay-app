@@ -50,6 +50,12 @@ export const meApi = api.injectEndpoints({
       transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
       invalidatesTags: ["Me"],
     }),
+
+    // Self-service account deactivation (POST /me/deactivate, no body).
+    deactivateAccount: builder.mutation<null, void>({
+      query: () => ({ url: endpoints.meDeactivate, method: "POST" }),
+      transformResponse: (res: ApiEnvelope<null>) => res.data,
+    }),
   }),
   overrideExisting: false,
 });
@@ -59,4 +65,5 @@ export const {
   useLazyGetMeQuery,
   useUpdateMyProfileMutation,
   useUpdateMyOrganizationMutation,
+  useDeactivateAccountMutation,
 } = meApi;

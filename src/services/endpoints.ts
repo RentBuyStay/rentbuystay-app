@@ -15,12 +15,14 @@ export const endpoints = {
   resendOtp: "/auth/otp/resend",
   passwordResetRequest: "/auth/password/reset/request",
   passwordResetConfirm: "/auth/password/reset/confirm",
+  passwordChange: "/auth/password/change",
   reactivateRequest: "/auth/reactivate/request",
   reactivateConfirm: "/auth/reactivate/confirm",
 
   // Current user
   me: "/me",
   meProfile: "/me/profile",
+  meDeactivate: "/me/deactivate",
   meOrganization: "/me/organization",
   mePreferences: "/me/preferences",
   myProperties: "/me/properties",

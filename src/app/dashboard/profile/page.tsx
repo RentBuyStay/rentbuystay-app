@@ -15,7 +15,8 @@ import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
 } from "@/services/subscriptionApi";
-import { useGetSeekerPreferencesQuery } from "@/services/seekerApi";
+import { useGetSeekerPreferencesQuery, useUpdateSeekerPreferencesMutation } from "@/services/seekerApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import { formatPrice } from "@/lib/property";
 import type { SeekerPreferencesResponse } from "@/services/types";
 
@@ -66,6 +67,8 @@ export default function ProfilePage() {
   const { data: mySub } = useGetMySubscriptionQuery(undefined, { skip: isSeeker });
   const { data: plans = [] } = useGetSubscriptionPlansQuery(undefined, { skip: isSeeker });
   const { data: prefs } = useGetSeekerPreferencesQuery(undefined, { skip: !isSeeker });
+  const { data: propertyTypes = [] } = useGetPropertyTypesQuery(undefined, { skip: !isSeeker });
+  const [updateSeekerPreferences] = useUpdateSeekerPreferencesMutation();
   const [editOpen, setEditOpen] = useState(false);
   const [updateMyProfile] = useUpdateMyProfileMutation();
   const [updateMyOrganization] = useUpdateMyOrganizationMutation();
@@ -427,11 +430,11 @@ export default function ProfilePage() {
               lastName: clean(p?.lastName),
               email: clean(me?.email),
               phone: clean(p?.phoneNumber),
-              lookingFor: prefs?.lookingFor ? LOOKING_FOR_LABEL[prefs.lookingFor] ?? prefs.lookingFor : "",
-              propertyType: prefs?.propertyTypeName ?? "",
-              bedrooms: prefs?.bedrooms != null ? String(prefs.bedrooms) : "",
-              minPrice: prefs?.minPrice != null ? formatPrice(prefs.minPrice, prefs.currency) : "",
-              maxPrice: prefs?.maxPrice != null ? formatPrice(prefs.maxPrice, prefs.currency) : "",
+              lookingFor: prefs?.lookingFor ?? "",
+              propertyTypeId: prefs?.propertyTypeId,
+              bedrooms: prefs?.bedrooms,
+              minPrice: prefs?.minPrice,
+              maxPrice: prefs?.maxPrice,
               preferredLocations: (prefs?.preferredLocations ?? []).map((l) => l.name),
             }
           : {
@@ -440,6 +443,7 @@ export default function ProfilePage() {
               bio: clean(p?.bio),
             }
       }
+      propertyTypeOptions={propertyTypes.map((t) => ({ id: t.id, name: t.displayName }))}
       onSave={async (values) => {
         try {
           if (isAgency) {
@@ -452,8 +456,24 @@ export default function ProfilePage() {
               whatsappNumber: values.whatsappNumber || undefined,
             }).unwrap();
           } else if (isSeeker) {
-            // Seeker edit: only state/city are persistable today.
-            await updateMyProfile({ state: values.state, city: values.city }).unwrap();
+            // Seeker profile fields (name/phone/state/city) + search preferences.
+            await updateMyProfile({
+              firstName: values.firstName,
+              lastName: values.lastName,
+              phoneNumber: values.phone,
+              state: values.state,
+              city: values.city,
+            }).unwrap();
+            await updateSeekerPreferences({
+              lookingFor: values.lookingFor as "RENT" | "BUY" | "SHORTLET" | undefined,
+              propertyTypeId: values.propertyTypeId,
+              bedrooms: values.bedrooms,
+              minPrice: values.minPrice,
+              maxPrice: values.maxPrice,
+              currency: prefs?.currency || "NGN",
+              // Locations aren't edited in the form yet; keep the saved set.
+              preferredLocations: (prefs?.preferredLocations ?? []).map((l) => l.id),
+            }).unwrap();
           } else {
             await updateMyProfile(values).unwrap();
           }
