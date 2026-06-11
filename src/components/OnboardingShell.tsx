@@ -5,7 +5,7 @@ export default function OnboardingShell({ children }: { children: React.ReactNod
     <div className="flex bg-white w-full min-h-screen lg:h-screen">
       {/* Form column — full width on mobile (single column, no side image),
           fixed 740px on desktop. Padding matches Figma: 16px on mobile. */}
-      <div className="w-full lg:w-[740px] lg:max-w-[740px] lg:shrink-0 overflow-y-auto">
+      <div className="w-full lg:w-[740px] lg:max-w-[740px] lg:shrink-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex flex-col w-full gap-8 lg:gap-10 px-4 py-12 md:px-10 lg:px-[140px] lg:py-[120px]">
           {children}
         </div>
