@@ -11,9 +11,9 @@ import {
 } from "@/services/authApi";
 import { unwrapApiError } from "@/services/api";
 
-// Reset OTP is 6 digits (Figma "Verify your Email" — 6-digit code) with a 60s
-// resend cooldown.
-const OTP_LENGTH = 6;
+// Reset OTP is 4 digits — the backend enforces `^\d{4}$` on the confirm code
+// (the Figma mock shows 6, but the API only accepts 4). 60s resend cooldown.
+const OTP_LENGTH = 4;
 const RESEND_SECONDS = 60;
 
 const HINTS = [
