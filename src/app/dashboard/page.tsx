@@ -357,7 +357,7 @@ function SeekerMetricTile({ metric }: { metric: SeekerMetric }) {
             />
             <span
               style={{
-                fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -368,7 +368,7 @@ function SeekerMetricTile({ metric }: { metric: SeekerMetric }) {
             </span>
             <span
               style={{
-                fontFamily: "var(--font-neue-montreal), Geist, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -625,7 +625,7 @@ function ViewsChart({ analytics }: { analytics?: MyPropertyAnalytics }) {
               dataKey="day"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: "#807E7E", fontFamily: "Geist" }}
+              tick={{ fontSize: 12, fill: "#807E7E", fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}
               padding={{ left: 0, right: 0 }}
             />
             <YAxis hide domain={[0, "dataMax + 8"]} />

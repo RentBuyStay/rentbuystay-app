@@ -466,7 +466,7 @@ function Pagination({
           p === "..." ? (
             <span
               key={`dot-${i}`}
-              style={{ fontFamily: "Inter, Geist, sans-serif", fontSize: "16px", fontWeight: 500, color: "#807E7E" }}
+              style={{ fontFamily: "var(--font-geist-sans), system-ui, sans-serif", fontSize: "16px", fontWeight: 500, color: "#807E7E" }}
             >
               ...
             </span>

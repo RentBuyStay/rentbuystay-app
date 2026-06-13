@@ -114,7 +114,7 @@ export default function BrowsePropertyDetailPage({
             <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} />
             <span
               style={{
-                fontFamily: '"Bw Gradual DEMO", var(--font-geist), system-ui, sans-serif',
+                fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
                 fontSize: "16px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -128,7 +128,7 @@ export default function BrowsePropertyDetailPage({
           <div className="flex flex-col" style={{ justifyContent: "center", gap: "8px" }}>
             <h1
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "24px",
                 lineHeight: "32px",
                 fontWeight: 600,
@@ -150,7 +150,7 @@ export default function BrowsePropertyDetailPage({
                 />
                 <span
                   style={{
-                    fontFamily: "var(--font-geist), system-ui, sans-serif",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     fontSize: "14px",
                     lineHeight: "24px",
                     fontWeight: 400,
@@ -163,7 +163,7 @@ export default function BrowsePropertyDetailPage({
               </div>
               <span
                 style={{
-                  fontFamily: "var(--font-geist), system-ui, sans-serif",
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                   fontSize: "14px",
                   lineHeight: "24px",
                   fontWeight: 400,
@@ -188,7 +188,7 @@ export default function BrowsePropertyDetailPage({
             background: "transparent",
             border: "none",
             borderRadius: "12px",
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             lineHeight: "24px",
             fontWeight: 500,
@@ -239,7 +239,7 @@ function DescriptionBlock({ listing }: { listing: SeekerListing }) {
     <div className="flex flex-col items-stretch" style={{ gap: "16px" }}>
       <h2
         style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "20px",
           lineHeight: "32px",
           fontWeight: 600,
@@ -251,7 +251,7 @@ function DescriptionBlock({ listing }: { listing: SeekerListing }) {
       <div className="flex flex-col items-stretch" style={{ gap: "8px" }}>
         <p
           style={{
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "16px",
             lineHeight: "24px",
             fontWeight: 400,
@@ -272,7 +272,7 @@ function DescriptionBlock({ listing }: { listing: SeekerListing }) {
             background: "none",
             border: "none",
             padding: 0,
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             lineHeight: "24px",
             fontWeight: 500,
@@ -312,7 +312,7 @@ function AmenitiesBlock({ listing }: { listing: SeekerListing }) {
     <div className="flex flex-col items-stretch" style={{ gap: "16px" }}>
       <h2
         style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "20px",
           lineHeight: "32px",
           fontWeight: 600,
@@ -327,7 +327,7 @@ function AmenitiesBlock({ listing }: { listing: SeekerListing }) {
             <Image src="/icons/dash/tick-circle.svg" alt="" width={24} height={24} />
             <span
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "14px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -360,7 +360,7 @@ function PropertyDetailsBlock({ listing }: { listing: SeekerListing }) {
     <div className="flex flex-col items-stretch" style={{ gap: "16px" }}>
       <h2
         style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "20px",
           lineHeight: "32px",
           fontWeight: 600,
@@ -380,7 +380,7 @@ function PropertyDetailsBlock({ listing }: { listing: SeekerListing }) {
               >
                 <span
                   style={{
-                    fontFamily: "var(--font-geist), system-ui, sans-serif",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     fontSize: "13px",
                     fontWeight: 400,
                     letterSpacing: "-0.02em",
@@ -391,7 +391,7 @@ function PropertyDetailsBlock({ listing }: { listing: SeekerListing }) {
                 </span>
                 <span
                   style={{
-                    fontFamily: "var(--font-geist), system-ui, sans-serif",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                     fontSize: "16px",
                     lineHeight: "24px",
                     fontWeight: 500,
@@ -428,7 +428,7 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
     <div className="flex flex-col items-stretch" style={{ gap: "16px" }}>
       <h2
         style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "20px",
           lineHeight: "32px",
           fontWeight: 600,
@@ -463,11 +463,11 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
               boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
             }}
           >
-            <span style={{ fontSize: "16px", color: "#121212", fontFamily: "var(--font-geist), system-ui, sans-serif" }}>
+            <span style={{ fontSize: "16px", color: "#121212", fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}>
               Map
             </span>
             <span style={{ width: "1px", height: "16px", background: "#807E7E", opacity: 0.75 }} />
-            <span style={{ fontSize: "16px", color: "#121212", fontFamily: "var(--font-geist), system-ui, sans-serif" }}>
+            <span style={{ fontSize: "16px", color: "#121212", fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}>
               Satellite
             </span>
           </div>
@@ -511,7 +511,7 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
         style={{
           left: "24px",
           top: "24px",
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "16px",
           lineHeight: "24px",
           fontWeight: 600,
@@ -537,7 +537,7 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
             background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
             border: "none",
             borderRadius: "12px",
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             fontWeight: 500,
             cursor: "pointer",
@@ -559,7 +559,7 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
             background: saved ? "rgba(120,158,187,0.08)" : "transparent",
             border: "1px solid #F6F6F6",
             borderRadius: "12px",
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             fontWeight: 500,
             color: "#305E82",
@@ -605,7 +605,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           top: "24px",
           width: "363px",
           height: "32px",
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "16px",
           lineHeight: "32px",
           fontWeight: 600,
@@ -640,7 +640,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           <div className="flex items-center" style={{ gap: "8px" }}>
             <span
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "18px",
                 lineHeight: "24px",
                 fontWeight: 600,
@@ -656,7 +656,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           <div className="flex items-center" style={{ gap: "16px" }}>
             <span
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "14px",
                 lineHeight: "20px",
                 fontWeight: 500,
@@ -671,7 +671,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
                 padding: "3px 12px",
                 background: "#305E82",
                 borderRadius: "100px",
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 fontWeight: 500,
                 color: "#FFFFFF",
@@ -691,7 +691,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           <Image src="/icons/dash/icon-location-sm.svg" alt="" width={20} height={20} className="shrink-0" />
           <span
             style={{
-              fontFamily: "var(--font-geist), system-ui, sans-serif",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontSize: "12px",
               lineHeight: "24px",
               fontWeight: 400,
@@ -705,7 +705,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           <Image src="/icons/dash/icon-profile.svg" alt="" width={20} height={20} className="shrink-0" />
           <span
             style={{
-              fontFamily: "var(--font-geist), system-ui, sans-serif",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontSize: "12px",
               lineHeight: "24px",
               fontWeight: 400,
@@ -730,7 +730,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
             <Image src="/icons/dash/icon-star.svg" alt="" width={20} height={20} />
             <span
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -745,7 +745,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
             <Image src="/icons/dash/icon-buildings.svg" alt="" width={20} height={20} />
             <span
               style={{
-                fontFamily: "var(--font-geist), system-ui, sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 lineHeight: "24px",
                 fontWeight: 400,
@@ -760,7 +760,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
           href="#"
           className="hover:underline"
           style={{
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             fontWeight: 500,
             color: "#305E82",
@@ -791,7 +791,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
             background: "#FFFFFF",
             border: "1px solid #F6F6F6",
             borderRadius: "12px",
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             fontWeight: 500,
             color: "#121212",
@@ -813,7 +813,7 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
             background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
             border: "1px solid rgba(120,158,187,0.5)",
             borderRadius: "12px",
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "14px",
             fontWeight: 500,
             cursor: "pointer",
@@ -839,7 +839,7 @@ function RelatedListings({ currentId }: { currentId: string }) {
       <div className="flex flex-col" style={{ width: "411px", gap: "8px" }}>
         <h2
           style={{
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "24px",
             lineHeight: "32px",
             fontWeight: 600,
@@ -850,7 +850,7 @@ function RelatedListings({ currentId }: { currentId: string }) {
         </h2>
         <p
           style={{
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "16px",
             lineHeight: "24px",
             fontWeight: 400,
@@ -881,7 +881,7 @@ function PriceSpecsRow({
       <div className="flex items-center justify-between" style={{ alignSelf: "stretch" }}>
         <span
           style={{
-            fontFamily: "var(--font-geist), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "32px",
             lineHeight: "56px",
             fontWeight: 700,
@@ -921,7 +921,7 @@ function SpecGroup({ icon, label }: { icon: string; label: string }) {
       <Image src={icon} alt="" width={24} height={24} />
       <span
         style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
+          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
           fontSize: "16px",
           lineHeight: "24px",
           fontWeight: 500,

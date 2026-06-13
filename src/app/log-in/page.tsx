@@ -289,7 +289,7 @@ export default function LogInPage() {
         <p
           className="text-center"
           style={{
-            fontFamily: "var(--font-manrope), system-ui, sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "16px",
             lineHeight: "24px",
             fontWeight: 400,

@@ -10,7 +10,7 @@ import type { SeekerListing } from "./SeekerPropertyCard";
 function priceDivIcon(listing: SeekerListing) {
   const text = `${listing.price}${listing.priceSuffix ?? ""}`;
   const html = `
-    <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);font-family:var(--font-geist),Geist,system-ui,sans-serif;">
+    <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%, -100%);font-family:var(--font-geist-sans),Geist,system-ui,sans-serif;">
       <span style="background:#FFAE00;color:#FFFFFF;padding:4px 10px;border-radius:20px;font-size:12px;line-height:16px;font-weight:500;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.18);">${text}</span>
       <span style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #FFAE00;margin-top:-1px;"></span>
     </div>
