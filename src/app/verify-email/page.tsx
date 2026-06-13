@@ -106,14 +106,14 @@ export default function VerifyEmailPage() {
       </Link>
 
       
-      <div className="flex flex-col items-center" style={{ gap: "8px" }}>
+      <div className="flex flex-col" style={{ gap: "8px" }}>
         <h1
           style={{
             fontSize: "24px",
             lineHeight: "40px",
             fontWeight: 600,
             color: "#121212",
-            textAlign: "center",
+            textAlign: "left",
           }}
         >
           Verify your Email
@@ -124,7 +124,7 @@ export default function VerifyEmailPage() {
             lineHeight: "24px",
             fontWeight: 400,
             color: "#807E7E",
-            textAlign: "center",
+            textAlign: "left",
           }}
         >
           Enter the {OTP_LENGTH}-digit code sent to{onboarding?.email ? ` ${onboarding.email}` : " your email address"}.

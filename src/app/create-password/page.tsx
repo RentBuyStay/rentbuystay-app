@@ -81,14 +81,14 @@ export default function CreatePasswordPage() {
         </Link>
 
         
-        <div className="flex flex-col items-center" style={{ gap: "8px" }}>
+        <div className="flex flex-col" style={{ gap: "8px" }}>
           <h1
             style={{
               fontSize: "24px",
               lineHeight: "40px",
               fontWeight: 600,
               color: "#121212",
-              textAlign: "center",
+              textAlign: "left",
             }}
           >
             Create Password
@@ -99,7 +99,7 @@ export default function CreatePasswordPage() {
               lineHeight: "24px",
               fontWeight: 400,
               color: "#807E7E",
-              textAlign: "center",
+              textAlign: "left",
             }}
           >
             Set your password for security below.
