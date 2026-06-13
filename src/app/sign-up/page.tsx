@@ -120,7 +120,7 @@ export default function PropertyOwnerSignUpPage() {
                   background: "#F6F6F6",
                   borderRadius: "12px",
                   padding: "8px 16px",
-                  height: "40px",
+                  height: "48px",
                   width: "100%",
                   textAlign: "left",
                 }}
@@ -353,7 +353,7 @@ function FieldGroup({ label, children }: { label: string; children: React.ReactN
       </label>
       <div
         className="flex items-center"
-        style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px" }}
+        style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "48px" }}
       >
         {children}
       </div>

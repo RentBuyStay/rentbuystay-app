@@ -124,7 +124,7 @@ export default function LogInPage() {
           </label>
           <div
             className="flex items-center"
-            style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px" }}
+            style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "48px" }}
           >
             <input
               type="email"
@@ -162,7 +162,7 @@ export default function LogInPage() {
             </label>
             <div
               className="flex items-center justify-between"
-              style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px" }}
+              style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "48px" }}
             >
               <input
                 type={showPassword ? "text" : "password"}
