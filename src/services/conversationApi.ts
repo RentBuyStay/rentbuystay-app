@@ -4,6 +4,7 @@ import type {
   ApiEnvelope,
   ConversationResponse,
   MessageResponse,
+  SendMessageRequest,
 } from "./types";
 
 export const conversationApi = api.injectEndpoints({
@@ -27,11 +28,11 @@ export const conversationApi = api.injectEndpoints({
       providesTags: (_r, _e, { id }) => [{ type: "Messages", id }],
     }),
 
-    sendMessage: builder.mutation<MessageResponse, { id: string; body: string }>({
-      query: ({ id, body }) => ({
+    sendMessage: builder.mutation<MessageResponse, SendMessageRequest & { id: string }>({
+      query: ({ id, ...body }) => ({
         url: endpoints.conversationMessages(id),
         method: "POST",
-        body: { body },
+        body,
       }),
       transformResponse: (res: ApiEnvelope<MessageResponse>) => res.data,
       invalidatesTags: (_r, _e, { id }) => [

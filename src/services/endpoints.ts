@@ -68,6 +68,10 @@ export const endpoints = {
   subscriptionInitiate: (planId: string) => `/subscriptions/initiate/${planId}`,
   subscriptionVerify: (reference: string) => `/subscriptions/verify/${reference}`,
 
+  // Files
+  fileUpload: "/files/upload",
+  fileUploadBatch: "/files/upload/batch",
+
   // Agents & agencies (Discover)
   agents: "/agents",
   agencies: "/agencies",
@@ -89,6 +93,10 @@ export const endpoints = {
 
   // Reference data
   locations: "/locations",
+
+  // KYC / Identity verification
+  kycIdentityStart: "/me/kyc/identity/start",
+  kycBusinessStart: "/me/kyc/business/start",
 
   // Add more resource paths here as you integrate them.
 } as const;

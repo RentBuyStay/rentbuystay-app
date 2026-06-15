@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import ToastProvider from "@/components/Toast";
+import GlobalSocket from "@/components/GlobalSocket";
 import { getRole, type AccountRole } from "@/lib/role";
 import { useGetMeQuery } from "@/services/meApi";
 
@@ -58,6 +59,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           scrollbar, while keeping the desktop sticky sidebar working. When the
           drawer is open the backdrop is the sidebar blue, so the content's
           rounded-left corners reveal blue (matching the Figma). */}
+      <GlobalSocket />
       <div
         className="flex overflow-x-clip"
         style={{ minHeight: "100vh", background: drawerOpen ? "#305E82" : "#FFFFFF" }}

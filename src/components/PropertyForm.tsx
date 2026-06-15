@@ -7,9 +7,10 @@ import {
   useCreatePropertyMutation,
   useUpdatePropertyMutation,
 } from "@/services/propertyApi";
-import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import { useGetMeQuery } from "@/services/meApi";
+import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import { useGetAgencyStaffQuery } from "@/services/organizationApi";
+import { useUploadFilesBatchMutation } from "@/services/fileApi";
 import { unwrapApiError } from "@/services/api";
 import { getRole } from "@/lib/role";
 import type {
@@ -93,6 +94,7 @@ export default function PropertyForm({
   const { data: propertyTypes } = useGetPropertyTypesQuery();
   const [createProperty, { isLoading: creating }] = useCreatePropertyMutation();
   const [updateProperty, { isLoading: updating }] = useUpdatePropertyMutation();
+  const [uploadFilesBatch, { isLoading: uploading }] = useUploadFilesBatchMutation();
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [title, setTitle] = useState(initial.title ?? "");
@@ -186,8 +188,10 @@ export default function PropertyForm({
   const headerSubtitle = editing
     ? "Edit in the details below to update property information"
     : "Fill in the details for your new listing";
-  const saving = creating || updating;
-  const submitLabel = editing
+  const saving = creating || updating || uploading;
+  const submitLabel = uploading
+    ? "Uploading Photos…"
+    : editing
     ? updating
       ? "Updating…"
       : "Update Listing"
@@ -214,30 +218,41 @@ export default function PropertyForm({
       return;
     }
 
-    // The backend rejects partial bodies ("Malformed request body"), so EVERY
-    // field is sent — null/[]/false for anything not collected by the form.
-    const body: CreatePropertyRequest = {
-      title: title.trim(),
-      description: description.trim() || null,
-      propertyTypeId: typeId,
-      listingType: listing,
-      price: toNumber(price),
-      priceFrequency: freq,
-      state: stateField,
-      city: city.trim(),
-      address: address.trim(),
-      latitude: null,
-      longitude: null,
-      bedrooms: bedrooms ?? 0,
-      bathrooms: bathrooms ?? 0,
-      parkingSpaces: parking ?? 0,
-      totalAreaSqm: totalArea || null,
-      yearBuilt: yearBuilt ? toNumber(yearBuilt) : null,
-      isFurnished: false,
-      amenityIds: [],
-      customAmenities: selectedAmenities,
-      photos: [], // no upload endpoint yet — backend expects [{url}]
-      charges: charges
+    try {
+      let uploadedPhotoUrls: { url: string }[] = [];
+      if (photos.length > 0) {
+        const formData = new FormData();
+        photos.forEach((file) => formData.append("files", file));
+        const res = await uploadFilesBatch(formData).unwrap();
+        uploadedPhotoUrls = res.map((r) => ({ url: r.url }));
+      }
+      
+      const allPhotos = [...existingPhotos.map(url => ({ url })), ...uploadedPhotoUrls];
+
+      // The backend rejects partial bodies ("Malformed request body"), so EVERY
+      // field is sent — null/[]/false for anything not collected by the form.
+      const body: CreatePropertyRequest = {
+        title: title.trim(),
+        description: description.trim() || null,
+        propertyTypeId: typeId,
+        listingType: listing,
+        price: toNumber(price),
+        priceFrequency: freq,
+        state: stateField,
+        city: city.trim(),
+        address: address.trim(),
+        latitude: null,
+        longitude: null,
+        bedrooms: bedrooms ?? 0,
+        bathrooms: bathrooms ?? 0,
+        parkingSpaces: parking ?? 0,
+        totalAreaSqm: totalArea || null,
+        yearBuilt: yearBuilt ? toNumber(yearBuilt) : null,
+        isFurnished: false,
+        amenityIds: [],
+        customAmenities: selectedAmenities,
+        photos: allPhotos,
+        charges: charges
         .filter((c) => c.title.trim() && c.amount)
         .map((c) => ({ title: c.title.trim(), amount: toNumber(c.amount) })),
       // Only send a real, mapped staff member (agency only).
@@ -247,18 +262,18 @@ export default function PropertyForm({
           : null,
     };
 
-    try {
-      if (editing && propertyId) {
-        await updateProperty({ id: propertyId, body }).unwrap();
-      } else if (!editing) {
-        await createProperty(body).unwrap();
-      }
-      // Show the success modal (Figma) instead of navigating straight away.
-      setShowSuccess(true);
-    } catch (e) {
-      setError(unwrapApiError(e)?.message ?? "Could not save the listing. Please try again.");
+    // The inner try/catch can just be removed since we now have an outer try/catch
+    if (editing && propertyId) {
+      await updateProperty({ id: propertyId, body }).unwrap();
+    } else if (!editing) {
+      await createProperty(body).unwrap();
     }
+    // Show the success modal (Figma) instead of navigating straight away.
+    setShowSuccess(true);
+  } catch (e) {
+    setError(unwrapApiError(e)?.message ?? "Could not save the listing. Please try again.");
   }
+}
 
   return (
     <>
