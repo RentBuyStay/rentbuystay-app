@@ -28,10 +28,12 @@ const TITLES: { match: (path: string) => boolean; title: string }[] = [
 export default function DashboardTopbar({
   userName = "Prince Akpolo",
   userInitials = "PA",
+  userAvatar,
   onMenuClick,
 }: {
   userName?: string;
   userInitials?: string;
+  userAvatar?: string | null;
   onMenuClick?: () => void;
 }) {
   const pathname = usePathname() ?? "/dashboard";
@@ -94,7 +96,7 @@ export default function DashboardTopbar({
         >
           <div className="relative shrink-0" style={{ width: "40px", height: "40px" }}>
             <div
-              className="rounded-full flex items-center justify-center"
+              className="rounded-full flex items-center justify-center overflow-hidden"
               style={{
                 width: "40px",
                 height: "40px",
@@ -104,7 +106,11 @@ export default function DashboardTopbar({
                 fontWeight: 600,
               }}
             >
-              {userInitials}
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                userInitials
+              )}
             </div>
             <span
               className="absolute"

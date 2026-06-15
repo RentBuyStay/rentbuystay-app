@@ -7,6 +7,7 @@ import type {
   MeResponse,
   UpdateProfileRequest,
   UpdateOrganizationRequest,
+  KycSdkInitResponse,
 } from "./types";
 
 export const meApi = api.injectEndpoints({
@@ -46,9 +47,29 @@ export const meApi = api.injectEndpoints({
     // Agency org-level fields (whatsapp/website/state/city/officeAddress/
     // esvarbonLicence/yearEstablished/bio). Reflected in GET /me organization.
     updateMyOrganization: builder.mutation<MeResponse, UpdateOrganizationRequest>({
-      query: (body) => ({ url: endpoints.meOrganization, method: "PATCH", body }),
+      query: (body) => ({
+        url: endpoints.meOrganization,
+        method: "PUT",
+        body,
+      }),
       transformResponse: (res: ApiEnvelope<MeResponse>) => res.data,
       invalidatesTags: ["Me"],
+    }),
+
+    startKycIdentity: builder.mutation<KycSdkInitResponse, void>({
+      query: () => ({
+        url: endpoints.kycIdentityStart,
+        method: "POST",
+      }),
+      transformResponse: (res: ApiEnvelope<KycSdkInitResponse>) => res.data,
+    }),
+
+    startKycBusiness: builder.mutation<KycSdkInitResponse, void>({
+      query: () => ({
+        url: endpoints.kycBusinessStart,
+        method: "POST",
+      }),
+      transformResponse: (res: ApiEnvelope<KycSdkInitResponse>) => res.data,
     }),
 
     // Self-service account deactivation (POST /me/deactivate, no body).
@@ -65,5 +86,7 @@ export const {
   useLazyGetMeQuery,
   useUpdateMyProfileMutation,
   useUpdateMyOrganizationMutation,
+  useStartKycIdentityMutation,
+  useStartKycBusinessMutation,
   useDeactivateAccountMutation,
 } = meApi;

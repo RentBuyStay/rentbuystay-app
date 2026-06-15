@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import ToastProvider from "@/components/Toast";
+import GlobalSocket from "@/components/GlobalSocket";
 import { getRole, type AccountRole } from "@/lib/role";
 import { useGetMeQuery } from "@/services/meApi";
 
@@ -35,6 +36,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/log-in");
       return;
     }
+    // Hydration-safe: role lives in localStorage, read once after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRole(r);
     setChecked(true);
   }, [router]);
@@ -51,6 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     initialsFrom(me?.profile?.firstName, me?.profile?.lastName) ||
     USER_INITIALS_BY_ROLE[role] ||
     "PA";
+  const userAvatar = me?.profile?.avatarUrl || me?.organization?.logoUrl || null;
 
   return (
     <ToastProvider>
@@ -58,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           scrollbar, while keeping the desktop sticky sidebar working. When the
           drawer is open the backdrop is the sidebar blue, so the content's
           rounded-left corners reveal blue (matching the Figma). */}
+      <GlobalSocket />
       <div
         className="flex overflow-x-clip"
         style={{ minHeight: "100vh", background: drawerOpen ? "#305E82" : "#FFFFFF" }}
@@ -93,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <DashboardTopbar
             userName={userName}
             userInitials={userInitials}
+            userAvatar={userAvatar}
             onMenuClick={() => setDrawerOpen(true)}
           />
           <main className="p-4 md:p-8 lg:px-10 lg:py-8" style={{ flex: 1 }}>{children}</main>

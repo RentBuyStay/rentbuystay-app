@@ -154,7 +154,7 @@ export type PropertyResponse = {
   updatedAt?: string;
 };
 
-export type PropertyPhotoInput = { url: string; isPrimary?: boolean };
+export type PropertyPhotoInput = { uploadedFileId: string; isPrimary?: boolean };
 export type PropertyChargeInput = { title: string; amount: number; currency?: string };
 
 /**
@@ -259,7 +259,7 @@ export type UpdateProfileRequest = {
   companyName?: string;
   companyRegNumber?: string;
   whatsappNumber?: string;
-  avatarUrl?: string;
+  avatarFileId?: string;
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
@@ -277,6 +277,7 @@ export type UpdateOrganizationRequest = {
   esvarbonLicenceNumber?: string;
   yearEstablished?: number;
   bio?: string;
+  logoUrl?: string;
 };
 
 export type OrganizationSummary = {
@@ -415,15 +416,22 @@ export type MessageResponse = {
   senderUserId: string;
   type?: string;
   body: string;
+  attachments?: { id: string; url: string; type: string; name: string }[];
   createdAt: string;
   editedAt?: string;
 };
 
 export type SendMessageRequest = {
   body: string;
-  fileUrl?: string;
-  fileType?: string;
-  fileName?: string;
+  attachmentFileIds?: string[];
+};
+
+export type KycSdkInitResponse = {
+  verificationId: string;
+  customerReference: string;
+  flowId: number;
+  clientId: string;
+  token: string;
 };
 
 // --- Inspections / appointments ---
@@ -534,6 +542,9 @@ export type NotificationResponse = {
   type: string;
   title: string;
   body: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
   payload?: Record<string, unknown> | null;
   readAt?: string | null;
   createdAt: string;
@@ -575,6 +586,7 @@ export type MeResponse = {
     esvarbonLicenceNumber?: string;
     yearEstablished?: number;
     bio?: string;
+    logoUrl?: string;
   };
   verification?: {
     email?: { verified: boolean; verifiedAt?: string };

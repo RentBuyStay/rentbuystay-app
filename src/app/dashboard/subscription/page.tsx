@@ -50,9 +50,12 @@ function fmtDate(iso?: string): string {
     : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }
 
+import { useToast } from "@/components/Toast";
+
 export default function SubscriptionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const { data: plans = [] } = useGetSubscriptionPlansQuery();
   const { data: mySub } = useGetMySubscriptionQuery();
@@ -63,12 +66,14 @@ export default function SubscriptionPage() {
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Returning from Paystack (?reference=...) → verify, then clean the URL.
+  // Returning from Paystack (?reference=...)
+  // We rely on the Paystack webhook (POST) to fulfill the subscription on the backend.
   const reference = searchParams?.get("reference") ?? searchParams?.get("trxref");
   useEffect(() => {
     if (!reference) return;
-    verify(reference).finally(() => router.replace("/dashboard/subscription"));
-  }, [reference, verify, router]);
+    toast("Processing payment... Please wait for confirmation.", "success");
+    router.replace("/dashboard/subscription");
+  }, [reference, router, toast]);
 
   const billingRows = (billingPage?.content ?? []).map(toBillingRowVM);
   const currentPlan = plans.find((p) => p.id === mySub?.planId);

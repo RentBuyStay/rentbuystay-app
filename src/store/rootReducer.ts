@@ -1,10 +1,12 @@
 import { combineReducers, type Action } from "@reduxjs/toolkit";
 import { api } from "@/services/api";
 import authReducer, { logOut } from "@/features/auth/authSlice";
+import chatReducer from "@/features/chat/chatSlice";
 
 const appReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   auth: authReducer,
+  chat: chatReducer,
   // Add feature slices here.
 });
 

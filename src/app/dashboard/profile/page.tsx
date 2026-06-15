@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import EditProfileModal from "@/components/EditProfileModal";
+import { useUploadFileMutation } from "@/services/fileApi";
 import {
   useGetMeQuery,
   useUpdateMyProfileMutation,
@@ -11,6 +12,7 @@ import {
 } from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
+import QoreIdButton from "@/components/QoreIdButton";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
@@ -72,7 +74,29 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [updateMyProfile] = useUpdateMyProfileMutation();
   const [updateMyOrganization] = useUpdateMyOrganizationMutation();
+  const [uploadFile, { isLoading: uploadingAvatar }] = useUploadFileMutation();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await uploadFile(formData).unwrap();
+      if (isAgency) {
+        await updateMyOrganization({ logoUrl: res.url }).unwrap();
+      } else {
+        await updateMyProfile({ avatarFileId: res.id }).unwrap();
+      }
+      toast("Profile photo updated successfully!", "success");
+    } catch (err) {
+      toast("Failed to update profile photo.", "error");
+    }
+  };
 
   const p = me?.profile;
   // Agency-specific demo defaults — Figma 714:88389 shows these exact values
@@ -133,7 +157,7 @@ export default function ProfilePage() {
         city: org.city,
         bio: org.bio,
         initials: agencyInitials,
-        avatarUrl: p?.avatarUrl,
+        avatarUrl: o?.logoUrl || p?.avatarUrl,
         memberSince: memberSince(me?.joinedAt) || "Jan 2026",
         verified: Boolean(me?.verification?.complete),
       }
@@ -201,11 +225,20 @@ export default function ProfilePage() {
                 {PROFILE.initials}
               </div>
             )}
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={avatarInputRef} 
+              style={{ display: "none" }} 
+              onChange={handleAvatarUpload} 
+            />
             <button
               type="button"
               aria-label="Change photo"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
               className="absolute flex items-center justify-center hover:opacity-90 w-5 h-5 md:w-8 md:h-8 rounded-[10px] md:rounded-[20px]"
-              style={{ bottom: 0, right: 0, background: "#305E82", border: "none", cursor: "pointer" }}
+              style={{ bottom: 0, right: 0, background: "#305E82", border: "none", cursor: uploadingAvatar ? "wait" : "pointer", opacity: uploadingAvatar ? 0.7 : 1 }}
             >
               <img src="/icons/dash/camera.svg" alt="" className="w-[11px] h-[11px] md:w-4 md:h-4" />
             </button>
@@ -238,36 +271,42 @@ export default function ProfilePage() {
         </div>
 
         {/* Mobile: edit icon only */}
-        <button
-          type="button"
-          onClick={() => setEditOpen(true)}
-          aria-label="Edit Profile"
-          className="md:hidden shrink-0 hover:opacity-80"
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-        >
-          <Image src="/icons/dash/edit-blue.svg" alt="" width={24} height={24} />
-        </button>
+        <div className="md:hidden flex items-center" style={{ gap: "8px" }}>
+          <QoreIdButton />
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            aria-label="Edit Profile"
+            className="shrink-0 hover:opacity-80"
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <Image src="/icons/dash/edit-blue.svg" alt="" width={24} height={24} />
+          </button>
+        </div>
 
         {/* Desktop: full Edit Profile button */}
-        <button
-          type="button"
-          onClick={() => setEditOpen(true)}
-          className="hidden md:flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
-          style={{
-            height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} />
-          Edit Profile
-        </button>
+        <div className="hidden md:flex items-center" style={{ gap: "16px" }}>
+          <QoreIdButton />
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
+            style={{
+              height: "48px",
+              padding: "8px 24px",
+              gap: "8px",
+              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+              border: "1px solid rgba(120,158,187,0.5)",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            <Image src="/icons/dash/edit.svg" alt="" width={20} height={20} />
+            Edit Profile
+          </button>
+        </div>
       </div>
 
 
@@ -485,14 +524,6 @@ export default function ProfilePage() {
       }}
     />
     </>
-  );
-}
-
-function FieldRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
-      {children}
-    </div>
   );
 }
 

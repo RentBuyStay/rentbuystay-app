@@ -129,7 +129,8 @@ function AgencyDashboardHome() {
   const { data: me } = useGetMeQuery();
   // Honour real KYC status (me.verification.complete) or the demo verification
   // flag — shared across all roles so the dashboard flips right after verifying.
-  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
+  const localVerified = useLocalVerified();
+  const verified = Boolean(me?.verification?.complete) || localVerified;
 
   // Real values from the backend: org summary (agent + property counts),
   // analytics/mine (views, inquiries, revenue + views delta), inspections
@@ -196,7 +197,8 @@ function AgentDashboardHome() {
   const { data: conversations } = useGetConversationsQuery();
 
   // Verification gating is driven by the real KYC status from GET /me.
-  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
+  const localVerified = useLocalVerified();
+  const verified = Boolean(me?.verification?.complete) || localVerified;
   // Agents don't own properties — their views/revenue come from the listings
   // ASSIGNED to them (analytics/assigned), not analytics/mine.
   const { data: analytics } = useGetAssignedPropertyAnalyticsQuery(undefined, { skip: !verified });
@@ -389,7 +391,8 @@ function OwnerDashboardHome() {
   const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
 
   // Verification gating is driven by the real KYC status from GET /me.
-  const verified = Boolean(me?.verification?.complete) || useLocalVerified();
+  const localVerified = useLocalVerified();
+  const verified = Boolean(me?.verification?.complete) || localVerified;
   const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
 
   // Real values: listing count from /me/properties; views/inquiries/revenue +

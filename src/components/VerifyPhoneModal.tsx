@@ -20,6 +20,8 @@ export default function VerifyPhoneModal({
 
   useEffect(() => {
     if (!open) return;
+    // Reset the countdown each time the modal opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSeconds(COUNTDOWN_SECONDS);
     document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {

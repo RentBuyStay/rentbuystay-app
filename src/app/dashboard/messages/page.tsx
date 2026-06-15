@@ -5,13 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
-import {
-  useGetConversationsQuery,
-  useGetMessagesQuery,
-  useSendMessageMutation,
-  useMarkConversationReadMutation,
-} from "@/services/conversationApi";
-import { useChatSocket } from "@/hooks/useChatSocket";
+import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
+import { useUploadFilesBatchMutation } from "@/services/fileApi";
+import { sendTypingEvent } from "@/hooks/useChatSocket";
+import { useAppSelector } from "@/store/hooks";
+import { selectTypingStatus } from "@/features/chat/chatSlice";
 import type { ConversationResponse } from "@/services/types";
 
 function initials(first?: string, last?: string) {
@@ -45,10 +43,6 @@ export default function MessagesPage() {
   const [selected, setSelected] = useState<string | null>(searchParams?.get("c") ?? null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("Newest");
-
-  // Live message delivery over WebSocket (STOMP). Incoming messages are pushed
-  // straight into the RTK cache; the polling below is just a fallback.
-  useChatSocket();
 
   const { data: me } = useGetMeQuery();
   const { data: conversations = [], isLoading, isError } = useGetConversationsQuery(undefined, {
@@ -253,9 +247,15 @@ function ConversationView({
   const [composer, setComposer] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { name, initials: ini, online } = otherParty(conversation, myId);
-  const otherUserId = conversation.participants?.find((p) => p.userId !== myId)?.userId;
+  const otherPartyParticipant = conversation.participants?.find((p) => p.userId !== myId);
+  const otherUserId = otherPartyParticipant?.userId;
+  const otherReadAt = otherPartyParticipant?.lastReadAt;
+  const typingStatus = useAppSelector(selectTypingStatus(conversation.id));
+  const isOtherTyping = otherUserId ? typingStatus[otherUserId] : false;
+
   // WebSocket pushes new messages into this cache live; a slow poll covers any
   // dropped connection.
   const { data: messages = [] } = useGetMessagesQuery(
@@ -263,7 +263,9 @@ function ConversationView({
     { pollingInterval: 30_000 }
   );
   const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
+  const [uploadFilesBatch, { isLoading: uploading }] = useUploadFilesBatchMutation();
   const [markRead] = useMarkConversationReadMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mark the conversation read whenever it's opened or new messages arrive.
   useEffect(() => {
@@ -273,18 +275,66 @@ function ConversationView({
   // Keep the view pinned to the latest message.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages.length]);
+  }, [messages.length, isOtherTyping]);
 
   async function handleSend() {
     const body = composer.trim();
     if (!body || sending) return;
     setComposer("");
+    sendTypingEvent(conversation.id, false);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    
     try {
       await sendMessage({ id: conversation.id, body }).unwrap();
     } catch {
       setComposer(body); // restore on failure
     }
   }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (files.length > 10) {
+      alert("You can only upload up to 10 files at once.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // Clear the input so selecting the same file again works
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      // Upload the files first
+      const res = await uploadFilesBatch(formData).unwrap();
+      const fileIds = res.map(r => r.id);
+      const fileNames = files.map(f => f.name).join(", ");
+
+      // Send the message with the files attached
+      await sendMessage({
+        id: conversation.id,
+        body: `Shared ${files.length > 1 ? "files" : "file"}: ${fileNames}`,
+        attachmentFileIds: fileIds,
+      }).unwrap();
+    } catch (err) {
+      console.error("File upload failed", err);
+      alert("Failed to upload files. Please try again.");
+    }
+  }
+
+  const handleComposerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setComposer(e.target.value);
+    sendTypingEvent(conversation.id, true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      sendTypingEvent(conversation.id, false);
+    }, 2000);
+  };
 
   return (
     <>
@@ -342,6 +392,7 @@ function ConversationView({
             .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
             .map((m) => {
             const mine = m.senderUserId === myId;
+            const read = otherReadAt && new Date(m.createdAt).getTime() <= new Date(otherReadAt).getTime();
             return (
               <div key={m.id} className="flex" style={{ justifyContent: mine ? "flex-end" : "flex-start" }}>
                 <div
@@ -355,30 +406,77 @@ function ConversationView({
                     borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                   }}
                 >
+                  {m.attachments?.map((attachment) => (
+                    attachment.type?.startsWith("image/") ? (
+                      <img key={attachment.id} src={attachment.url} alt={attachment.name || "Attached Image"} style={{ maxWidth: "100%", borderRadius: "8px", marginBottom: "4px" }} />
+                    ) : (
+                      <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", color: "inherit", fontWeight: 500, display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <Image src={mine ? "/icons/dash/paperclip-white.svg" : "/icons/dash/paperclip.svg"} alt="" width={16} height={16} />
+                        {attachment.name || "Download Attachment"}
+                      </a>
+                    )
+                  ))}
                   <span style={{ fontSize: "14px", lineHeight: "20px", whiteSpace: "pre-wrap" }}>{m.body}</span>
-                  <span style={{ fontSize: "10px", lineHeight: "14px", color: mine ? "rgba(255,255,255,0.7)" : "#807E7E", alignSelf: "flex-end" }}>
-                    {relTime(m.createdAt)}
-                  </span>
+                  <div className="flex items-center" style={{ gap: "4px", alignSelf: "flex-end" }}>
+                    <span style={{ fontSize: "10px", lineHeight: "14px", color: mine ? "rgba(255,255,255,0.7)" : "#807E7E" }}>
+                      {relTime(m.createdAt)}
+                    </span>
+                    {mine && (
+                      <Image 
+                        src="/icons/dash/msg-checks.svg" 
+                        alt={read ? "Read" : "Delivered"} 
+                        width={14} 
+                        height={14} 
+                        style={{ opacity: read ? 1 : 0.5 }} 
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })
         )}
+        
+        {isOtherTyping && (
+          <div className="flex" style={{ justifyContent: "flex-start", marginTop: "4px" }}>
+            <div
+              className="flex items-center"
+              style={{
+                padding: "8px 14px",
+                background: "#F6F6F6",
+                borderRadius: "16px 16px 16px 4px",
+                color: "#807E7E",
+                fontSize: "12px",
+                fontStyle: "italic",
+              }}
+            >
+              {name} is typing...
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center shrink-0" style={{ padding: "16px 24px", gap: "12px", borderTop: "1px solid #F6F6F6" }}>
         {canSchedule && (
-          <button type="button" aria-label="Schedule inspection" onClick={() => setScheduleOpen(true)} className="hover:opacity-80" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+          <button type="button" aria-label="Schedule inspection" onClick={() => setScheduleOpen(true)} className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
             <Image src="/icons/dash/calendar-edit.svg" alt="" width={24} height={24} />
           </button>
         )}
-        <button type="button" aria-label="Attach" className="hover:opacity-80" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: "none" }} 
+          multiple
+          accept="image/*"
+          onChange={handleFileUpload} 
+        />
+        <button type="button" aria-label="Attach" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.5 : 1 }}>
           <Image src="/icons/dash/paperclip.svg" alt="" width={24} height={24} />
         </button>
         <div className="flex-1 flex items-center" style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}>
           <input
             value={composer}
-            onChange={(e) => setComposer(e.target.value)}
+            onChange={handleComposerChange}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
