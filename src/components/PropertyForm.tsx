@@ -74,7 +74,7 @@ export type PropertyFormInitial = {
   parking?: number;
   totalArea?: number;
   yearBuilt?: string;
-  existingPhotos?: string[];
+  existingPhotos?: { id: string; url: string }[];
   charges?: Charge[];
   assignedAgentId?: string;
 };
@@ -116,7 +116,7 @@ export default function PropertyForm({
   const [totalArea, setTotalArea] = useState(initial.totalArea ?? 0);
   const [yearBuilt, setYearBuilt] = useState(initial.yearBuilt ?? "");
   const [photos, setPhotos] = useState<File[]>([]);
-  const [existingPhotos, setExistingPhotos] = useState<string[]>(initial.existingPhotos ?? []);
+  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>(initial.existingPhotos ?? []);
   const [assignedAgentId, setAssignedAgentId] = useState(initial.assignedAgentId ?? "");
   const [isAgency, setIsAgency] = useState(false);
   useEffect(() => {
@@ -219,15 +219,18 @@ export default function PropertyForm({
     }
 
     try {
-      let uploadedPhotoUrls: { url: string }[] = [];
+      let uploadedPhotos: { uploadedFileId: string; isPrimary: boolean }[] = [];
       if (photos.length > 0) {
         const formData = new FormData();
         photos.forEach((file) => formData.append("files", file));
         const res = await uploadFilesBatch(formData).unwrap();
-        uploadedPhotoUrls = res.map((r) => ({ url: r.url }));
+        uploadedPhotos = res.map((r, i) => ({ uploadedFileId: r.id, isPrimary: existingPhotos.length === 0 && i === 0 }));
       }
-      
-      const allPhotos = [...existingPhotos.map(url => ({ url })), ...uploadedPhotoUrls];
+
+      const allPhotos = [
+        ...existingPhotos.map((p, i) => ({ uploadedFileId: p.id, isPrimary: i === 0 })),
+        ...uploadedPhotos
+      ];
 
       // The backend rejects partial bodies ("Malformed request body"), so EVERY
       // field is sent — null/[]/false for anything not collected by the form.
@@ -585,10 +588,10 @@ export default function PropertyForm({
 
         {(existingPhotos.length > 0 || photos.length > 0) && (
           <div className="flex flex-wrap" style={{ gap: "16px" }}>
-            {existingPhotos.map((src, i) => (
+            {existingPhotos.map((photo, i) => (
               <PhotoThumb
                 key={`e-${i}`}
-                src={src}
+                src={photo.url}
                 onRemove={() => setExistingPhotos((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}

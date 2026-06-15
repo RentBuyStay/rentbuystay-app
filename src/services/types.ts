@@ -154,7 +154,7 @@ export type PropertyResponse = {
   updatedAt?: string;
 };
 
-export type PropertyPhotoInput = { url: string; isPrimary?: boolean };
+export type PropertyPhotoInput = { uploadedFileId: string; isPrimary?: boolean };
 export type PropertyChargeInput = { title: string; amount: number; currency?: string };
 
 /**

@@ -52,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     initialsFrom(me?.profile?.firstName, me?.profile?.lastName) ||
     USER_INITIALS_BY_ROLE[role] ||
     "PA";
+  const userAvatar = me?.profile?.avatarUrl || me?.organization?.logoUrl || null;
 
   return (
     <ToastProvider>
@@ -95,6 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <DashboardTopbar
             userName={userName}
             userInitials={userInitials}
+            userAvatar={userAvatar}
             onMenuClick={() => setDrawerOpen(true)}
           />
           <main className="p-4 md:p-8 lg:px-10 lg:py-8" style={{ flex: 1 }}>{children}</main>

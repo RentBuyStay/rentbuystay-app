@@ -44,7 +44,7 @@ function fromLocal(p: LocalProperty): PropertyFormInitial {
     bathrooms: p.baths,
     totalArea: Number(p.sqft.replace(/[^\d]/g, "")) || 0,
     yearBuilt: "",
-    existingPhotos: p.images,
+    existingPhotos: p.images.map(img => ({ id: img, url: img })),
     charges: [
       { id: "service", title: "Service Charge", amount: p.serviceCharge.replace(/[^\d.]/g, "") },
       { id: "booking", title: "Booking Charge", amount: p.bookingCharge.replace(/[^\d.]/g, "") },
@@ -122,7 +122,7 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
     parking: property.parkingSpaces ?? 0,
     totalArea: property.totalAreaSqm ?? 0,
     yearBuilt: property.yearBuilt ? String(property.yearBuilt) : "",
-    existingPhotos: (property.photos ?? []).map((p) => p.url),
+    existingPhotos: (property.photos ?? []).map((p) => ({ id: p.id, url: p.url })),
     charges: (property.charges ?? []).map((c, i) => ({
       id: c.id ?? `c${i}`,
       title: c.title,

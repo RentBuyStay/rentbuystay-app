@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
 import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
-import { useUploadFileMutation } from "@/services/fileApi";
+import { useUploadFilesBatchMutation } from "@/services/fileApi";
 import { sendTypingEvent } from "@/hooks/useChatSocket";
 import { useAppSelector } from "@/store/hooks";
 import { selectTypingStatus } from "@/features/chat/chatSlice";
@@ -263,7 +263,7 @@ function ConversationView({
     { pollingInterval: 30_000 }
   );
   const [sendMessage, { isLoading: sending }] = useSendMessageMutation();
-  const [uploadFile, { isLoading: uploading }] = useUploadFileMutation();
+  const [uploadFilesBatch, { isLoading: uploading }] = useUploadFilesBatchMutation();
   const [markRead] = useMarkConversationReadMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -292,29 +292,38 @@ function ConversationView({
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (files.length > 10) {
+      alert("You can only upload up to 10 files at once.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     // Clear the input so selecting the same file again works
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      
-      // Upload the file first
-      const res = await uploadFile(formData).unwrap();
-      
-      // Send the message with the file URL attached
-      // Format as markdown image/link for now if body is required, or let backend support fileUrl
-      // Wait, sendMessage payload accepts fileUrl, fileName, fileType if I update it!
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      // Upload the files first
+      const res = await uploadFilesBatch(formData).unwrap();
+      const fileIds = res.map(r => r.id);
+      const fileNames = files.map(f => f.name).join(", ");
+
+      // Send the message with the files attached
       await sendMessage({
         id: conversation.id,
-        body: `Shared a file: ${file.name}`,
-        attachmentFileIds: [res.id],
+        body: `Shared ${files.length > 1 ? "files" : "file"}: ${fileNames}`,
+        attachmentFileIds: fileIds,
       }).unwrap();
     } catch (err) {
       console.error("File upload failed", err);
+      alert("Failed to upload files. Please try again.");
     }
   }
 
@@ -457,6 +466,8 @@ function ConversationView({
           type="file" 
           ref={fileInputRef} 
           style={{ display: "none" }} 
+          multiple
+          accept="image/*"
           onChange={handleFileUpload} 
         />
         <button type="button" aria-label="Attach" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.5 : 1 }}>
