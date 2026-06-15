@@ -31,7 +31,7 @@ export default function QoreIdButton() {
       const initRes = isAgency ? await startBusiness().unwrap() : await startIdentity().unwrap();
       
       await QoreID.init({
-        // Optional init config here
+        // V2 Web SDK will automatically load from https://dashboard.qoreid.com/qoreid-sdk/qoreid.js
       });
 
       QoreID.on("success", (payload) => {
@@ -42,21 +42,19 @@ export default function QoreIdButton() {
 
       QoreID.on("error", (error) => {
         console.error("QoreID Error:", error);
-        toast("Verification failed or encountered an error.", "error");
-        setLoading(false);
+        toast(error?.message || "Verification failed or encounter an error.", "error");
       });
-
+      
       QoreID.on("close", () => {
         console.log("QoreID Closed");
         setLoading(false);
       });
 
       // Start the SDK workflow
+      console.log("QOREID INIT RES:", initRes);
       await QoreID.start({
-        token: initRes.clientId, // Some SDK versions use 'clientId', others use 'token'
-        clientId: initRes.clientId,
+        token: initRes.token,
         customerReference: initRes.customerReference,
-        flowId: initRes.flowId,
         applicantData: {
           firstname: me?.profile?.firstName || me?.organization?.name || "Applicant",
           lastname: me?.profile?.lastName || "Name",
@@ -65,9 +63,9 @@ export default function QoreIdButton() {
         },
       } as any);
 
-    } catch (err) {
-      console.error(err);
-      toast("Failed to start verification.", "error");
+    } catch (err: any) {
+      console.error("QoreID Start Exception:", err);
+      toast(err?.message || "Failed to start verification.", "error");
       setLoading(false);
     }
   };

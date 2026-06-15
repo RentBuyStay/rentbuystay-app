@@ -5,11 +5,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import VerifyPhoneModal from "@/components/VerifyPhoneModal";
 
+import QoreIdButton from "@/components/QoreIdButton";
+
 type StepStatus = "completed" | "pending";
 
 type StepAction =
   | { kind: "link"; label: string; href: string }
-  | { kind: "modal"; label: string; modal: "phone" };
+  | { kind: "modal"; label: string; modal: "phone" }
+  | { kind: "custom"; component: React.ReactNode };
 
 type Step = {
   number: number;
@@ -50,9 +53,9 @@ function buildSteps(phoneVerified: boolean): Step[] {
     {
       number: 3,
       title: "Identity Verification",
-      status: "pending",
+      status: "pending", // Ideally this should derive from `me?.verification?.complete`
       body: <>Verify your ID with a valid government-issued ID, powered by Qore ID.</>,
-      action: { kind: "link", label: "Start ID Verification", href: "/dashboard/verification/id" },
+      action: { kind: "custom", component: <QoreIdButton /> },
     },
   ];
 }
@@ -240,6 +243,8 @@ function StepRow({ step, onModalOpen }: { step: Step; onModalOpen: (m: "phone") 
         <Image src="/icons/dash/arrow-right-blue.svg" alt="" width={20} height={20} />
       </Link>
     );
+  } else if (step.action?.kind === "custom") {
+    actionEl = <>{step.action.component}</>;
   }
 
   return (

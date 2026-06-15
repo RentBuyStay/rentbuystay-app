@@ -431,6 +431,7 @@ export type KycSdkInitResponse = {
   customerReference: string;
   flowId: number;
   clientId: string;
+  token: string;
 };
 
 // --- Inspections / appointments ---

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://dashboard.qoreid.com/qoreid-sdk/FaceTecSDK.js"></script>
+</head>
+<body>
+<script>
+window.onload = () => {
+  try {
+    FaceTecSDK.initializeInProductionMode("dummy", "dummy", "dummy", (status) => {
+      console.log("Initialized?", status);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+};
+</script>
+</body>
+</html>
