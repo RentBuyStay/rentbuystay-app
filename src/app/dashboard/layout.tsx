@@ -36,6 +36,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/log-in");
       return;
     }
+    // Hydration-safe: role lives in localStorage, read once after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRole(r);
     setChecked(true);
   }, [router]);

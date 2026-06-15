@@ -53,6 +53,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   const router = useRouter();
   const { id } = use(params);
   const [role, setRole] = useState<AccountRole | null>(null);
+  // Hydration-safe: role lives in localStorage, read once after mount.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setRole(getRole()), []);
   const isAgency = role === "Real Estate Agency or Developer";
   // The public GET /properties/{id} only returns APPROVED listings, so source

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import QoreID from "@qore-id/web-sdk";
 import {
   useStartKycIdentityMutation,
@@ -61,11 +61,12 @@ export default function QoreIdButton() {
           email: me?.email || "",
           phone: me?.profile?.phoneNumber || me?.organization?.phoneNumber || "",
         },
-      } as any);
+      });
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("QoreID Start Exception:", err);
-      toast(err?.message || "Failed to start verification.", "error");
+      const message = err instanceof Error ? err.message : "Failed to start verification.";
+      toast(message, "error");
       setLoading(false);
     }
   };

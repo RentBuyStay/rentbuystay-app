@@ -527,14 +527,6 @@ export default function ProfilePage() {
   );
 }
 
-function FieldRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
-      {children}
-    </div>
-  );
-}
-
 function Field({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className={`flex flex-col ${className ?? ""}`} style={{ gap: "8px" }}>

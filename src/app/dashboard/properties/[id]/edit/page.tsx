@@ -122,7 +122,9 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
     parking: property.parkingSpaces ?? 0,
     totalArea: property.totalAreaSqm ?? 0,
     yearBuilt: property.yearBuilt ? String(property.yearBuilt) : "",
-    existingPhotos: (property.photos ?? []).map((p) => ({ id: p.id, url: p.url })),
+    existingPhotos: (property.photos ?? [])
+      .filter((p): p is { id: string; url: string } => typeof p.id === "string")
+      .map((p) => ({ id: p.id, url: p.url })),
     charges: (property.charges ?? []).map((c, i) => ({
       id: c.id ?? `c${i}`,
       title: c.title,

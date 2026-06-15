@@ -120,6 +120,8 @@ export default function PropertyForm({
   const [assignedAgentId, setAssignedAgentId] = useState(initial.assignedAgentId ?? "");
   const [isAgency, setIsAgency] = useState(false);
   useEffect(() => {
+    // Hydration-safe: role lives in localStorage, read once after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAgency(getRole() === "Real Estate Agency or Developer");
   }, []);
 

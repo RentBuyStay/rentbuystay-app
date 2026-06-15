@@ -22,10 +22,16 @@ type PushPayload = {
 
 import { setTyping } from "@/features/chat/chatSlice";
 
+declare global {
+  interface Window {
+    globalStompClient?: Client;
+  }
+}
+
 export let globalStompClient: Client | undefined;
 
 export const sendTypingEvent = (conversationId: string, isTyping: boolean) => {
-  const stompClient = typeof window !== "undefined" ? (window as any).globalStompClient : undefined;
+  const stompClient = typeof window !== "undefined" ? window.globalStompClient : undefined;
   console.log("sendTypingEvent called:", { conversationId, isTyping, connected: stompClient?.connected });
   if (stompClient && stompClient.connected) {
     stompClient.publish({
@@ -74,7 +80,7 @@ export function useChatSocket() {
             return;
           }
           if (typeof window !== "undefined") {
-            (window as any).globalStompClient = client;
+            window.globalStompClient = client;
           }
           console.log("Stomp connected");
 
@@ -172,7 +178,7 @@ export function useChatSocket() {
         },
         onDisconnect: () => {
           if (typeof window !== "undefined") {
-            (window as any).globalStompClient = undefined;
+            window.globalStompClient = undefined;
           }
         },
       });
@@ -183,7 +189,7 @@ export function useChatSocket() {
     return () => {
       cancelled = true;
       if (typeof window !== "undefined") {
-        (window as any).globalStompClient = undefined;
+        window.globalStompClient = undefined;
       }
       client?.deactivate();
     };

@@ -65,6 +65,8 @@ export default function VerificationPage() {
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
 
   useEffect(() => {
+    // Hydration-safe: read the persisted verification flag once after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhoneVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
   }, []);
 
