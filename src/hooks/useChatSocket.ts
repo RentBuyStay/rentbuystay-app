@@ -22,6 +22,19 @@ type PushPayload = {
   occurredAt: string;
 };
 
+import { setTyping } from "@/features/chat/chatSlice";
+
+export let globalStompClient: Client | undefined;
+
+export const sendTypingEvent = (conversationId: string, isTyping: boolean) => {
+  if (globalStompClient && globalStompClient.connected) {
+    globalStompClient.publish({
+      destination: "/app/chat.typing",
+      body: JSON.stringify({ conversationId, isTyping }),
+    });
+  }
+};
+
 /**
  * Opens a STOMP-over-SockJS connection (authenticated with the access token) and
  * streams incoming chat messages into the RTK Query cache in real time. Sending
@@ -52,6 +65,9 @@ export function useChatSocket() {
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
         onConnect: () => {
+          globalStompClient = client;
+
+          // 1. Messages
           client?.subscribe("/user/queue/messages", (frame) => {
             let p: PushPayload;
             try {
@@ -81,6 +97,43 @@ export function useChatSocket() {
               conversationApi.util.invalidateTags([{ type: "Conversations", id: "LIST" }])
             );
           });
+
+          // 2. Presence
+          client?.subscribe("/user/queue/presence", (frame) => {
+            let p: { userId: string; online: boolean; lastSeenAt: string };
+            try {
+              p = JSON.parse(frame.body);
+            } catch {
+              return;
+            }
+            // Patch the conversation participants directly
+            dispatch(
+              conversationApi.util.updateQueryData("getConversations", undefined, (draft) => {
+                for (const conv of draft) {
+                  for (const participant of conv.participants) {
+                    if (participant.userId === p.userId) {
+                      participant.online = p.online;
+                      participant.lastSeenAt = p.lastSeenAt;
+                    }
+                  }
+                }
+              })
+            );
+          });
+
+          // 3. Typing
+          client?.subscribe("/user/queue/typing", (frame) => {
+            let p: { conversationId: string; userId: string; isTyping: boolean };
+            try {
+              p = JSON.parse(frame.body);
+            } catch {
+              return;
+            }
+            dispatch(setTyping(p));
+          });
+        },
+        onDisconnect: () => {
+          globalStompClient = undefined;
         },
       });
 
@@ -89,6 +142,7 @@ export function useChatSocket() {
 
     return () => {
       cancelled = true;
+      globalStompClient = undefined;
       client?.deactivate();
     };
   }, [token, dispatch]);

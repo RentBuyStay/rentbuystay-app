@@ -5,13 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
-import {
-  useGetConversationsQuery,
-  useGetMessagesQuery,
-  useSendMessageMutation,
-  useMarkConversationReadMutation,
-} from "@/services/conversationApi";
-import { useChatSocket } from "@/hooks/useChatSocket";
+import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
+import { useChatSocket, sendTypingEvent } from "@/hooks/useChatSocket";
+import { useAppSelector } from "@/store/hooks";
+import { selectTypingStatus } from "@/features/chat/chatSlice";
 import type { ConversationResponse } from "@/services/types";
 
 function initials(first?: string, last?: string) {
@@ -253,9 +250,13 @@ function ConversationView({
   const [composer, setComposer] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { name, initials: ini, online } = otherParty(conversation, myId);
   const otherUserId = conversation.participants?.find((p) => p.userId !== myId)?.userId;
+  const typingStatus = useAppSelector(selectTypingStatus(conversation.id));
+  const isOtherTyping = otherUserId ? typingStatus[otherUserId] : false;
+
   // WebSocket pushes new messages into this cache live; a slow poll covers any
   // dropped connection.
   const { data: messages = [] } = useGetMessagesQuery(
@@ -279,12 +280,24 @@ function ConversationView({
     const body = composer.trim();
     if (!body || sending) return;
     setComposer("");
+    sendTypingEvent(conversation.id, false);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    
     try {
       await sendMessage({ id: conversation.id, body }).unwrap();
     } catch {
       setComposer(body); // restore on failure
     }
   }
+
+  const handleComposerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setComposer(e.target.value);
+    sendTypingEvent(conversation.id, true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      sendTypingEvent(conversation.id, false);
+    }, 2000);
+  };
 
   return (
     <>
@@ -364,6 +377,24 @@ function ConversationView({
             );
           })
         )}
+        
+        {isOtherTyping && (
+          <div className="flex" style={{ justifyContent: "flex-start", marginTop: "4px" }}>
+            <div
+              className="flex items-center"
+              style={{
+                padding: "8px 14px",
+                background: "#F6F6F6",
+                borderRadius: "16px 16px 16px 4px",
+                color: "#807E7E",
+                fontSize: "12px",
+                fontStyle: "italic",
+              }}
+            >
+              {name} is typing...
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center shrink-0" style={{ padding: "16px 24px", gap: "12px", borderTop: "1px solid #F6F6F6" }}>
@@ -378,7 +409,7 @@ function ConversationView({
         <div className="flex-1 flex items-center" style={{ background: "#F6F6F6", borderRadius: "12px", padding: "8px 16px", height: "40px" }}>
           <input
             value={composer}
-            onChange={(e) => setComposer(e.target.value)}
+            onChange={handleComposerChange}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
