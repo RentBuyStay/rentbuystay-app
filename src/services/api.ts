@@ -28,6 +28,7 @@ const mutex = new Mutex();
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: config.apiBaseUrl,
+  credentials: "include", // Essential for cross-origin cookies
   // Never let a request hang indefinitely — a stalled refresh would otherwise
   // hold the reauth mutex and freeze every other request ("Loading…" forever).
   timeout: 15000,
@@ -79,11 +80,12 @@ const baseQueryWithReauth: BaseQueryFn<
 
   // A 401 on an /auth/* call is meaningful (e.g. NEW_DEVICE_REQUIRES_OTP, bad
   // credentials) — never treat it as an expired access token. Otherwise, any
-  // 401 while we hold a refresh token is an expired access token: refresh once.
+  // 401 while we hold a refresh token (or might have one in cookie) is an expired access token: refresh once.
   const isAuthCall = isAuthEndpoint(args);
   const hasRefreshToken =
     Boolean((api.getState() as RootState).auth.refreshToken) ||
-    Boolean(loadAuth().refreshToken);
+    Boolean(loadAuth().refreshToken) ||
+    true; // Always try refresh once since the token might be in an HttpOnly cookie
   const canRefresh = result.error?.status === 401 && !isAuthCall && hasRefreshToken;
 
   if (canRefresh) {
@@ -91,17 +93,19 @@ const baseQueryWithReauth: BaseQueryFn<
       const release = await mutex.acquire();
       try {
         // Prefer the latest persisted refresh token (another tab may have
-        // rotated it) over the in-memory copy.
+        // rotated it) over the in-memory copy. If neither, pass empty object (cookie will be used)
         const refreshToken =
           loadAuth().refreshToken ?? (api.getState() as RootState).auth.refreshToken;
 
-        const refreshResult = refreshToken
-          ? await rawBaseQuery(
-              { url: endpoints.refresh, method: "POST", body: { refreshToken } },
-              api,
-              extraOptions
-            )
-          : { error: { status: 401 } as FetchBaseQueryError };
+        const refreshResult = await rawBaseQuery(
+          { 
+            url: endpoints.refresh, 
+            method: "POST", 
+            body: refreshToken ? { refreshToken } : {} 
+          },
+          api,
+          extraOptions
+        );
 
         const envelope = (refreshResult as { data?: ApiEnvelope<TokensResponse> })
           .data;
