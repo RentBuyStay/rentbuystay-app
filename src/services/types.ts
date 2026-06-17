@@ -181,6 +181,8 @@ export type CreatePropertyRequest = {
   totalAreaSqm?: number | null;
   yearBuilt?: number | null;
   isFurnished?: boolean;
+  isServiced?: boolean;
+  isShared?: boolean;
   amenityIds?: number[];
   customAmenities?: string[];
   photos?: PropertyPhotoInput[];

@@ -254,6 +254,8 @@ export default function PropertyForm({
         totalAreaSqm: totalArea || null,
         yearBuilt: yearBuilt ? toNumber(yearBuilt) : null,
         isFurnished: false,
+        isServiced: false,
+        isShared: false,
         amenityIds: [],
         customAmenities: selectedAmenities,
         photos: allPhotos,

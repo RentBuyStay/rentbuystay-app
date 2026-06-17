@@ -10,6 +10,7 @@ import {
   useDeletePropertyMutation,
 } from "@/services/propertyApi";
 import { toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
+import { getRole } from "@/lib/role";
 
 const TABS = ["All", "Active", "Awaiting Approval", "Archived", "Rejected"] as const;
 type Tab = (typeof TABS)[number];
@@ -31,8 +32,15 @@ function statusStyles(status: PropertyStatusLabel) {
 }
 
 export default function MyPropertiesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (getRole() === "Property Seeker") {
+      router.push("/dashboard/browse");
+    }
+  }, [router]);
 
   // Fetch the owner's listings (all statuses) and filter client-side so the
   // per-tab counts stay accurate.

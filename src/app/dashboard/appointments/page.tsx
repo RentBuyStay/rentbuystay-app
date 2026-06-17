@@ -77,7 +77,7 @@ export default function AppointmentsPage() {
       ) : (
         <div className="flex flex-col" style={{ gap: "24px" }}>
           {items.map((a) => (
-            <AppointmentCard key={a.id} appointment={a} />
+            <AppointmentCard key={a.id} appointment={a} userRole={me?.role} />
           ))}
         </div>
       )}
@@ -98,7 +98,7 @@ function EmptyBox({ children }: { children: React.ReactNode }) {
 
 /* ---------------- AppointmentCard ---------------- */
 
-function AppointmentCard({ appointment }: { appointment: AppointmentVM }) {
+function AppointmentCard({ appointment, userRole }: { appointment: AppointmentVM, userRole?: string }) {
   const { id, time, date, property, propertyId, location, initials, name, status, rawStatus, isHost } = appointment;
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
 
@@ -132,7 +132,7 @@ function AppointmentCard({ appointment }: { appointment: AppointmentVM }) {
         </div>
         <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>{name}</span>
       </div>
-      <Link href={`/dashboard/properties/${propertyId}`} className="hover:opacity-80" style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#305E82" }}>
+      <Link href={userRole === "PROPERTY_SEEKER" ? `/dashboard/browse/${propertyId}` : `/dashboard/properties/${propertyId}`} className="hover:opacity-80" style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 500, color: "#305E82" }}>
         View Property
       </Link>
     </div>

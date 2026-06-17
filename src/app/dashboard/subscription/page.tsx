@@ -8,6 +8,7 @@ import {
   useGetSubscriptionPlansQuery,
   useGetMySubscriptionQuery,
   useGetBillingQuery,
+  useGetPaymentProvidersQuery,
   useInitiateSubscriptionMutation,
   useVerifySubscriptionMutation,
 } from "@/services/subscriptionApi";
@@ -50,21 +51,34 @@ function fmtDate(iso?: string): string {
     : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }
 
+import { useGetMeQuery } from "@/services/meApi";
 import { useToast } from "@/components/Toast";
 
 export default function SubscriptionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  
+  const { data: me } = useGetMeQuery();
+
+  useEffect(() => {
+    if (me?.role === "PROPERTY_SEEKER") {
+      toast("You don't have access to subscriptions.", "error");
+      router.replace("/dashboard");
+    }
+  }, [me, router, toast]);
 
   const { data: plans = [] } = useGetSubscriptionPlansQuery();
   const { data: mySub } = useGetMySubscriptionQuery();
   const { data: billingPage, isLoading: billingLoading } = useGetBillingQuery({ page: 0, size: 20 });
+  const { data: providers = [], isLoading: providersLoading } = useGetPaymentProvidersQuery();
   const [initiate] = useInitiateSubscriptionMutation();
   const [verify] = useVerifySubscriptionMutation();
   // Track which specific plan is being initiated so only its button shows busy.
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showProviderModal, setShowProviderModal] = useState<boolean>(false);
+  const [selectedPlanForProvider, setSelectedPlanForProvider] = useState<string | null>(null);
 
   // Returning from Paystack (?reference=...)
   // We rely on the Paystack webhook (POST) to fulfill the subscription on the backend.
@@ -81,18 +95,30 @@ export default function SubscriptionPage() {
   async function handleSubscribe(planId: string) {
     setError(null);
     const plan = plans.find((p) => p.id === planId);
-    // Free plans don't go through Paystack — `initiate` rejects a ₦0 plan, and
-    // the backend activates the free plan automatically once KYC is verified.
     if (plan && plan.price <= 0) {
       setError(`${plan.name} is free — it’s activated automatically once your account is verified.`);
       return;
     }
+    
+    if (providers.length > 1) {
+      setSelectedPlanForProvider(planId);
+      setShowProviderModal(true);
+      return;
+    }
+    
+    const provider = providers.length === 1 ? providers[0] : undefined;
+    await proceedWithSubscribe(planId, provider);
+  }
+
+  async function proceedWithSubscribe(planId: string, provider?: string) {
+    setShowProviderModal(false);
+    setSelectedPlanForProvider(null);
     setPendingPlanId(planId);
     try {
-      const res = await initiate(planId).unwrap();
+      const res = await initiate({ planId, provider }).unwrap();
       if (res?.authorizationUrl) {
-        window.location.assign(res.authorizationUrl); // Paystack hosted checkout
-        return; // leave the page; keep the button busy during navigation
+        window.location.assign(res.authorizationUrl);
+        return;
       }
       setPendingPlanId(null);
     } catch (e) {
@@ -109,6 +135,30 @@ export default function SubscriptionPage() {
         endsAt={mySub?.endsAt}
         hasSub={!!mySub}
       />
+
+      {showProviderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col gap-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-[#121212]">Choose Payment Method</h3>
+              <button onClick={() => setShowProviderModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <p className="text-sm text-gray-500">Select how you would like to securely pay for your subscription.</p>
+            <div className="flex flex-col gap-3">
+              {providers.map(p => (
+                <button
+                  key={p}
+                  onClick={() => selectedPlanForProvider && proceedWithSubscribe(selectedPlanForProvider, p)}
+                  className="flex items-center justify-between px-4 py-4 rounded-xl border border-gray-200 hover:border-[#305E82] hover:bg-[#F0F6FA] transition-all"
+                >
+                  <span className="font-medium text-[#121212] capitalize">{p.toLowerCase()}</span>
+                  <span className="text-xs text-gray-400">Pay securely</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>
         Available Plans

@@ -35,9 +35,21 @@ export const subscriptionApi = api.injectEndpoints({
       providesTags: [{ type: "Billing", id: "LIST" }],
     }),
 
-    // Starts a Paystack checkout; redirect the browser to authorizationUrl.
-    initiateSubscription: builder.mutation<PaymentInitiateResponse, string>({
-      query: (planId) => ({ url: endpoints.subscriptionInitiate(planId), method: "POST" }),
+    getPaymentProviders: builder.query<string[], void>({
+      query: () => ({ url: endpoints.paymentProviders, method: "GET" }),
+      transformResponse: (res: ApiEnvelope<string[]>) => res.data,
+      keepUnusedDataFor: 3600,
+    }),
+
+    // Starts a checkout; redirect the browser to authorizationUrl.
+    initiateSubscription: builder.mutation<PaymentInitiateResponse, { planId: string; provider?: string }>({
+      query: ({ planId, provider }) => {
+        let url = endpoints.subscriptionInitiate(planId);
+        if (provider) {
+          url += `?provider=${provider}`;
+        }
+        return { url, method: "POST" };
+      },
       transformResponse: (res: ApiEnvelope<PaymentInitiateResponse>) => res.data,
     }),
 
@@ -58,6 +70,7 @@ export const {
   useGetSubscriptionPlansQuery,
   useGetMySubscriptionQuery,
   useGetBillingQuery,
+  useGetPaymentProvidersQuery,
   useInitiateSubscriptionMutation,
   useVerifySubscriptionMutation,
 } = subscriptionApi;

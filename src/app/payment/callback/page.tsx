@@ -26,7 +26,8 @@ export default function PaymentCallbackPage() {
 function PaymentCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const reference = searchParams?.get("trxref") ?? searchParams?.get("reference") ?? "";
+  const reference = searchParams?.get("tx_ref") ?? searchParams?.get("trxref") ?? searchParams?.get("reference") ?? "";
+  const status = searchParams?.get("status");
 
   const [verify] = useVerifySubscriptionMutation();
   const [phase, setPhase] = useState<Phase>("verifying");
@@ -36,12 +37,22 @@ function PaymentCallbackInner() {
   useEffect(() => {
     if (ran.current) return; // verify exactly once
     ran.current = true;
+    
     if (!reference) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("failed");
       setErrorMsg("Missing payment reference.");
       return;
     }
+
+    if (status === "cancelled") {
+      setPhase("failed");
+      setErrorMsg("Payment Cancelled by User.");
+      // Fire-and-forget verify call to notify backend of cancellation
+      verify(reference).catch(() => {});
+      return;
+    }
+
     verify(reference)
       .unwrap()
       .then(() => setPhase("success"))
@@ -49,7 +60,7 @@ function PaymentCallbackInner() {
         setPhase("failed");
         setErrorMsg(unwrapApiError(e)?.message ?? "We couldn’t verify your payment.");
       });
-  }, [reference, verify]);
+  }, [reference, status, verify]);
 
   const proceed = () => router.replace("/dashboard/subscription");
 
@@ -106,7 +117,7 @@ function PaymentCallbackInner() {
               />
               <div className="flex flex-col" style={{ gap: "8px", width: "100%" }}>
                 <h2 style={{ fontSize: "20px", lineHeight: "30px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
-                  {phase === "success" ? "Payment Successful" : "Payment Not Verified"}
+                  {phase === "success" ? "Payment Successful" : status === "cancelled" ? "Payment Cancelled" : "Payment Not Verified"}
                 </h2>
                 <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
                   {phase === "success" ? (

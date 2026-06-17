@@ -67,6 +67,7 @@ export const endpoints = {
   subscriptionBilling: "/subscriptions/billing",
   subscriptionInitiate: (planId: string) => `/subscriptions/initiate/${planId}`,
   subscriptionVerify: (reference: string) => `/subscriptions/verify/${reference}`,
+  paymentProviders: "/payments/providers",
 
   // Files
   fileUpload: "/files/upload",

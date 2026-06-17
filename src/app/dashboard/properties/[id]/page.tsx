@@ -57,6 +57,12 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setRole(getRole()), []);
   const isAgency = role === "Real Estate Agency or Developer";
+
+  useEffect(() => {
+    if (role === "Property Seeker") {
+      router.push(`/dashboard/browse/${id}`);
+    }
+  }, [role, router, id]);
   // The public GET /properties/{id} only returns APPROVED listings, so source
   // from the owner's own list (all statuses) and pick this one out.
   const { data, isLoading, isError } = useGetMyPropertiesQuery(
