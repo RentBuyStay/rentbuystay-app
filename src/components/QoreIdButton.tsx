@@ -30,19 +30,17 @@ export default function QoreIdButton() {
       // Request SDK init params from backend
       const initRes = isAgency ? await startBusiness().unwrap() : await startIdentity().unwrap();
       
-      await QoreID.init({
-        // V2 Web SDK will automatically load from https://dashboard.qoreid.com/qoreid-sdk/qoreid.js
-      });
-
       QoreID.on("success", (payload) => {
         console.log("QoreID Success:", payload);
         toast("Verification submitted! We'll notify you once reviewed.", "success");
         setLoading(false);
       });
 
-      QoreID.on("error", (error) => {
+      QoreID.on("error", (error: any) => {
         console.error("QoreID Error:", error);
-        toast(error?.message || "Verification failed or encounter an error.", "error");
+        // QoreID sometimes throws a CustomEvent where the message is inside `detail`
+        const errorMessage = error?.detail?.message || error?.message || "Verification failed or encountered an error.";
+        toast(errorMessage, "error");
       });
       
       QoreID.on("close", () => {
@@ -55,12 +53,6 @@ export default function QoreIdButton() {
       await QoreID.start({
         token: initRes.token,
         customerReference: initRes.customerReference,
-        applicantData: {
-          firstname: me?.profile?.firstName || me?.organization?.name || "Applicant",
-          lastname: me?.profile?.lastName || "Name",
-          email: me?.email || "",
-          phone: me?.profile?.phoneNumber || me?.organization?.phoneNumber || "",
-        },
       });
 
     } catch (err) {
