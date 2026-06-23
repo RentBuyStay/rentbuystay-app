@@ -36,10 +36,11 @@ export default function QoreIdButton() {
         setLoading(false);
       });
 
-      QoreID.on("error", (error: any) => {
+      QoreID.on("error", (error: unknown) => {
         console.error("QoreID Error:", error);
         // QoreID sometimes throws a CustomEvent where the message is inside `detail`
-        const errorMessage = error?.detail?.message || error?.message || "Verification failed or encountered an error.";
+        const errObj = error as { detail?: { message?: string }; message?: string } | null;
+        const errorMessage = errObj?.detail?.message || errObj?.message || "Verification failed or encountered an error.";
         toast(errorMessage, "error");
       });
       
@@ -53,6 +54,12 @@ export default function QoreIdButton() {
       await QoreID.start({
         token: initRes.token,
         customerReference: initRes.customerReference,
+        applicantData: {
+          firstname: me?.profile?.firstName || "",
+          lastname: me?.profile?.lastName || "",
+          email: me?.email || "",
+          phone: me?.profile?.phoneNumber || "",
+        },
       });
 
     } catch (err) {

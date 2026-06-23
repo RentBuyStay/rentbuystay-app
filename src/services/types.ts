@@ -603,3 +603,7 @@ export type MeResponse = {
     devices: number;
   };
 };
+
+export type SendPhoneOtpRequest = { phoneNumber: string };
+export type SendPhoneOtpResponse = { pinId: string };
+export type VerifyPhoneOtpRequest = { otp: string };
