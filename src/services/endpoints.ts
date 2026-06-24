@@ -99,5 +99,9 @@ export const endpoints = {
   kycIdentityStart: "/me/kyc/identity/start",
   kycBusinessStart: "/me/kyc/business/start",
 
+  // Phone Verification
+  sendPhoneOtp: "/me/phone/send-otp",
+  verifyPhoneOtp: "/me/phone/verify-otp",
+
   // Add more resource paths here as you integrate them.
 } as const;

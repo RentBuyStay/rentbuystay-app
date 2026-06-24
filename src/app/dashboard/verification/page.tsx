@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import VerifyPhoneModal from "@/components/VerifyPhoneModal";
-
 import QoreIdButton from "@/components/QoreIdButton";
+import { useGetMeQuery } from "@/services/meApi";
+import type { MeResponse } from "@/services/types";
 
 type StepStatus = "completed" | "pending";
 
@@ -22,16 +23,24 @@ type Step = {
   action?: StepAction;
 };
 
-function buildSteps(phoneVerified: boolean): Step[] {
+function buildSteps(me?: MeResponse): Step[] {
+  const emailVerified = me?.verification?.email?.verified ?? true;
+  const email = me?.email || "";
+  
+  const phoneVerified = me?.verification?.phone?.verified ?? false;
+  const phoneNumber = me?.profile?.phoneNumber || "";
+
+  const identityVerified = me?.verification?.identity?.verified ?? false;
+
   return [
     {
       number: 1,
       title: "Email Verification",
-      status: "completed",
+      status: emailVerified ? "completed" : "pending",
       body: (
         <>
           Your email address{" "}
-          <span style={{ color: "#305E82", fontWeight: 500 }}>olaitanbadejo@email.com</span>
+          <span style={{ color: "#305E82", fontWeight: 500 }}>{email}</span>
           {" "}has been confirmed.
         </>
       ),
@@ -42,35 +51,48 @@ function buildSteps(phoneVerified: boolean): Step[] {
       status: phoneVerified ? "completed" : "pending",
       body: (
         <>
-          Verify your phone number{" "}
-          <span style={{ color: "#305E82", fontWeight: 500 }}>+234 801 234 5678</span>
+          {phoneNumber ? (
+            <>
+              Verify your phone number{" "}
+              <span style={{ color: "#305E82", fontWeight: 500 }}>{phoneNumber}</span>
+            </>
+          ) : (
+            <>No phone number configured in profile.</>
+          )}
         </>
       ),
       action: phoneVerified
         ? undefined
-        : { kind: "modal", label: "Verify Now", modal: "phone" },
+        : phoneNumber
+        ? { kind: "modal", label: "Verify Now", modal: "phone" }
+        : { kind: "link", label: "Update Profile", href: "/dashboard/profile" },
     },
     {
       number: 3,
       title: "Identity Verification",
-      status: "pending", // Ideally this should derive from `me?.verification?.complete`
+      status: identityVerified ? "completed" : "pending",
       body: <>Verify your ID with a valid government-issued ID, powered by Qore ID.</>,
-      action: { kind: "custom", component: <QoreIdButton /> },
+      action: identityVerified
+        ? undefined
+        : { kind: "custom", component: <QoreIdButton /> },
     },
   ];
 }
 
 export default function VerificationPage() {
-  const [phoneVerified, setPhoneVerified] = useState(false);
+  const { data: me, isLoading } = useGetMeQuery();
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
 
-  useEffect(() => {
-    // Hydration-safe: read the persisted verification flag once after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPhoneVerified(localStorage.getItem("rbs-dashboard-verified") === "1");
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#305E82]" />
+      </div>
+    );
+  }
 
-  const steps = buildSteps(phoneVerified);
+  const steps = buildSteps(me);
+  const phoneNumber = me?.profile?.phoneNumber;
 
   return (
     <>
@@ -187,11 +209,13 @@ export default function VerificationPage() {
       </div>
     </div>
 
-    <VerifyPhoneModal
-      open={phoneModalOpen}
-      onClose={() => setPhoneModalOpen(false)}
-      onVerified={() => setPhoneVerified(true)}
-    />
+    {phoneModalOpen && (
+      <VerifyPhoneModal
+        open={phoneModalOpen}
+        onClose={() => setPhoneModalOpen(false)}
+        phoneNumber={phoneNumber}
+      />
+    )}
     </>
   );
 }

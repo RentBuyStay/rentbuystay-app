@@ -9,12 +9,15 @@ import type {
   PasswordResetConfirmRequest,
   PasswordResetRequest,
   ResendOtpRequest,
+  SendPhoneOtpRequest,
+  SendPhoneOtpResponse,
   SetPasswordRequest,
   SignupRequest,
   SignupResponse,
   TokensResponse,
   VerifyDeviceRequest,
   VerifyEmailRequest,
+  VerifyPhoneOtpRequest,
 } from "./types";
 
 /** Unwrap the { success, data } envelope down to `data`. */
@@ -117,6 +120,17 @@ export const authApi = api.injectEndpoints({
       }),
       transformResponse: unwrap<null>,
     }),
+
+    sendPhoneOtp: builder.mutation<SendPhoneOtpResponse, SendPhoneOtpRequest>({
+      query: (body) => ({ url: endpoints.sendPhoneOtp, method: "POST", body }),
+      transformResponse: unwrap<SendPhoneOtpResponse>,
+    }),
+
+    verifyPhoneOtp: builder.mutation<null, VerifyPhoneOtpRequest>({
+      query: (body) => ({ url: endpoints.verifyPhoneOtp, method: "POST", body }),
+      transformResponse: unwrap<null>,
+      invalidatesTags: ["Me"],
+    }),
   }),
   overrideExisting: false,
 });
@@ -132,4 +146,6 @@ export const {
   useRequestPasswordResetMutation,
   useConfirmPasswordResetMutation,
   useChangePasswordMutation,
+  useSendPhoneOtpMutation,
+  useVerifyPhoneOtpMutation,
 } = authApi;
