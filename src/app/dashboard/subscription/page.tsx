@@ -62,7 +62,7 @@ export default function SubscriptionPage() {
   const { data: me } = useGetMeQuery();
 
   useEffect(() => {
-    if (me?.role === "PROPERTY_SEEKER") {
+    if (me?.userType === "PROPERTY_SEEKER") {
       toast("You don't have access to subscriptions.", "error");
       router.replace("/dashboard");
     }

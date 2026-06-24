@@ -53,6 +53,12 @@ export default function QoreIdButton() {
       await QoreID.start({
         token: initRes.token,
         customerReference: initRes.customerReference,
+        applicantData: {
+          firstname: me?.profile?.firstName || me?.organization?.name || "Applicant",
+          lastname: me?.profile?.lastName || "Name",
+          email: me?.email || "",
+          phone: me?.profile?.phoneNumber || me?.organization?.phoneNumber || "",
+        },
       });
 
     } catch (err) {

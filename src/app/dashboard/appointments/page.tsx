@@ -77,7 +77,7 @@ export default function AppointmentsPage() {
       ) : (
         <div className="flex flex-col" style={{ gap: "24px" }}>
           {items.map((a) => (
-            <AppointmentCard key={a.id} appointment={a} userRole={me?.role} />
+            <AppointmentCard key={a.id} appointment={a} userRole={me?.userType} />
           ))}
         </div>
       )}
