@@ -53,6 +53,15 @@ export const subscriptionApi = api.injectEndpoints({
       transformResponse: (res: ApiEnvelope<PaymentInitiateResponse>) => res.data,
     }),
 
+    // PATCH /subscriptions/my/auto-renew — toggles auto-renew on the active sub.
+    // Turning it ON without a saved card returns an authorizationUrl (redirect to
+    // add a card); otherwise the change is applied and the response is null.
+    toggleAutoRenew: builder.mutation<PaymentInitiateResponse | null, boolean>({
+      query: (autoRenew) => ({ url: endpoints.subscriptionAutoRenew, method: "PATCH", body: { autoRenew } }),
+      transformResponse: (res: ApiEnvelope<PaymentInitiateResponse | null>) => res.data ?? null,
+      invalidatesTags: [{ type: "Subscription", id: "ME" }],
+    }),
+
     // Called after returning from Paystack with ?reference=.
     verifySubscription: builder.mutation<unknown, string>({
       query: (reference) => ({ url: endpoints.subscriptionVerify(reference), method: "GET" }),
@@ -73,4 +82,5 @@ export const {
   useGetPaymentProvidersQuery,
   useInitiateSubscriptionMutation,
   useVerifySubscriptionMutation,
+  useToggleAutoRenewMutation,
 } = subscriptionApi;

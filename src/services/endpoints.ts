@@ -67,6 +67,8 @@ export const endpoints = {
   subscriptionBilling: "/subscriptions/billing",
   subscriptionInitiate: (planId: string) => `/subscriptions/initiate/${planId}`,
   subscriptionVerify: (reference: string) => `/subscriptions/verify/${reference}`,
+  subscriptionAutoRenew: "/subscriptions/my/auto-renew",
+  subscriptionCardSetup: "/subscriptions/cards/setup",
   paymentProviders: "/payments/providers",
 
   // Files

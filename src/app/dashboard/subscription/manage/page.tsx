@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
+  useToggleAutoRenewMutation,
 } from "@/services/subscriptionApi";
 import { useGetMeQuery } from "@/services/meApi";
 import { planFeatures, planPriceLabel, planPeriodLabel } from "@/lib/subscription";
+import { unwrapApiError } from "@/services/api";
+import { useToast } from "@/components/Toast";
 
 function durationLabel(days?: number): string {
   if (!days) return "—";
@@ -30,14 +33,34 @@ export default function ManageSubscriptionPage() {
   const { data: mySub, isLoading } = useGetMySubscriptionQuery();
   const { data: plans = [] } = useGetSubscriptionPlansQuery();
   const { data: me } = useGetMeQuery();
+  const { toast } = useToast();
+  const [toggleAutoRenew, { isLoading: togglingAutoRenew }] = useToggleAutoRenewMutation();
 
   const plan = plans.find((p) => p.id === mySub?.planId);
   const expired = mySub?.status?.toUpperCase() === "EXPIRED";
 
-  // Auto-renewal toggle is local for now (no backend mutation yet); seeded from the subscription.
+  // Optimistic display while the PATCH is in flight; otherwise reflect the server value.
   const [autoRenewOverride, setAutoRenewOverride] = useState<boolean | null>(null);
   const autoRenew = autoRenewOverride ?? !!mySub?.autoRenew;
   const cardName = [me?.profile?.firstName, me?.profile?.lastName].filter(Boolean).join(" ") || me?.organization?.name || "—";
+
+  async function handleToggleAutoRenew() {
+    const next = !autoRenew;
+    setAutoRenewOverride(next);
+    try {
+      const res = await toggleAutoRenew(next).unwrap();
+      // Turning it on without a saved card → redirect to add one.
+      if (res?.authorizationUrl) {
+        window.location.assign(res.authorizationUrl);
+        return;
+      }
+      toast(next ? "Auto-renewal turned on." : "Auto-renewal turned off.", "success");
+      setAutoRenewOverride(null); // fall back to the refreshed server value
+    } catch (e) {
+      setAutoRenewOverride(null);
+      toast(unwrapApiError(e)?.message ?? "Couldn’t update auto-renewal.", "error");
+    }
+  }
 
   const Back = (
     <button
@@ -184,8 +207,9 @@ export default function ManageSubscriptionPage() {
                 role="switch"
                 aria-checked={autoRenew}
                 aria-label="Toggle auto renewal"
-                onClick={() => setAutoRenewOverride(!autoRenew)}
-                className="shrink-0 hover:opacity-80"
+                onClick={handleToggleAutoRenew}
+                disabled={togglingAutoRenew}
+                className="shrink-0 hover:opacity-80 disabled:opacity-60"
               >
                 <Image
                   src={autoRenew ? "/icons/dash/check-circle-current.svg" : "/icons/dash/check-circle.svg"}
