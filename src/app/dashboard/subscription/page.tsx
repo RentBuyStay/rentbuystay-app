@@ -356,7 +356,13 @@ function PricingCard({
   const priceNumColor = highlighted ? "#FFFFFF" : "#305E82";
   const priceSuffixColor = highlighted ? "#FFFFFF" : "#121212";
   const features = planFeatures(plan);
-  const ctaLabel = isCurrent ? "Current Plan" : plan.price > 0 ? "Subscribe" : "Get Started";
+  const ctaLabel = plan.price > 0 ? "Subscribe" : "Get Started";
+  const ctaStyle: React.CSSProperties = {
+    padding: "8px 24px", height: "40px", borderRadius: "12px",
+    background: highlighted ? "#FFAE00" : "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
+    border: highlighted ? "none" : "1px solid rgba(120,158,187,0.5)",
+    fontSize: "14px", fontWeight: 500,
+  };
 
   return (
     <div
@@ -422,25 +428,21 @@ function PricingCard({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onSubscribe}
-        disabled={isCurrent || busy}
-        className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-        style={{
-          padding: "8px 24px",
-          height: "40px",
-          borderRadius: "12px",
-          background: highlighted ? "#FFAE00" : "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-          border: highlighted ? "none" : "1px solid rgba(120,158,187,0.5)",
-          fontSize: "14px",
-          fontWeight: 500,
-          cursor: isCurrent || busy ? "not-allowed" : "pointer",
-          opacity: isCurrent || busy ? 0.6 : 1,
-        }}
-      >
-        {busy ? "Redirecting…" : ctaLabel}
-      </button>
+      {isCurrent ? (
+        <Link href="/dashboard/subscription/manage" className="flex items-center justify-center text-white hover:opacity-90 transition-opacity" style={ctaStyle}>
+          View Details
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onSubscribe}
+          disabled={busy}
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+          style={{ ...ctaStyle, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1 }}
+        >
+          {busy ? "Redirecting…" : ctaLabel}
+        </button>
+      )}
     </div>
   );
 }

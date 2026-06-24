@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
 } from "@/services/subscriptionApi";
+import { useGetMeQuery } from "@/services/meApi";
 import { planFeatures, planPriceLabel, planPeriodLabel } from "@/lib/subscription";
 
 function durationLabel(days?: number): string {
@@ -27,9 +29,15 @@ export default function ManageSubscriptionPage() {
   const router = useRouter();
   const { data: mySub, isLoading } = useGetMySubscriptionQuery();
   const { data: plans = [] } = useGetSubscriptionPlansQuery();
+  const { data: me } = useGetMeQuery();
 
   const plan = plans.find((p) => p.id === mySub?.planId);
   const expired = mySub?.status?.toUpperCase() === "EXPIRED";
+
+  // Auto-renewal toggle is local for now (no backend mutation yet); seeded from the subscription.
+  const [autoRenewOverride, setAutoRenewOverride] = useState<boolean | null>(null);
+  const autoRenew = autoRenewOverride ?? !!mySub?.autoRenew;
+  const cardName = [me?.profile?.firstName, me?.profile?.lastName].filter(Boolean).join(" ") || me?.organization?.name || "—";
 
   const Back = (
     <button
@@ -76,7 +84,7 @@ export default function ManageSubscriptionPage() {
 
   const badge = expired
     ? { label: "Expired", bg: "#CF3801", color: "#FFFFFF" }
-    : { label: "Current Plan", bg: "rgba(138,56,245,0.08)", color: "#8A38F5" };
+    : { label: "Current Plan", bg: "#305E82", color: "#FFFFFF" };
   const features = plan ? planFeatures(plan) : [];
 
   return (
@@ -108,7 +116,7 @@ export default function ManageSubscriptionPage() {
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline" }}>
-                  <span style={{ fontSize: "32px", lineHeight: "40px", fontWeight: 700, color: "#305E82" }}>
+                  <span style={{ fontSize: "40px", lineHeight: "48px", fontWeight: 600, color: "#305E82" }}>
                     {plan ? planPriceLabel(plan) : "—"}
                   </span>
                   <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#121212" }}>
@@ -140,15 +148,17 @@ export default function ManageSubscriptionPage() {
               className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
               style={{ padding: "8px 24px", height: "40px", borderRadius: "12px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
             >
-              {expired ? "Renew Subscription" : "Change Plan"}
+              {expired ? "Renew Subscription" : "Upgrade Subscription"}
             </button>
           </div>
 
           <div className="flex flex-col" style={{ marginLeft: "80px", flex: 1, gap: "40px", paddingTop: "28px" }}>
-            <InfoBlock label="Status">
-              <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000" }}>
-                {mySub?.status ?? "—"}
-              </span>
+            <InfoBlock label="Payment Method">
+              <div className="flex flex-col" style={{ gap: "4px" }}>
+                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000" }}>—</span>
+                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{cardName}</span>
+                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>—</span>
+              </div>
             </InfoBlock>
 
             <InfoBlock label={expired ? "Expired On" : "Next Billing Cycle"}>
@@ -166,15 +176,24 @@ export default function ManageSubscriptionPage() {
             <div className="flex items-center justify-between" style={{ width: "100%", maxWidth: "440px" }}>
               <InfoBlock label="Auto Renewal">
                 <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000" }}>
-                  {mySub?.autoRenew ? "On" : "Off"}
+                  Turn On Auto Renewal
                 </span>
               </InfoBlock>
-              <Image
-                src={mySub?.autoRenew ? "/icons/checkbox-checked.svg" : "/icons/checkbox-unchecked.svg"}
-                alt=""
-                width={24}
-                height={24}
-              />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoRenew}
+                aria-label="Toggle auto renewal"
+                onClick={() => setAutoRenewOverride(!autoRenew)}
+                className="shrink-0 hover:opacity-80"
+              >
+                <Image
+                  src={autoRenew ? "/icons/dash/check-circle-current.svg" : "/icons/dash/check-circle.svg"}
+                  alt=""
+                  width={24}
+                  height={24}
+                />
+              </button>
             </div>
           </div>
         </div>
