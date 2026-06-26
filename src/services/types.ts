@@ -499,6 +499,9 @@ export type UserSubscription = {
   cancellationReason?: string;
   createdAt?: string;
   updatedAt?: string;
+  // From MySubscriptionResponse (GET /subscriptions/my) — the user's default saved card.
+  cardBrand?: string;
+  last4?: string;
 };
 
 export type BillingTransaction = {

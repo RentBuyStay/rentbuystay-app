@@ -177,11 +177,16 @@ export default function ManageSubscriptionPage() {
 
           <div className="flex flex-col" style={{ marginLeft: "80px", flex: 1, gap: "40px", paddingTop: "28px" }}>
             <InfoBlock label="Payment Method">
-              <div className="flex flex-col" style={{ gap: "4px" }}>
-                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000" }}>—</span>
-                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{cardName}</span>
-                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>—</span>
-              </div>
+              {mySub?.cardBrand && mySub?.last4 ? (
+                <div className="flex flex-col" style={{ gap: "4px" }}>
+                  <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000", textTransform: "capitalize" }}>
+                    {mySub.cardBrand} •••• {mySub.last4}
+                  </span>
+                  <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{cardName}</span>
+                </div>
+              ) : (
+                <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>No card on file</span>
+              )}
             </InfoBlock>
 
             <InfoBlock label={expired ? "Expired On" : "Next Billing Cycle"}>
