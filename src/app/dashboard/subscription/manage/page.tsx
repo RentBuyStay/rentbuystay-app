@@ -120,10 +120,10 @@ export default function ManageSubscriptionPage() {
           Loading subscription…
         </div>
       ) : (
-        <div className="flex items-start" style={{ gap: "16px" }}>
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 lg:gap-20">
           <div
-            className="flex flex-col shrink-0"
-            style={{ width: "346px", padding: "24px 36px", gap: "40px", border: "1px solid #F6F6F6", borderRadius: "20px", background: "#FFFFFF" }}
+            className="flex flex-col shrink-0 w-full lg:w-[346px] justify-between"
+            style={{ padding: "24px 36px", gap: "40px", border: "1px solid #F6F6F6", borderRadius: "20px", background: "#FFFFFF" }}
           >
             <div className="flex flex-col" style={{ gap: "24px" }}>
               <div className="flex flex-col" style={{ gap: "8px" }}>
@@ -157,7 +157,7 @@ export default function ManageSubscriptionPage() {
                 <div className="flex flex-col" style={{ gap: "24px" }}>
                   {(features.length ? features : plan?.listingLimit ? [`Up to ${plan.listingLimit} active listings`] : []).map((f) => (
                     <div key={f} className="flex items-center" style={{ gap: "8px" }}>
-                      <Image src="/icons/dash/check-circle-current.svg" alt="" width={20} height={20} />
+                      <Image src="/icons/dash/check-circle-blue.svg" alt="" width={20} height={20} />
                       <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{f}</span>
                     </div>
                   ))}
@@ -169,13 +169,13 @@ export default function ManageSubscriptionPage() {
               type="button"
               onClick={() => router.push("/dashboard/subscription")}
               className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-              style={{ padding: "8px 24px", height: "40px", borderRadius: "12px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
+              style={{ padding: "8px 24px", height: "48px", borderRadius: "12px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
             >
               {expired ? "Renew Subscription" : "Upgrade Subscription"}
             </button>
           </div>
 
-          <div className="flex flex-col" style={{ marginLeft: "80px", flex: 1, gap: "40px", paddingTop: "28px" }}>
+          <div className="flex flex-col w-full lg:flex-1 lg:pt-7" style={{ maxWidth: "662px", gap: "40px" }}>
             <InfoBlock label="Payment Method">
               {mySub?.cardBrand && mySub?.last4 ? (
                 <div className="flex flex-col" style={{ gap: "4px" }}>
@@ -204,7 +204,7 @@ export default function ManageSubscriptionPage() {
               </span>
             </InfoBlock>
 
-            <div className="flex items-center justify-between" style={{ width: "100%", maxWidth: "440px" }}>
+            <div className="flex items-center justify-between" style={{ width: "100%" }}>
               <InfoBlock label="Auto Renewal">
                 <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#000000" }}>
                   Turn On Auto Renewal
@@ -220,10 +220,10 @@ export default function ManageSubscriptionPage() {
                 className="shrink-0 hover:opacity-80 disabled:opacity-60"
               >
                 <Image
-                  src={autoRenew ? "/icons/dash/check-circle-current.svg" : "/icons/dash/check-circle.svg"}
+                  src={autoRenew ? "/icons/dash/check-box-on.svg" : "/icons/dash/check-box-off.svg"}
                   alt=""
-                  width={24}
-                  height={24}
+                  width={32}
+                  height={32}
                 />
               </button>
             </div>
