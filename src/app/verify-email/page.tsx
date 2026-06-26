@@ -176,7 +176,7 @@ export default function VerifyEmailPage() {
                 color: "#121212",
                 letterSpacing: "-0.02em",
               }}
-              aria-label="6-digit verification code"
+              aria-label={`${OTP_LENGTH}-digit verification code`}
             />
           </div>
         </div>

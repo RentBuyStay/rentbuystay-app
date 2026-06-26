@@ -22,24 +22,31 @@ export default function VerifyPhoneModal({
   const [error, setError] = useState<string | null>(phoneNumber ? null : "No phone number provided in profile.");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sentRef = useRef(false);
 
   const [sendOtp, { isLoading: isSending }] = useSendPhoneOtpMutation();
   const [verifyOtp, { isLoading: isVerifying }] = useVerifyPhoneOtpMutation();
 
+  // Send the OTP exactly once per open. The ref guard stops a double-send from
+  // React StrictMode's double-invoke and from parent re-renders (the inline
+  // onClose prop changes identity, which must NOT re-trigger a send).
   useEffect(() => {
-    if (phoneNumber) {
-      sendOtp({ phoneNumber })
-        .unwrap()
-        .then(() => {
-          setSeconds(COUNTDOWN_SECONDS);
-          setStatusMessage("OTP verification code sent!");
-        })
-        .catch((err: unknown) => {
-          const errObj = err as { data?: { message?: string }; message?: string } | null;
-          setError(errObj?.data?.message || errObj?.message || "Failed to send verification code. Please check your connection.");
-        });
-    }
+    if (!open || !phoneNumber || sentRef.current) return;
+    sentRef.current = true;
+    sendOtp({ phoneNumber })
+      .unwrap()
+      .then(() => {
+        setSeconds(COUNTDOWN_SECONDS);
+        setStatusMessage("OTP verification code sent!");
+      })
+      .catch((err: unknown) => {
+        const errObj = err as { data?: { message?: string }; message?: string } | null;
+        setError(errObj?.data?.message || errObj?.message || "Failed to send verification code. Please check your connection.");
+      });
+  }, [open, phoneNumber, sendOtp]);
 
+  // Lock body scroll, close on Escape, focus the input while the modal is open.
+  useEffect(() => {
     document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -50,7 +57,7 @@ export default function VerifyPhoneModal({
       document.body.style.overflow = "";
       document.removeEventListener("keydown", onKey);
     };
-  }, [phoneNumber, sendOtp, onClose]);
+  }, [onClose]);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -62,7 +69,7 @@ export default function VerifyPhoneModal({
 
   const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
   const secs = String(seconds % 60).padStart(2, "0");
-  const canVerify = code.length === 6 && !isVerifying;
+  const canVerify = code.length === 4 && !isVerifying;
 
   const handleResend = async () => {
     if (!phoneNumber || isSending) return;
@@ -144,7 +151,7 @@ export default function VerifyPhoneModal({
                 color: "#807E7E",
               }}
             >
-              Enter the 6-digit code sent to your phone number {phoneNumber ? `(${phoneNumber})` : ""}.
+              Enter the 4-digit code sent to your phone number {phoneNumber ? `(${phoneNumber})` : ""}.
             </p>
           </div>
 
@@ -186,9 +193,9 @@ export default function VerifyPhoneModal({
               <input
                 ref={inputRef}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={4}
                 disabled={isVerifying}
                 className="w-full outline-none bg-transparent"
                 style={{
