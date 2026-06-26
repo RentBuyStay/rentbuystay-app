@@ -502,6 +502,7 @@ export type UserSubscription = {
   // From MySubscriptionResponse (GET /subscriptions/my) — the user's default saved card.
   cardBrand?: string;
   last4?: string;
+  cardExpiry?: string; // "MM/YY"
 };
 
 export type BillingTransaction = {

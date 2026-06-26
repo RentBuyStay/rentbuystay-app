@@ -183,6 +183,9 @@ export default function ManageSubscriptionPage() {
                     {mySub.cardBrand} •••• {mySub.last4}
                   </span>
                   <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{cardName}</span>
+                  {mySub.cardExpiry && (
+                    <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>{mySub.cardExpiry}</span>
+                  )}
                 </div>
               ) : (
                 <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>No card on file</span>
