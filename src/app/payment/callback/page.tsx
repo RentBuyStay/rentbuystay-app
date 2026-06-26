@@ -28,6 +28,11 @@ function PaymentCallbackInner() {
   const searchParams = useSearchParams();
   const reference = searchParams?.get("tx_ref") ?? searchParams?.get("trxref") ?? searchParams?.get("reference") ?? "";
   const status = searchParams?.get("status");
+  // Card-setup returns (the ₦50 "save a card" step for auto-renewal) carry an
+  // RBS-SUB-CARD reference. They have no plan to upgrade — the card is saved
+  // server-side via the payment webhook — so we must not run the plan verify.
+  const isCardSetup = reference.toUpperCase().includes("SUB-CARD");
+  const succeeded = status === "successful" || status === "success";
 
   const [verify] = useVerifySubscriptionMutation();
   const [phase, setPhase] = useState<Phase>("verifying");
@@ -37,7 +42,7 @@ function PaymentCallbackInner() {
   useEffect(() => {
     if (ran.current) return; // verify exactly once
     ran.current = true;
-    
+
     if (!reference) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("failed");
@@ -53,6 +58,13 @@ function PaymentCallbackInner() {
       return;
     }
 
+    // Card setup: confirmed by webhook, not the plan-verify endpoint.
+    if (isCardSetup) {
+      setPhase(succeeded ? "success" : "failed");
+      if (!succeeded) setErrorMsg("Card setup wasn’t completed. Please try again.");
+      return;
+    }
+
     verify(reference)
       .unwrap()
       .then(() => setPhase("success"))
@@ -60,9 +72,9 @@ function PaymentCallbackInner() {
         setPhase("failed");
         setErrorMsg(unwrapApiError(e)?.message ?? "We couldn’t verify your payment.");
       });
-  }, [reference, status, verify]);
+  }, [reference, status, verify, isCardSetup, succeeded]);
 
-  const proceed = () => router.replace("/dashboard/subscription");
+  const proceed = () => router.replace(isCardSetup ? "/dashboard/subscription/manage" : "/dashboard/subscription");
 
   return (
     <div
@@ -117,22 +129,32 @@ function PaymentCallbackInner() {
               />
               <div className="flex flex-col" style={{ gap: "8px", width: "100%" }}>
                 <h2 style={{ fontSize: "20px", lineHeight: "30px", fontWeight: 600, color: "#121212", textAlign: "center" }}>
-                  {phase === "success" ? "Payment Successful" : status === "cancelled" ? "Payment Cancelled" : "Payment Not Verified"}
+                  {phase === "success"
+                    ? isCardSetup
+                      ? "Card Saved"
+                      : "Payment Successful"
+                    : status === "cancelled"
+                    ? "Payment Cancelled"
+                    : "Payment Not Verified"}
                 </h2>
                 <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 400, color: "#807E7E", textAlign: "center" }}>
                   {phase === "success" ? (
-                    <>
-                      Thank you! Your subscription payment was completed successfully.
-                      {reference && (
-                        <>
-                          <br />
-                          Your reference ID is:{" "}
-                          <span style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace", color: "#121212" }}>
-                            {reference}
-                          </span>
-                        </>
-                      )}
-                    </>
+                    isCardSetup ? (
+                      "Your card has been saved and auto-renewal is being enabled. It may take a moment to reflect on your subscription."
+                    ) : (
+                      <>
+                        Thank you! Your subscription payment was completed successfully.
+                        {reference && (
+                          <>
+                            <br />
+                            Your reference ID is:{" "}
+                            <span style={{ fontFamily: "var(--font-geist-mono), ui-monospace, monospace", color: "#121212" }}>
+                              {reference}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    )
                   ) : (
                     errorMsg ?? "We couldn’t verify your payment. If you were charged, it will reflect shortly."
                   )}
