@@ -29,8 +29,9 @@ function PaymentCallbackInner() {
   const reference = searchParams?.get("tx_ref") ?? searchParams?.get("trxref") ?? searchParams?.get("reference") ?? "";
   const status = searchParams?.get("status");
   // Card-setup returns (the ₦50 "save a card" step for auto-renewal) carry an
-  // RBS-SUB-CARD reference. They have no plan to upgrade — the card is saved
-  // server-side via the payment webhook — so we must not run the plan verify.
+  // RBS-SUB-CARD reference. They have no plan to upgrade, but we still hit verify
+  // so the backend saves the tokenized card + enables auto-renew from the
+  // provider's verify response (the async webhook is only a backstop).
   const isCardSetup = reference.toUpperCase().includes("SUB-CARD");
   const succeeded = status === "successful" || status === "success";
 
@@ -58,10 +59,19 @@ function PaymentCallbackInner() {
       return;
     }
 
-    // Card setup: confirmed by webhook, not the plan-verify endpoint.
+    // Card setup: hit verify so the backend saves the tokenized card + enables
+    // auto-renew from the provider's verify response. Don't block the success UI
+    // on it — the payment already went through and the webhook is a backstop.
     if (isCardSetup) {
-      setPhase(succeeded ? "success" : "failed");
-      if (!succeeded) setErrorMsg("Card setup wasn’t completed. Please try again.");
+      if (!succeeded) {
+        setPhase("failed");
+        setErrorMsg("Card setup wasn’t completed. Please try again.");
+        return;
+      }
+      verify(reference)
+        .unwrap()
+        .catch(() => {})
+        .finally(() => setPhase("success"));
       return;
     }
 
