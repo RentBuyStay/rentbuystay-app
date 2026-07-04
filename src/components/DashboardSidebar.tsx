@@ -21,6 +21,7 @@ const ownerGroups: NavGroup[] = [
     items: [
       { label: "My Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
       { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+      { label: "Saved Properties", href: "/dashboard/saved", icon: "/icons/dash/nav-saved.svg" },
       { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-requests.svg" },
       { label: "Inquiries/Messages", href: "/dashboard/messages", icon: "/icons/dash/nav-messages.svg" },
       { label: "Appointments", href: "/dashboard/appointments", icon: "/icons/dash/nav-calendar.svg" },
@@ -83,6 +84,7 @@ const agentGroups: NavGroup[] = [
     items: [
       { label: "My Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
       { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+      { label: "Saved Properties", href: "/dashboard/saved", icon: "/icons/dash/nav-saved.svg" },
       { label: "Property Requests", href: "/dashboard/requests", icon: "/icons/dash/nav-requests.svg" },
     ],
   },
@@ -121,6 +123,7 @@ const agencyGroups: NavGroup[] = [
       { label: "All Properties", href: "/dashboard/properties", icon: "/icons/dash/nav-properties.svg" },
       { label: "Agents Management", href: "/dashboard/agents-management", icon: "/icons/dash/badge-user-tag.svg" },
       { label: "Add New Property", href: "/dashboard/properties/new", icon: "/icons/dash/nav-add-property.svg" },
+      { label: "Saved Properties", href: "/dashboard/saved", icon: "/icons/dash/nav-saved.svg" },
     ],
   },
   {
