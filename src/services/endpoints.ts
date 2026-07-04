@@ -104,6 +104,7 @@ export const endpoints = {
   kycNin: "/me/kyc/identity/nin",
   kycBvn: "/me/kyc/identity/bvn",
   kycVnin: "/me/kyc/identity/vnin",
+  kycWidgetResult: "/me/kyc/identity/widget-result",
 
   // Phone Verification
   sendPhoneOtp: "/me/phone/send-otp",

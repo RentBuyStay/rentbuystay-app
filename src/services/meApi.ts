@@ -11,6 +11,7 @@ import type {
   SubmitIdentityKycRequest,
   SubmitBusinessKycRequest,
   SubmitIdentitySelfieRequest,
+  SubmitWidgetResultRequest,
 } from "./types";
 
 export const meApi = api.injectEndpoints({
@@ -82,6 +83,13 @@ export const meApi = api.injectEndpoints({
       invalidatesTags: ["Me"],
     }),
 
+    // Record a Dojah Web widget verification outcome (individuals).
+    submitKycWidgetResult: builder.mutation<KycVerificationRow, SubmitWidgetResultRequest>({
+      query: (body) => ({ url: endpoints.kycWidgetResult, method: "POST", body }),
+      transformResponse: (res: ApiEnvelope<KycVerificationRow>) => res.data,
+      invalidatesTags: ["Me"],
+    }),
+
     // Dojah business (CAC / Tax ID) verification for agencies.
     submitKycBusiness: builder.mutation<KycVerificationRow, SubmitBusinessKycRequest>({
       query: (body) => ({ url: endpoints.kycBusiness, method: "POST", body }),
@@ -105,6 +113,7 @@ export const {
   useUpdateMyOrganizationMutation,
   useSubmitKycIdentityMutation,
   useSubmitKycIdentitySelfieMutation,
+  useSubmitKycWidgetResultMutation,
   useSubmitKycBusinessMutation,
   useDeactivateAccountMutation,
 } = meApi;

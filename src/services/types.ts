@@ -469,6 +469,12 @@ export type SubmitIdentitySelfieRequest = {
   selfieImage: string; // base64 JPEG (data-URL prefix is stripped server-side)
 };
 
+export type SubmitWidgetResultRequest = {
+  verified: boolean;
+  documentType?: string;
+  referenceId?: string;
+};
+
 /** Verification row returned by the KYC submit endpoints. */
 export type KycVerificationRow = {
   id: string;
