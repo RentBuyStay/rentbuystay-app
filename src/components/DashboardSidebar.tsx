@@ -7,6 +7,7 @@ import { roleBadgeLabel, type AccountRole } from "@/lib/role";
 import { useLogoutMutation } from "@/services/authApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logOut, selectRefreshToken } from "@/features/auth/authSlice";
+import { config } from "@/lib/config";
 
 type NavItem = { label: string; href: string; icon: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -202,7 +203,7 @@ export default function DashboardSidebar({
       }}
     >
 
-      <div style={{ paddingTop: "24px" }}>
+      <div style={{ paddingTop: "24px" }} className="relative">
         <Image
           src="/icons/dash/rbs-dash-logo.svg"
           alt="RentBuyStay"
@@ -211,6 +212,20 @@ export default function DashboardSidebar({
           priority
           className="w-full h-auto"
         />
+        {/* Back to the public site — the shared cookie keeps the user signed in there. */}
+        <a
+          href={config.websiteUrl}
+          title="Back to website"
+          aria-label="Back to website"
+          className="absolute top-6 right-4 flex items-center justify-center rounded-lg transition-colors hover:bg-white/15"
+          style={{ width: 30, height: 30, background: "rgba(255,255,255,0.08)" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          </svg>
+        </a>
       </div>
 
       
