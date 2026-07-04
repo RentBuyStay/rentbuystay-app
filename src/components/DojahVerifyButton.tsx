@@ -21,6 +21,9 @@ const Dojah = dynamic(() => import("react-dojah"), { ssr: false }) as unknown as
 const APP_ID = process.env.NEXT_PUBLIC_DOJAH_APP_ID ?? "";
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_DOJAH_PUBLIC_KEY ?? "";
 const WIDGET_ID = process.env.NEXT_PUBLIC_DOJAH_WIDGET_ID ?? "";
+// Dev-only: on localhost the Dojah webhook can't reach the backend, so allow the
+// browser to report success directly. In production the webhook is authoritative.
+const TRUST_CLIENT = process.env.NEXT_PUBLIC_KYC_TRUST_CLIENT === "true";
 
 const BIZ_DOCS: { value: BusinessVerificationType; label: string; hint: string }[] = [
   { value: "CAC_REGISTRATION", label: "CAC Registration Number", hint: "Your company's RC / BN number" },
@@ -34,7 +37,7 @@ const BIZ_DOCS: { value: BusinessVerificationType; label: string; hint: string }
  *  - Agencies → CAC/TIN direct submit (the widget doesn't cover business KYC).
  */
 export default function DojahVerifyButton({ compact = false }: { compact?: boolean }) {
-  const { data: me } = useGetMeQuery();
+  const { data: me, refetch: refetchMe } = useGetMeQuery();
   const { toast } = useToast();
   const isAgency = getRole() === "Real Estate Agency or Developer";
 
@@ -100,13 +103,16 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
     if (type === "success") {
       const referenceId =
         data?.referenceId || data?.reference_id || data?.verificationId || data?.data?.reference_id || undefined;
-      try {
-        await submitWidget({ verified: true, referenceId }).unwrap();
-        toast("Identity verified! Your badge will update shortly.", "success");
-      } catch (e) {
-        toast(unwrapApiError(e)?.message ?? "We couldn't save your verification. Please try again.", "error");
+      // Standard path: Dojah's webhook records the result server-side (spoof-proof).
+      // We just refresh /me so the new status shows. The dev fallback below only
+      // runs on localhost where the webhook can't reach the backend.
+      if (TRUST_CLIENT) {
+        try { await submitWidget({ verified: true, referenceId }).unwrap(); } catch { /* webhook still records it */ }
       }
+      toast("Verification submitted! Your badge will update shortly.", "success");
       setWidgetOpen(false);
+      refetchMe();
+      setTimeout(() => { refetchMe(); }, 4000); // give the webhook a moment
     } else if (type === "error") {
       toast("Verification didn't complete. Please try again.", "error");
       setWidgetOpen(false);
