@@ -201,7 +201,7 @@ export default function ProfilePage() {
     <div className="flex flex-col" style={{ gap: "32px" }}>
 
       <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex items-center min-w-0" style={{ gap: "16px" }}>
           <div className="relative shrink-0 w-[72px] h-[72px] md:w-[120px] md:h-[120px]">
             {PROFILE.avatarUrl ? (
               <Image
@@ -244,21 +244,21 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="flex flex-col" style={{ gap: "8px" }}>
-            <div className="flex flex-col" style={{ gap: "8px" }}>
-              <div className="flex items-center" style={{ gap: "8px" }}>
+          <div className="flex flex-col min-w-0" style={{ gap: "8px" }}>
+            <div className="flex flex-col min-w-0" style={{ gap: "8px" }}>
+              <div className="flex items-center min-w-0" style={{ gap: "8px" }}>
                 <span
-                  className="text-[16px] md:text-[24px]"
+                  className="text-[16px] md:text-[24px] truncate"
                   style={{ lineHeight: "32px", fontWeight: 600, color: "#121212" }}
                 >
                   {(isAgency ? PROFILE.firstName : `${PROFILE.firstName} ${PROFILE.lastName}`.trim()) || DASH}
                 </span>
                 {PROFILE.verified && (
-                  <Image src="/icons/dash/verify.svg" alt="Verified" width={20} height={20} />
+                  <Image src="/icons/dash/verify.svg" alt="Verified" width={20} height={20} className="shrink-0" />
                 )}
               </div>
               <span
-                className="text-[12px] md:text-[14px]"
+                className="text-[12px] md:text-[14px] truncate"
                 style={{ lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}
               >
                 {isAgency ? org.email : PROFILE.email}
@@ -270,9 +270,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Mobile: edit icon only */}
-        <div className="md:hidden flex items-center" style={{ gap: "8px" }}>
-          <DojahVerifyButton />
+        {/* Mobile: compact icon actions only */}
+        <div className="md:hidden flex items-center shrink-0" style={{ gap: "8px" }}>
+          <DojahVerifyButton compact />
           <button
             type="button"
             onClick={() => setEditOpen(true)}

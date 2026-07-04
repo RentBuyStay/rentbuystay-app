@@ -81,7 +81,8 @@ export default function LiveFaceCapture({
     void start();
   };
 
-  const RING = 248;
+  // Cap to the viewport on small screens so the circle never overflows.
+  const RING = "min(248px, 72vw)";
 
   return (
     <div className="flex flex-col items-center" style={{ gap: "20px" }}>

@@ -42,7 +42,7 @@ type Step = "method" | "details" | "face";
  * flow: choose an ID → enter its number → (individuals) capture a LIVE selfie.
  * Face capture is camera-only — no photo upload — for basic liveness.
  */
-export default function DojahVerifyButton() {
+export default function DojahVerifyButton({ compact = false }: { compact?: boolean }) {
   const { data: me } = useGetMeQuery();
   const { toast } = useToast();
   const isAgency = getRole() === "Real Estate Agency or Developer";
@@ -145,14 +145,26 @@ export default function DojahVerifyButton() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
-        style={{ height: "48px", padding: "8px 24px", gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
-      >
-        <ShieldCheck size={18} /> Verify Identity
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Verify Identity"
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
+          style={{ width: "40px", height: "40px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", cursor: "pointer" }}
+        >
+          <ShieldCheck size={20} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 whitespace-nowrap h-11 md:h-12 px-4 md:px-6 text-[13px] md:text-[14px]"
+          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: "pointer" }}
+        >
+          <ShieldCheck size={18} /> Verify Identity
+        </button>
+      )}
 
       {open && (
         <div
