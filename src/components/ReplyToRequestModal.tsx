@@ -186,7 +186,6 @@ export default function ReplyToRequestModal({
               {avatar}
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <span style={{ fontSize: "16px", lineHeight: "1.45", fontWeight: 600, color: "#121212" }}>{name}</span>
-                <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
               </div>
             </div>
           </div>

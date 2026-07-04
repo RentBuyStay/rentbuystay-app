@@ -188,5 +188,5 @@ function sellerFrom(p: PropertyResponse): SeekerListing["seller"] {
   const name = p.assignedAgentName || p.ownerName || "Property Owner";
   const parts = name.trim().split(/\s+/);
   const initials = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "PO";
-  return { name, initials, verified: false };
+  return { name, initials, verified: p.listerVerified ?? false };
 }

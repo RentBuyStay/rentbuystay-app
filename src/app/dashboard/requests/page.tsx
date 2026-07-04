@@ -230,7 +230,6 @@ function RequestCard({ request }: { request: RequestVM }) {
       <span className="truncate" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 600, color: "#121212" }}>
         {request.name}
       </span>
-      <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} className="shrink-0" />
     </div>
   );
 

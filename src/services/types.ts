@@ -147,6 +147,7 @@ export type PropertyResponse = {
   organizationId?: string;
   assignedAgentUserId?: string;
   assignedAgentName?: string;
+  listerVerified?: boolean;
   amenities?: AmenityRef[];
   photos?: PhotoRef[];
   charges?: ChargeRef[];
