@@ -10,6 +10,7 @@ import type {
   KycVerificationRow,
   SubmitIdentityKycRequest,
   SubmitBusinessKycRequest,
+  SubmitIdentitySelfieRequest,
 } from "./types";
 
 export const meApi = api.injectEndpoints({
@@ -66,6 +67,21 @@ export const meApi = api.injectEndpoints({
       invalidatesTags: ["Me"],
     }),
 
+    // Dojah identity + selfie/face check (NIN/BVN/vNIN). Routes to the per-type
+    // endpoint whose body field the backend expects (nin / bvn / vnin).
+    submitKycIdentitySelfie: builder.mutation<KycVerificationRow, SubmitIdentitySelfieRequest>({
+      query: ({ documentType, documentNumber, selfieImage }) => {
+        const route = {
+          NIN: { url: endpoints.kycNin, field: "nin" },
+          BVN: { url: endpoints.kycBvn, field: "bvn" },
+          VNIN: { url: endpoints.kycVnin, field: "vnin" },
+        }[documentType];
+        return { url: route.url, method: "POST", body: { [route.field]: documentNumber, selfieImage } };
+      },
+      transformResponse: (res: ApiEnvelope<KycVerificationRow>) => res.data,
+      invalidatesTags: ["Me"],
+    }),
+
     // Dojah business (CAC / Tax ID) verification for agencies.
     submitKycBusiness: builder.mutation<KycVerificationRow, SubmitBusinessKycRequest>({
       query: (body) => ({ url: endpoints.kycBusiness, method: "POST", body }),
@@ -88,6 +104,7 @@ export const {
   useUpdateMyProfileMutation,
   useUpdateMyOrganizationMutation,
   useSubmitKycIdentityMutation,
+  useSubmitKycIdentitySelfieMutation,
   useSubmitKycBusinessMutation,
   useDeactivateAccountMutation,
 } = meApi;

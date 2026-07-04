@@ -460,6 +460,15 @@ export type SubmitBusinessKycRequest = {
   companyType?: string;
 };
 
+/** ID types that carry a selfie for face verification (Tier 2). */
+export type SelfieDocumentType = "NIN" | "BVN" | "VNIN";
+
+export type SubmitIdentitySelfieRequest = {
+  documentType: SelfieDocumentType;
+  documentNumber: string;
+  selfieImage: string; // base64 JPEG (data-URL prefix is stripped server-side)
+};
+
 /** Verification row returned by the KYC submit endpoints. */
 export type KycVerificationRow = {
   id: string;

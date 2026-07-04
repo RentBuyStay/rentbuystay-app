@@ -5,15 +5,21 @@ import { useState } from "react";
 import {
   useGetMeQuery,
   useSubmitKycIdentityMutation,
+  useSubmitKycIdentitySelfieMutation,
   useSubmitKycBusinessMutation,
 } from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 import { getRole } from "@/lib/role";
+import SelfieCapture from "@/components/SelfieCapture";
 import type {
   KycDocumentType,
+  SelfieDocumentType,
   BusinessVerificationType,
 } from "@/services/types";
+
+/** ID types that carry a selfie face check. */
+const SELFIE_TYPES = new Set<string>(["NIN", "BVN", "VNIN"]);
 
 /** Individual ID document types Dojah verifies (backend DocumentType subset). */
 const ID_DOCS: { value: KycDocumentType; label: string; requiresDob?: boolean; hint: string }[] = [
@@ -42,21 +48,25 @@ export default function DojahVerifyButton() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [submitIdentity, { isLoading: submittingId }] = useSubmitKycIdentityMutation();
+  const [submitSelfie, { isLoading: submittingSelfie }] = useSubmitKycIdentitySelfieMutation();
   const [submitBusiness, { isLoading: submittingBiz }] = useSubmitKycBusinessMutation();
 
   const isAgency = getRole() === "Real Estate Agency or Developer";
-  const submitting = submittingId || submittingBiz;
+  const submitting = submittingId || submittingSelfie || submittingBiz;
 
   // Form state
   const [docType, setDocType] = useState<string>(isAgency ? "CAC_REGISTRATION" : "NIN");
   const [docNumber, setDocNumber] = useState("");
   const [dob, setDob] = useState("");
+  const [selfie, setSelfie] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (me?.verification?.complete) return null;
 
   const selectedIdDoc = ID_DOCS.find((d) => d.value === docType);
   const requiresDob = !isAgency && !!selectedIdDoc?.requiresDob;
+  // NIN/BVN/vNIN support a selfie face check — required for every individual.
+  const needsSelfie = !isAgency && SELFIE_TYPES.has(docType);
   const hint = isAgency
     ? BIZ_DOCS.find((d) => d.value === docType)?.hint
     : selectedIdDoc?.hint;
@@ -64,6 +74,7 @@ export default function DojahVerifyButton() {
   const reset = () => {
     setDocNumber("");
     setDob("");
+    setSelfie(null);
     setError(null);
     setDocType(isAgency ? "CAC_REGISTRATION" : "NIN");
   };
@@ -84,11 +95,23 @@ export default function DojahVerifyButton() {
       setError("Date of birth is required for this document type.");
       return;
     }
+    if (needsSelfie && !selfie) {
+      setError("Please take or upload a selfie to complete face verification.");
+      return;
+    }
     try {
       if (isAgency) {
         await submitBusiness({
           verificationType: docType as BusinessVerificationType,
           documentNumber: docNumber.trim(),
+        }).unwrap();
+      } else if (needsSelfie && selfie) {
+        // Strip the data-URL prefix — backend expects raw base64 JPEG (starts with /9).
+        const base64 = selfie.includes(",") ? selfie.slice(selfie.indexOf(",") + 1) : selfie;
+        await submitSelfie({
+          documentType: docType as SelfieDocumentType,
+          documentNumber: docNumber.trim(),
+          selfieImage: base64,
         }).unwrap();
       } else {
         await submitIdentity({
@@ -205,6 +228,18 @@ export default function DojahVerifyButton() {
                       style={{ background: "#F6F6F6", borderRadius: "12px", padding: "12px 16px", height: "48px", fontSize: "14px", color: "#121212" }}
                     />
                   </label>
+                )}
+
+                {needsSelfie && (
+                  <div className="flex flex-col" style={{ gap: "8px" }}>
+                    <span style={{ fontSize: "14px", fontWeight: 500, color: "#121212" }}>Selfie (face verification)</span>
+                    <span style={{ fontSize: "12px", color: "#807E7E" }}>
+                      We match your photo against your ID. Make sure your face is clear and well-lit.
+                    </span>
+                    <div style={{ marginTop: "4px" }}>
+                      <SelfieCapture value={selfie} onChange={(v) => { setSelfie(v); setError(null); }} />
+                    </div>
+                  </div>
                 )}
 
                 <button
