@@ -103,26 +103,26 @@ export default function BrowsePropertyDetailPage({
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-        <div className="flex flex-col justify-center flex-1 min-w-0 gap-2 md:gap-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="inline-flex items-center self-start hover:opacity-80"
-            style={{ gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      <div className="flex flex-col gap-2 md:gap-4">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center self-start hover:opacity-80"
+          style={{ gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} className="w-4 h-4 md:w-6 md:h-6" />
+          <span
+            className="text-[12px] leading-[20px] md:text-[16px] md:leading-[24px] text-[#121212] md:text-[#525252]"
+            style={{
+              fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+              fontWeight: 400,
+            }}
           >
-            <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} className="w-4 h-4 md:w-6 md:h-6" />
-            <span
-              className="text-[12px] leading-[20px] md:text-[16px] md:leading-[24px] text-[#121212] md:text-[#525252]"
-              style={{
-                fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
-                fontWeight: 400,
-              }}
-            >
-              Back
-            </span>
-          </button>
+            Back
+          </span>
+        </button>
 
+        <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col min-w-0" style={{ justifyContent: "center", gap: "8px" }}>
             <h1
               className="truncate md:whitespace-normal md:overflow-visible text-[16px] leading-[24px] md:text-[24px] md:leading-[32px]"
@@ -171,9 +171,8 @@ export default function BrowsePropertyDetailPage({
               </span>
             </div>
           </div>
-        </div>
 
-        <button
+          <button
           type="button"
           aria-label="Report Listing"
           className="inline-flex items-center justify-center shrink-0 self-center hover:opacity-80 w-10 h-10 p-2 md:w-auto md:h-12 md:px-4 md:py-2"
@@ -195,6 +194,7 @@ export default function BrowsePropertyDetailPage({
           <Image src="/icons/dash/flag-red.svg" alt="" width={24} height={24} />
           <span className="hidden md:inline">Report Listing</span>
         </button>
+        </div>
       </div>
 
       <PhotoGallery
