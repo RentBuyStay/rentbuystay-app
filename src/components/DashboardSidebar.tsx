@@ -37,7 +37,7 @@ const ownerGroups: NavGroup[] = [
     label: "ACCOUNT",
     items: [
       { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
-      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Verification", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
       { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
     ],
   },
@@ -104,7 +104,7 @@ const agentGroups: NavGroup[] = [
     label: "ACCOUNT",
     items: [
       { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
-      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Verification", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
       { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
     ],
   },
@@ -141,7 +141,7 @@ const agencyGroups: NavGroup[] = [
     label: "ACCOUNT",
     items: [
       { label: "Profile", href: "/dashboard/profile", icon: "/icons/dash/nav-profile.svg" },
-      { label: "Verification (Qore ID)", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
+      { label: "Verification", href: "/dashboard/verification", icon: "/icons/dash/nav-verification.svg" },
       { label: "Settings", href: "/dashboard/settings", icon: "/icons/dash/nav-settings.svg" },
     ],
   },

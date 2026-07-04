@@ -20,7 +20,7 @@ const TITLES: { match: (path: string) => boolean; title: string }[] = [
   { match: (p) => p.startsWith("/dashboard/transactions"), title: "Transactions" },
   { match: (p) => p.startsWith("/dashboard/subscription"), title: "Subscription" },
   { match: (p) => p.startsWith("/dashboard/profile"), title: "Profile" },
-  { match: (p) => p.startsWith("/dashboard/verification"), title: "Verification (Qore ID)" },
+  { match: (p) => p.startsWith("/dashboard/verification"), title: "Verification" },
   { match: (p) => p.startsWith("/dashboard/settings"), title: "Settings" },
   { match: (p) => p.startsWith("/dashboard"), title: "Dashboard" },
 ];
