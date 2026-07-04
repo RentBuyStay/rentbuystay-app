@@ -12,7 +12,7 @@ import {
 } from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
-import QoreIdButton from "@/components/QoreIdButton";
+import DojahVerifyButton from "@/components/DojahVerifyButton";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
@@ -272,7 +272,7 @@ export default function ProfilePage() {
 
         {/* Mobile: edit icon only */}
         <div className="md:hidden flex items-center" style={{ gap: "8px" }}>
-          <QoreIdButton />
+          <DojahVerifyButton />
           <button
             type="button"
             onClick={() => setEditOpen(true)}
@@ -286,7 +286,7 @@ export default function ProfilePage() {
 
         {/* Desktop: full Edit Profile button */}
         <div className="hidden md:flex items-center" style={{ gap: "16px" }}>
-          <QoreIdButton />
+          <DojahVerifyButton />
           <button
             type="button"
             onClick={() => setEditOpen(true)}

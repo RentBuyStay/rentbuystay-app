@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import VerifyPhoneModal from "@/components/VerifyPhoneModal";
-import QoreIdButton from "@/components/QoreIdButton";
+import DojahVerifyButton from "@/components/DojahVerifyButton";
 import { useGetMeQuery } from "@/services/meApi";
 import type { MeResponse } from "@/services/types";
 
@@ -71,10 +71,10 @@ function buildSteps(me?: MeResponse): Step[] {
       number: 3,
       title: "Identity Verification",
       status: identityVerified ? "completed" : "pending",
-      body: <>Verify your ID with a valid government-issued ID, powered by Qore ID.</>,
+      body: <>Verify your ID with a valid government-issued ID, powered by Dojah.</>,
       action: identityVerified
         ? undefined
-        : { kind: "custom", component: <QoreIdButton /> },
+        : { kind: "custom", component: <DojahVerifyButton /> },
     },
   ];
 }
@@ -119,7 +119,7 @@ export default function VerificationPage() {
                 className="text-base md:text-2xl leading-6 md:leading-8"
                 style={{ fontWeight: 600, color: "#FFFFFF" }}
               >
-                Qore ID Verification
+                Identity Verification
               </h2>
               {/* In Progress — inline next to the title on mobile */}
               <span

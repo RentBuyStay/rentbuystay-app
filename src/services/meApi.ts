@@ -7,7 +7,9 @@ import type {
   MeResponse,
   UpdateProfileRequest,
   UpdateOrganizationRequest,
-  KycSdkInitResponse,
+  KycVerificationRow,
+  SubmitIdentityKycRequest,
+  SubmitBusinessKycRequest,
 } from "./types";
 
 export const meApi = api.injectEndpoints({
@@ -56,20 +58,19 @@ export const meApi = api.injectEndpoints({
       invalidatesTags: ["Me"],
     }),
 
-    startKycIdentity: builder.mutation<KycSdkInitResponse, void>({
-      query: () => ({
-        url: endpoints.kycIdentityStart,
-        method: "POST",
-      }),
-      transformResponse: (res: ApiEnvelope<KycSdkInitResponse>) => res.data,
+    // Dojah identity verification: submit an ID number (+ DOB for licence/passport).
+    // Verified server-side via Dojah; returns a PENDING row, result arrives async.
+    submitKycIdentity: builder.mutation<KycVerificationRow, SubmitIdentityKycRequest>({
+      query: (body) => ({ url: endpoints.kycIndividual, method: "POST", body }),
+      transformResponse: (res: ApiEnvelope<KycVerificationRow>) => res.data,
+      invalidatesTags: ["Me"],
     }),
 
-    startKycBusiness: builder.mutation<KycSdkInitResponse, void>({
-      query: () => ({
-        url: endpoints.kycBusinessStart,
-        method: "POST",
-      }),
-      transformResponse: (res: ApiEnvelope<KycSdkInitResponse>) => res.data,
+    // Dojah business (CAC / Tax ID) verification for agencies.
+    submitKycBusiness: builder.mutation<KycVerificationRow, SubmitBusinessKycRequest>({
+      query: (body) => ({ url: endpoints.kycBusiness, method: "POST", body }),
+      transformResponse: (res: ApiEnvelope<KycVerificationRow>) => res.data,
+      invalidatesTags: ["Me"],
     }),
 
     // Self-service account deactivation (POST /me/deactivate, no body).
@@ -86,7 +87,7 @@ export const {
   useLazyGetMeQuery,
   useUpdateMyProfileMutation,
   useUpdateMyOrganizationMutation,
-  useStartKycIdentityMutation,
-  useStartKycBusinessMutation,
+  useSubmitKycIdentityMutation,
+  useSubmitKycBusinessMutation,
   useDeactivateAccountMutation,
 } = meApi;

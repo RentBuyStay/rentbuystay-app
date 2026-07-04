@@ -97,9 +97,9 @@ export const endpoints = {
   // Reference data
   locations: "/locations",
 
-  // KYC / Identity verification
-  kycIdentityStart: "/me/kyc/identity/start",
-  kycBusinessStart: "/me/kyc/business/start",
+  // KYC / Identity verification (Dojah — direct submit, verified server-side)
+  kycIndividual: "/me/kyc/individual",
+  kycBusiness: "/me/kyc/business",
 
   // Phone Verification
   sendPhoneOtp: "/me/phone/send-otp",

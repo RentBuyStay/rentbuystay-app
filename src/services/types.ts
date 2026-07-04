@@ -436,6 +436,40 @@ export type KycSdkInitResponse = {
   token: string;
 };
 
+// --- KYC (Dojah direct-submit) ---
+
+export type KycDocumentType =
+  | "NIN"
+  | "BVN"
+  | "VNIN"
+  | "VOTERS_CARD"
+  | "DRIVERS_LICENSE"
+  | "PASSPORT";
+
+export type SubmitIdentityKycRequest = {
+  documentType: KycDocumentType;
+  documentNumber: string;
+  dateOfBirth?: string; // ISO YYYY-MM-DD, required for DRIVERS_LICENSE + PASSPORT
+};
+
+export type BusinessVerificationType = "CAC_REGISTRATION" | "TAX_ID" | "PROFESSIONAL_BUSINESS";
+
+export type SubmitBusinessKycRequest = {
+  verificationType: BusinessVerificationType;
+  documentNumber: string;
+  companyType?: string;
+};
+
+/** Verification row returned by the KYC submit endpoints. */
+export type KycVerificationRow = {
+  id: string;
+  status: "PENDING" | "IN_PROGRESS" | "VERIFIED" | "REJECTED" | "EXPIRED" | "FAILED";
+  documentType?: string;
+  verificationType?: string;
+  rejectionReason?: string;
+  createdAt?: string;
+};
+
 // --- Inspections / appointments ---
 
 export type InspectionStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
