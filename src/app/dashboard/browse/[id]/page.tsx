@@ -176,7 +176,7 @@ export default function BrowsePropertyDetailPage({
         <button
           type="button"
           aria-label="Report Listing"
-          className="inline-flex items-center justify-center shrink-0 self-start hover:opacity-80 w-10 h-10 p-2 md:w-auto md:h-12 md:px-4 md:py-2"
+          className="inline-flex items-center justify-center shrink-0 self-center hover:opacity-80 w-10 h-10 p-2 md:w-auto md:h-12 md:px-4 md:py-2"
           style={{
             gap: "8px",
             background: "transparent",
