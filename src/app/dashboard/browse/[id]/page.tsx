@@ -125,12 +125,11 @@ export default function BrowsePropertyDetailPage({
             </span>
           </button>
 
-          <div className="flex flex-col" style={{ justifyContent: "center", gap: "8px" }}>
+          <div className="flex flex-col min-w-0" style={{ justifyContent: "center", gap: "8px" }}>
             <h1
+              className="truncate md:whitespace-normal md:overflow-visible text-[16px] leading-[24px] md:text-[24px] md:leading-[32px]"
               style={{
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "24px",
-                lineHeight: "32px",
                 fontWeight: 600,
                 letterSpacing: "-0.02em",
                 color: "#121212",
@@ -755,10 +754,8 @@ function PhotoGallery({ title, images }: { title: string; images: string[] }) {
 
   return (
     <div
-      className="relative"
+      className="relative w-full h-[300px] md:h-[482px]"
       style={{
-        width: "100%",
-        height: "482px",
         background: "#F6F6F6",
         borderRadius: "20px",
         overflow: "hidden",
@@ -778,58 +775,46 @@ function PhotoGallery({ title, images }: { title: string; images: string[] }) {
         type="button"
         onClick={prev}
         aria-label="Previous photo"
-        className="absolute inline-flex items-center justify-center hover:opacity-90"
+        className="absolute inline-flex items-center justify-center hover:opacity-90 left-4 md:left-6"
         style={{
-          left: "24px",
           top: "50%",
           transform: "translateY(-50%)",
           width: "34px",
           height: "34px",
-          borderRadius: "100%",
+          padding: "5px",
+          borderRadius: "10px",
           background: "rgba(18,18,18,0.25)",
           border: "none",
-          color: "#FFFFFF",
           cursor: "pointer",
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M12.5 4L6.5 10L12.5 16"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Image src="/icons/dash/gallery-arrow.svg" alt="" width={24} height={24} />
       </button>
 
       <button
         type="button"
         onClick={next}
         aria-label="Next photo"
-        className="absolute inline-flex items-center justify-center hover:opacity-90"
+        className="absolute inline-flex items-center justify-center hover:opacity-90 right-4 md:right-6"
         style={{
-          right: "24px",
           top: "50%",
           transform: "translateY(-50%)",
           width: "34px",
           height: "34px",
-          borderRadius: "100%",
+          padding: "5px",
+          borderRadius: "10px",
           background: "rgba(18,18,18,0.25)",
           border: "none",
-          color: "#FFFFFF",
           cursor: "pointer",
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M7.5 4L13.5 10L7.5 16"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Image
+          src="/icons/dash/gallery-arrow.svg"
+          alt=""
+          width={24}
+          height={24}
+          style={{ transform: "scaleX(-1)" }}
+        />
       </button>
 
       <div
