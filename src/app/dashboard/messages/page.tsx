@@ -24,6 +24,8 @@ function otherParty(conv: ConversationResponse, myId?: string) {
     name: name || conv.title || "Conversation",
     initials: initials(other?.firstName, other?.lastName),
     online: other?.online ?? false,
+    avatarUrl: other?.avatarUrl,
+    verified: other?.verified ?? false,
   };
 }
 
@@ -130,7 +132,7 @@ export default function MessagesPage() {
           <ul className="flex flex-col" style={{ overflowY: "auto", flex: 1 }}>
             {visible.map((c) => {
               const isActive = c.id === selected;
-              const { name, initials: ini } = otherParty(c, me?.id);
+              const { name, initials: ini, avatarUrl, verified } = otherParty(c, me?.id);
               return (
                 <li key={c.id}>
                   <button
@@ -146,10 +148,14 @@ export default function MessagesPage() {
                     }}
                   >
                     <div
-                      className="rounded-full flex items-center justify-center shrink-0"
+                      className="rounded-full flex items-center justify-center shrink-0 overflow-hidden relative"
                       style={{ width: "40px", height: "40px", background: "#305E82", color: "#FFFFFF", fontSize: "14px", fontWeight: 600 }}
                     >
-                      {ini}
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt={name} fill sizes="40px" style={{ objectFit: "cover" }} unoptimized />
+                      ) : (
+                        ini
+                      )}
                     </div>
                     <div className="flex flex-col flex-1 min-w-0" style={{ gap: "2px" }}>
                       <div className="flex items-center justify-between">
@@ -157,6 +163,7 @@ export default function MessagesPage() {
                           <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#121212" }}>
                             {name}
                           </span>
+                          {verified && <Image src="/icons/dash/verify.svg" alt="verified" width={16} height={16} className="shrink-0" />}
                           {c.unreadCount > 0 && (
                             <span style={{ width: "8px", height: "8px", borderRadius: "100%", background: "#FFAE00" }} />
                           )}
@@ -249,7 +256,7 @@ function ConversationView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { name, initials: ini, online } = otherParty(conversation, myId);
+  const { name, initials: ini, online, avatarUrl, verified } = otherParty(conversation, myId);
   const otherPartyParticipant = conversation.participants?.find((p) => p.userId !== myId);
   const otherUserId = otherPartyParticipant?.userId;
   const otherReadAt = otherPartyParticipant?.lastReadAt;
@@ -353,14 +360,19 @@ function ConversationView({
             <Image src="/icons/arrow-left.svg" alt="" width={24} height={24} />
           </button>
           <div
-            className="rounded-full flex items-center justify-center shrink-0"
+            className="rounded-full flex items-center justify-center shrink-0 overflow-hidden relative"
             style={{ width: "48px", height: "48px", background: "#305E82", color: "#FFFFFF", fontSize: "16px", fontWeight: 600 }}
           >
-            {ini}
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt={name} fill sizes="48px" style={{ objectFit: "cover" }} unoptimized />
+            ) : (
+              ini
+            )}
           </div>
           <div className="flex flex-col" style={{ gap: "4px" }}>
-            <span style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
+            <span className="flex items-center" style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212", gap: "6px" }}>
               {name}
+              {verified && <Image src="/icons/dash/verify.svg" alt="verified" width={18} height={18} className="shrink-0" />}
             </span>
             <div className="flex items-center" style={{ gap: "6px" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "100%", background: online ? "#00B756" : "#807E7E" }} />

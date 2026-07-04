@@ -399,6 +399,8 @@ export type ConversationParticipant = {
   lastDeliveredAt?: string;
   lastReadAt?: string;
   online?: boolean;
+  avatarUrl?: string;
+  verified?: boolean;
   lastSeenAt?: string;
 };
 
