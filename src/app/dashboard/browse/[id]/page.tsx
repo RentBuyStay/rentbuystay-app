@@ -104,21 +104,19 @@ export default function BrowsePropertyDetailPage({
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
       <div className="flex items-center justify-between" style={{ gap: "16px" }}>
-        <div className="flex flex-col" style={{ justifyContent: "center", gap: "16px", flex: 1, minWidth: 0 }}>
+        <div className="flex flex-col justify-center flex-1 min-w-0 gap-2 md:gap-4">
           <button
             type="button"
             onClick={() => router.back()}
             className="inline-flex items-center self-start hover:opacity-80"
             style={{ gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
           >
-            <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} />
+            <Image src="/icons/dash/detail-back.svg" alt="" width={24} height={24} className="w-4 h-4 md:w-6 md:h-6" />
             <span
+              className="text-[12px] leading-[20px] md:text-[16px] md:leading-[24px] text-[#121212] md:text-[#525252]"
               style={{
                 fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
-                fontSize: "16px",
-                lineHeight: "24px",
                 fontWeight: 400,
-                color: "#525252",
               }}
             >
               Back
@@ -148,10 +146,9 @@ export default function BrowsePropertyDetailPage({
                   className="shrink-0"
                 />
                 <span
+                  className="text-[12px] leading-[20px] md:text-[14px] md:leading-[24px]"
                   style={{
                     fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                    fontSize: "14px",
-                    lineHeight: "24px",
                     fontWeight: 400,
                     color: "#807E7E",
                     whiteSpace: "nowrap",
@@ -161,13 +158,13 @@ export default function BrowsePropertyDetailPage({
                 </span>
               </div>
               <span
+                className="text-[12px] leading-[20px] md:text-[14px] md:leading-[24px]"
                 style={{
                   fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontSize: "14px",
-                  lineHeight: "24px",
                   fontWeight: 400,
                   letterSpacing: "-0.02em",
                   color: "#807E7E",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {listedAgo}
@@ -178,11 +175,9 @@ export default function BrowsePropertyDetailPage({
 
         <button
           type="button"
-          className="inline-flex items-center justify-center hover:opacity-80"
+          aria-label="Report Listing"
+          className="inline-flex items-center justify-center shrink-0 self-start hover:opacity-80 w-10 h-10 p-2 md:w-auto md:h-12 md:px-4 md:py-2"
           style={{
-            width: "137.74px",
-            height: "48px",
-            padding: "8px 16px",
             gap: "8px",
             background: "transparent",
             border: "none",
@@ -198,7 +193,7 @@ export default function BrowsePropertyDetailPage({
           }}
         >
           <Image src="/icons/dash/flag-red.svg" alt="" width={24} height={24} />
-          Report Listing
+          <span className="hidden md:inline">Report Listing</span>
         </button>
       </div>
 
