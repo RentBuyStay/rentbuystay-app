@@ -210,7 +210,7 @@ export default function BrowsePropertyDetailPage({
 
       <PriceSpecsRow listing={listing} />
 
-      <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) 393px", gap: "32px", alignItems: "start" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_393px]" style={{ gap: "32px", alignItems: "start" }}>
         <div className="flex flex-col" style={{ gap: "40px" }}>
           <DescriptionBlock listing={listing} />
           <AmenitiesBlock listing={listing} />
@@ -321,7 +321,7 @@ function AmenitiesBlock({ listing }: { listing: SeekerListing }) {
       >
         Amenities &amp; Features
       </h2>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "24px 32px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px 32px" }}>
         {amenities.map((a) => (
           <div key={a} className="flex items-center" style={{ gap: "8px" }}>
             <Image src="/icons/dash/tick-circle.svg" alt="" width={24} height={24} />
@@ -498,50 +498,17 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
 function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; onToggleSave: () => void; hostUserId?: string }) {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   return (
-    <div
-      className="relative bg-white"
-      style={{
-        height: "232px",
-        border: "1px solid #F6F6F6",
-        borderRadius: "20px",
-      }}
-    >
-      <h3
-        className="absolute"
-        style={{
-          left: "24px",
-          top: "24px",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          fontSize: "16px",
-          lineHeight: "24px",
-          fontWeight: 600,
-          color: "#121212",
-        }}
-      >
+    <div className="bg-white w-full flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "24px", gap: "24px" }}>
+      <h3 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
         Interested in this Property?
       </h3>
 
-      <div
-        className="absolute flex flex-col"
-        style={{ left: "24px", top: "72px", width: "345px", gap: "24px" }}
-      >
+      <div className="flex flex-col" style={{ gap: "16px" }}>
         <button
           type="button"
           onClick={() => setScheduleOpen(true)}
-          className="inline-flex items-center justify-center text-white hover:opacity-90"
-          style={{
-            width: "345px",
-            height: "56px",
-            padding: "16px 24px",
-            gap: "8px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "none",
-            borderRadius: "12px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
+          className="w-full inline-flex items-center justify-center text-white hover:opacity-90"
+          style={{ height: "56px", padding: "16px 24px", gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
         >
           <Image src="/icons/dash/detail-calendar.svg" alt="" width={24} height={24} />
           Request Inspection
@@ -550,21 +517,8 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
         <button
           type="button"
           onClick={onToggleSave}
-          className="inline-flex items-center justify-center hover:opacity-80"
-          style={{
-            width: "345px",
-            height: "56px",
-            padding: "16px 24px",
-            gap: "8px",
-            background: saved ? "rgba(120,158,187,0.08)" : "transparent",
-            border: "1px solid #F6F6F6",
-            borderRadius: "12px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#305E82",
-            cursor: "pointer",
-          }}
+          className="w-full inline-flex items-center justify-center hover:opacity-80"
+          style={{ height: "56px", padding: "16px 24px", gap: "8px", background: saved ? "rgba(120,158,187,0.08)" : "transparent", border: "1px solid #F6F6F6", borderRadius: "12px", fontSize: "14px", fontWeight: 500, color: "#305E82", cursor: "pointer" }}
         >
           <Image src="/icons/dash/detail-heart.svg" alt="" width={24} height={24} />
           {saved ? "Saved" : "Save Property"}
@@ -589,214 +543,74 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
   }
 
   return (
-    <div
-      className="relative bg-white"
-      style={{
-        width: "393px",
-        height: "408px",
-        border: "1px solid #F6F6F6",
-        borderRadius: "20px",
-      }}
-    >
-      <h3
-        className="absolute"
-        style={{
-          left: "24px",
-          top: "24px",
-          width: "363px",
-          height: "32px",
-          fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-          fontSize: "16px",
-          lineHeight: "32px",
-          fontWeight: 600,
-          color: "#121212",
-        }}
-      >
-        Listed by
-      </h3>
+    <div className="bg-white w-full flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}>
+      <div className="flex flex-col" style={{ padding: "24px", gap: "16px" }}>
+        <h3 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 600, color: "#121212" }}>Listed by</h3>
 
-      <div
-        className="absolute flex items-center"
-        style={{ left: "24px", top: "80px", gap: "16px", width: "346px" }}
-      >
-        <div
-          className="rounded-full relative overflow-hidden flex items-center justify-center shrink-0"
-          style={{
-            width: "64px",
-            height: "64px",
-            background: "rgba(48,94,130,0.05)",
-            color: "#305E82",
-            fontSize: "20px",
-            fontWeight: 600,
-          }}
-        >
-          {listing.seller.avatarUrl ? (
-            <Image src={listing.seller.avatarUrl} alt={listing.seller.name} fill sizes="64px" style={{ objectFit: "cover" }} />
-          ) : (
-            listing.seller.initials
-          )}
-        </div>
-        <div className="flex flex-col" style={{ width: "283px", gap: "8px" }}>
-          <div className="flex items-center" style={{ gap: "8px" }}>
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "18px",
-                lineHeight: "24px",
-                fontWeight: 600,
-                color: "#121212",
-              }}
-            >
-              {listing.seller.name}
-            </span>
-            {listing.seller.verified && (
-              <Image src="/icons/dash/verify.svg" alt="" width={20} height={20} />
+        <div className="flex items-center" style={{ gap: "16px" }}>
+          <div
+            className="rounded-full relative overflow-hidden flex items-center justify-center shrink-0"
+            style={{ width: "64px", height: "64px", background: "rgba(48,94,130,0.05)", color: "#305E82", fontSize: "20px", fontWeight: 600 }}
+          >
+            {listing.seller.avatarUrl ? (
+              <Image src={listing.seller.avatarUrl} alt={listing.seller.name} fill sizes="64px" style={{ objectFit: "cover" }} />
+            ) : (
+              listing.seller.initials
             )}
           </div>
-          <div className="flex items-center" style={{ gap: "16px" }}>
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "14px",
-                lineHeight: "20px",
-                fontWeight: 500,
-                color: "#807E7E",
-              }}
-            >
-              Propper.
-            </span>
-            <span
-              className="inline-flex items-center justify-center"
-              style={{
-                padding: "3px 12px",
-                background: "#305E82",
-                borderRadius: "100px",
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                fontWeight: 500,
-                color: "#FFFFFF",
-              }}
-            >
-              AGENT
-            </span>
+          <div className="flex flex-col min-w-0" style={{ gap: "8px" }}>
+            <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
+              <span className="truncate" style={{ fontSize: "18px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
+                {listing.seller.name}
+              </span>
+              {listing.seller.verified && <Image src="/icons/dash/verify.svg" alt="verified" width={20} height={20} className="shrink-0" />}
+            </div>
+            <div className="flex items-center flex-wrap" style={{ gap: "12px" }}>
+              <span style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#807E7E" }}>Propper.</span>
+              <span className="inline-flex items-center justify-center" style={{ padding: "3px 12px", background: "#305E82", borderRadius: "100px", fontSize: "12px", fontWeight: 500, color: "#FFFFFF" }}>
+                AGENT
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col" style={{ gap: "16px" }}>
+          <div className="flex items-center" style={{ gap: "8px" }}>
+            <Image src="/icons/dash/icon-location-sm.svg" alt="" width={20} height={20} className="shrink-0" />
+            <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>19, Ogundana Street, Allen Avenue, Ikeja, Lagos</span>
+          </div>
+          <div className="flex items-center" style={{ gap: "8px" }}>
+            <Image src="/icons/dash/icon-profile.svg" alt="" width={20} height={20} className="shrink-0" />
+            <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: 400, color: "#807E7E" }}>Joined 2 years ago</span>
           </div>
         </div>
       </div>
 
-      <div
-        className="absolute flex flex-col"
-        style={{ left: "24px", top: "168px", width: "345px", gap: "16px" }}
-      >
-        <div className="flex items-center" style={{ gap: "8px" }}>
-          <Image src="/icons/dash/icon-location-sm.svg" alt="" width={20} height={20} className="shrink-0" />
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "12px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: "#807E7E",
-            }}
-          >
-            19, Ogundana Street, Allen Avenue, Ikeja, Lagos
-          </span>
-        </div>
-        <div className="flex items-center" style={{ gap: "8px" }}>
-          <Image src="/icons/dash/icon-profile.svg" alt="" width={20} height={20} className="shrink-0" />
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "12px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: "#807E7E",
-            }}
-          >
-            Joined 2 years ago
-          </span>
-        </div>
-      </div>
-
-      <div
-        className="absolute"
-        style={{ left: 0, right: 0, top: "256px", height: "1px", background: "#F6F6F6" }}
-      />
-      <div
-        className="absolute flex items-center justify-between"
-        style={{ left: "24px", right: "24px", top: "272px", height: "24px" }}
-      >
+      <div style={{ height: "1px", background: "#F6F6F6" }} />
+      <div className="flex items-center justify-between flex-wrap" style={{ padding: "16px 24px", gap: "12px" }}>
         <div className="flex items-center" style={{ gap: "16px" }}>
           <div className="flex items-center" style={{ gap: "8px" }}>
             <Image src="/icons/dash/icon-star.svg" alt="" width={20} height={20} />
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                lineHeight: "24px",
-                fontWeight: 400,
-                color: "#807E7E",
-              }}
-            >
-              4.3
-            </span>
+            <span style={{ fontSize: "12px", fontWeight: 400, color: "#807E7E" }}>4.3</span>
           </div>
           <span style={{ width: "1px", height: "14px", background: "#F6F6F6" }} />
           <div className="flex items-center" style={{ gap: "8px" }}>
             <Image src="/icons/dash/icon-buildings.svg" alt="" width={20} height={20} />
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                lineHeight: "24px",
-                fontWeight: 400,
-                color: "#807E7E",
-              }}
-            >
-              8 listings
-            </span>
+            <span style={{ fontSize: "12px", fontWeight: 400, color: "#807E7E" }}>8 listings</span>
           </div>
         </div>
-        <Link
-          href="#"
-          className="hover:underline"
-          style={{
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#305E82",
-            textDecoration: "none",
-          }}
-        >
+        <Link href="#" className="hover:underline" style={{ fontSize: "14px", fontWeight: 500, color: "#305E82", textDecoration: "none" }}>
           View all Properties
         </Link>
       </div>
-      <div
-        className="absolute"
-        style={{ left: 0, right: 0, top: "312px", height: "1px", background: "#F6F6F6" }}
-      />
+      <div style={{ height: "1px", background: "#F6F6F6" }} />
 
-      <div
-        className="absolute flex items-center"
-        style={{ left: "24px", top: "336px", gap: "16px", width: "345px" }}
-      >
+      <div className="flex items-center" style={{ padding: "16px 24px", gap: "16px" }}>
         <button
           type="button"
           onClick={contactOwner}
-          className="inline-flex items-center justify-center hover:opacity-80"
-          style={{
-            width: "165px",
-            height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
-            background: "#FFFFFF",
-            border: "1px solid #F6F6F6",
-            borderRadius: "12px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#121212",
-            cursor: "pointer",
-          }}
+          className="flex-1 inline-flex items-center justify-center hover:opacity-80"
+          style={{ height: "48px", padding: "8px 24px", gap: "8px", background: "#FFFFFF", border: "1px solid #F6F6F6", borderRadius: "12px", fontSize: "14px", fontWeight: 500, color: "#121212", cursor: "pointer" }}
         >
           <Image src="/icons/dash/call-dark.svg" alt="" width={20} height={20} />
           Call
@@ -804,20 +618,8 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
         <button
           type="button"
           onClick={contactOwner}
-          className="inline-flex items-center justify-center text-white hover:opacity-90"
-          style={{
-            width: "165px",
-            height: "48px",
-            padding: "8px 24px",
-            gap: "8px",
-            background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-            border: "1px solid rgba(120,158,187,0.5)",
-            borderRadius: "12px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
+          className="flex-1 inline-flex items-center justify-center text-white hover:opacity-90"
+          style={{ height: "48px", padding: "8px 24px", gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "1px solid rgba(120,158,187,0.5)", borderRadius: "12px", fontSize: "14px", fontWeight: 500, cursor: "pointer" }}
         >
           <Image src="/icons/dash/messages-2.svg" alt="" width={20} height={20} />
           Message
@@ -836,12 +638,11 @@ function RelatedListings({ currentId }: { currentId: string }) {
   if (others.length === 0) return null;
   return (
     <div className="flex flex-col" style={{ gap: "24px", width: "100%" }}>
-      <div className="flex flex-col" style={{ width: "411px", gap: "8px" }}>
+      <div className="flex flex-col max-w-full" style={{ width: "411px", gap: "8px" }}>
         <h2
+          className="text-[20px] leading-[28px] md:text-[24px] md:leading-[32px]"
           style={{
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "24px",
-            lineHeight: "32px",
             fontWeight: 600,
             color: "#121212",
           }}
@@ -860,7 +661,7 @@ function RelatedListings({ currentId }: { currentId: string }) {
           See similar property listings that you might like
         </p>
       </div>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "16px" }}>
         {others.map((l) => (
           <SeekerPropertyCard key={l.id} listing={l} />
         ))}
@@ -878,16 +679,14 @@ function PriceSpecsRow({
     <div className="flex flex-col items-stretch" style={{ gap: "16px" }}>
       <div style={{ height: "1px", background: "#F6F6F6", width: "100%" }} />
 
-      <div className="flex items-center justify-between" style={{ alignSelf: "stretch" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between" style={{ alignSelf: "stretch", gap: "12px" }}>
         <span
+          className="text-[24px] leading-[36px] md:text-[32px] md:leading-[56px]"
           style={{
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "32px",
-            lineHeight: "56px",
             fontWeight: 700,
             letterSpacing: "-0.02em",
             color: "#305E82",
-            textAlign: "right",
           }}
         >
           {listing.price}
@@ -898,7 +697,7 @@ function PriceSpecsRow({
           )}
         </span>
 
-        <div className="flex items-center" style={{ gap: "16px" }}>
+        <div className="flex items-center flex-wrap" style={{ gap: "16px" }}>
           <SpecGroup icon="/icons/dash/detail-maximize.svg" label={listing.sqft} />
           <SpecSeparator />
           <SpecGroup icon="/icons/dash/detail-bed.svg" label={`${listing.beds} Beds`} />
