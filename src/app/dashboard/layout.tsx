@@ -6,7 +6,8 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import ToastProvider from "@/components/Toast";
 import GlobalSocket from "@/components/GlobalSocket";
-import { getRole, type AccountRole } from "@/lib/role";
+import { getRole, setRole as persistRole, type AccountRole } from "@/lib/role";
+import { userTypeToRole } from "@/lib/userType";
 import { useGetMeQuery } from "@/services/meApi";
 
 const USER_NAME_BY_ROLE: Partial<Record<AccountRole, string>> = {
@@ -28,19 +29,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [role, setRole] = useState<AccountRole | null>(null);
   const [checked, setChecked] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { data: me } = useGetMeQuery();
+  const { data: me, isError: meError } = useGetMeQuery();
 
   useEffect(() => {
+    // Existing same-app session — role already in localStorage.
     const r = getRole();
-    if (!r) {
-      router.replace("/log-in");
+    if (r) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRole(r);
+      setChecked(true);
       return;
     }
-    // Hydration-safe: role lives in localStorage, read once after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRole(r);
-    setChecked(true);
-  }, [router]);
+    // No local role: this may be a fresh cross-app arrival (e.g. logged in on
+    // the marketing site) where only the shared auth cookie exists. Trust the
+    // cookie-backed /me instead of bouncing straight to log-in.
+    if (me) {
+      const derived = userTypeToRole(me.userType);
+      persistRole(derived);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRole(derived);
+      setChecked(true);
+    } else if (meError) {
+      router.replace("/log-in");
+    }
+    // else: /me still loading — wait (render nothing below).
+  }, [router, me, meError]);
 
   if (!checked || !role) return null;
 
