@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import {
   useGetMeQuery,
@@ -39,6 +39,7 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
   const isAgency = getRole() === "Real Estate Agency or Developer";
 
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [bizOpen, setBizOpen] = useState(false);
   const [docType, setDocType] = useState<string>("CAC_REGISTRATION");
   const [docNumber, setDocNumber] = useState("");
@@ -46,6 +47,25 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
 
   const [submitWidget] = useSubmitKycWidgetResultMutation();
   const [submitBusiness, { isLoading: submittingBiz }] = useSubmitKycBusinessMutation();
+
+  // Warm the Dojah widget: preconnect + preload the script so the modal opens
+  // instantly on click instead of fetching it fresh each time.
+  useEffect(() => {
+    if (isAgency || !APP_ID) return;
+    const preconnect = document.createElement("link");
+    preconnect.rel = "preconnect";
+    preconnect.href = "https://widget.dojah.io";
+    preconnect.crossOrigin = "anonymous";
+    const preload = document.createElement("link");
+    preload.rel = "preload";
+    preload.as = "script";
+    preload.href = "https://widget.dojah.io/widget.js";
+    document.head.append(preconnect, preload);
+    return () => {
+      preconnect.remove();
+      preload.remove();
+    };
+  }, [isAgency]);
 
   if (me?.verification?.complete) return null;
 
@@ -58,6 +78,7 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
       toast("Verification isn't configured yet. Please try again shortly.", "error");
       return;
     }
+    setStarting(true);
     setWidgetOpen(true);
   };
 
@@ -74,6 +95,8 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleWidgetResponse = async (type: string, data: any) => {
+    // Any callback means the widget is up — drop the "Starting…" state.
+    if (starting) setStarting(false);
     if (type === "success") {
       const referenceId =
         data?.referenceId || data?.reference_id || data?.verificationId || data?.data?.reference_id || undefined;
@@ -127,10 +150,11 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
         <button
           type="button"
           onClick={openVerify}
-          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 whitespace-nowrap h-11 md:h-12 px-4 md:px-6 text-[13px] md:text-[14px]"
-          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: "pointer" }}
+          disabled={starting}
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 whitespace-nowrap h-11 md:h-12 px-4 md:px-6 text-[13px] md:text-[14px] disabled:opacity-80"
+          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: starting ? "wait" : "pointer" }}
         >
-          <ShieldCheck size={18} /> Verify Identity
+          <ShieldCheck size={18} /> {starting ? "Starting…" : "Verify Identity"}
         </button>
       )}
 
