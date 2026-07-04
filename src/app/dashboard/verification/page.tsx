@@ -94,6 +94,13 @@ export default function VerificationPage() {
   const steps = buildSteps(me);
   const phoneNumber = me?.profile?.phoneNumber;
 
+  // Overall status reflects the steps: all completed → Verified, else In Progress.
+  const allVerified = steps.length > 0 && steps.every((s) => s.status === "completed");
+  const statusLabel = allVerified ? "Verified" : "In Progress";
+  const statusBadge = allVerified
+    ? { background: "rgba(0,157,53,0.12)", color: "#009D35" }
+    : { background: "#FFF7E9", color: "#EA651A" };
+
   return (
     <>
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -121,20 +128,20 @@ export default function VerificationPage() {
               >
                 Identity Verification
               </h2>
-              {/* In Progress — inline next to the title on mobile */}
+              {/* Overall status — inline next to the title on mobile */}
               <span
                 className="md:hidden inline-flex items-center justify-center shrink-0"
                 style={{
                   padding: "2px 8px",
-                  background: "#FFF7E9",
-                  color: "#EA651A",
+                  background: statusBadge.background,
+                  color: statusBadge.color,
                   borderRadius: "16px",
                   fontSize: "10px",
                   lineHeight: "18px",
                   fontWeight: 500,
                 }}
               >
-                In Progress
+                {statusLabel}
               </span>
             </div>
             <p
@@ -147,20 +154,20 @@ export default function VerificationPage() {
           </div>
         </div>
 
-        {/* In Progress — far right on desktop */}
+        {/* Overall status — far right on desktop */}
         <span
           className="hidden md:inline-flex items-center justify-center shrink-0"
           style={{
             padding: "2px 12px",
-            background: "#FFF7E9",
-            color: "#EA651A",
+            background: statusBadge.background,
+            color: statusBadge.color,
             borderRadius: "16px",
             fontSize: "12px",
             lineHeight: "18px",
             fontWeight: 500,
           }}
         >
-          In Progress
+          {statusLabel}
         </span>
       </div>
 
