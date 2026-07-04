@@ -12,7 +12,6 @@ import {
 } from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
-import DojahVerifyButton from "@/components/DojahVerifyButton";
 import {
   useGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
@@ -270,9 +269,8 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Mobile: compact icon actions only */}
+        {/* Mobile: edit icon only (identity verification lives on the Verification page) */}
         <div className="md:hidden flex items-center shrink-0" style={{ gap: "8px" }}>
-          <DojahVerifyButton compact />
           <button
             type="button"
             onClick={() => setEditOpen(true)}
@@ -286,7 +284,6 @@ export default function ProfilePage() {
 
         {/* Desktop: full Edit Profile button */}
         <div className="hidden md:flex items-center" style={{ gap: "16px" }}>
-          <DojahVerifyButton />
           <button
             type="button"
             onClick={() => setEditOpen(true)}
