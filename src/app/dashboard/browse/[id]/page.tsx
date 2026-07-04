@@ -210,17 +210,21 @@ export default function BrowsePropertyDetailPage({
 
       <PriceSpecsRow listing={listing} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_393px]" style={{ gap: "32px", alignItems: "start" }}>
-        <div className="flex flex-col" style={{ gap: "40px" }}>
-          <DescriptionBlock listing={listing} />
-          <AmenitiesBlock listing={listing} />
-          <PropertyDetailsBlock listing={listing} />
-          <ViewMapBlock listing={listing} />
+      <div className="flex flex-col gap-10 lg:grid lg:gap-8 lg:grid-cols-[minmax(0,1fr)_393px] lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-10">
+          <div className="order-2 lg:order-none"><DescriptionBlock listing={listing} /></div>
+          <div className="order-3 lg:order-none"><AmenitiesBlock listing={listing} /></div>
+          <div className="order-4 lg:order-none"><PropertyDetailsBlock listing={listing} /></div>
+          <div className="order-5 lg:order-none"><ViewMapBlock listing={listing} /></div>
         </div>
 
-        <div className="flex flex-col" style={{ gap: "24px" }}>
-          <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} />
-          <ListedByCard listing={listing} />
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
+          <div className="order-1 lg:order-none">
+            <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} />
+          </div>
+          <div className="order-6 lg:order-none">
+            <ListedByCard listing={listing} />
+          </div>
         </div>
       </div>
 
@@ -321,7 +325,7 @@ function AmenitiesBlock({ listing }: { listing: SeekerListing }) {
       >
         Amenities &amp; Features
       </h2>
-      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px 32px" }}>
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: "24px 32px" }}>
         {amenities.map((a) => (
           <div key={a} className="flex items-center" style={{ gap: "8px" }}>
             <Image src="/icons/dash/tick-circle.svg" alt="" width={24} height={24} />
