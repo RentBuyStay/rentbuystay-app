@@ -25,6 +25,33 @@ const WIDGET_ID = process.env.NEXT_PUBLIC_DOJAH_WIDGET_ID ?? "";
 // browser to report success directly. In production the webhook is authoritative.
 const TRUST_CLIENT = process.env.NEXT_PUBLIC_KYC_TRUST_CLIENT === "true";
 
+/**
+ * react-dojah (a React-16-era lib) removes its injected script/iframe nodes on
+ * unmount, but React 19 has usually already detached them — so removeChild
+ * throws "NotFoundError: … not a child of this node", crashing the tree right at
+ * the success moment. Make removeChild/insertBefore no-op when the node isn't
+ * actually a child (the well-known guard for third-party DOM libs). Installed
+ * once, client-side only.
+ */
+function installDomGuardOnce() {
+  if (typeof window === "undefined") return;
+  const win = window as unknown as { __rbsDomGuard?: boolean };
+  if (win.__rbsDomGuard) return;
+  win.__rbsDomGuard = true;
+
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(this: Node, child: T): T {
+    if (child.parentNode !== this) return child;
+    return originalRemoveChild.call(this, child) as T;
+  };
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(this: Node, newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) return newNode;
+    return originalInsertBefore.call(this, newNode, referenceNode) as T;
+  };
+}
+
 const BIZ_DOCS: { value: BusinessVerificationType; label: string; hint: string }[] = [
   { value: "CAC_REGISTRATION", label: "CAC Registration Number", hint: "Your company's RC / BN number" },
   { value: "TAX_ID", label: "Tax Identification Number", hint: "Company TIN" },
@@ -55,6 +82,7 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
   // instantly on click instead of fetching it fresh each time.
   useEffect(() => {
     if (isAgency || !APP_ID) return;
+    installDomGuardOnce();
     const preconnect = document.createElement("link");
     preconnect.rel = "preconnect";
     preconnect.href = "https://widget.dojah.io";
