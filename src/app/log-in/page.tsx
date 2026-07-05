@@ -186,7 +186,7 @@ export default function LogInPage() {
                 className="shrink-0 hover:opacity-70"
                 style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0 }}
               >
-                <Image src="/icons/eye-hide.svg" alt="" width={24} height={24} />
+                <Image src={showPassword ? "/icons/eye-show.svg" : "/icons/eye-hide.svg"} alt="" width={24} height={24} />
               </button>
             </div>
           </div>
