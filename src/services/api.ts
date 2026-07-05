@@ -175,3 +175,32 @@ export function unwrapApiError(
   }
   return null;
 }
+
+/**
+ * Turn ANY RTK Query error into an accurate, user-facing message. Prefers the
+ * backend's own message; otherwise distinguishes network/CORS, timeout, bad
+ * response and server (5xx) failures — so a dropped connection or server error
+ * is never mislabelled as "Invalid email or password".
+ */
+export function describeApiError(error: unknown): string {
+  const api = unwrapApiError(error);
+  if (api?.message) return api.message;
+
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? (error as { status?: unknown }).status
+      : undefined;
+
+  if (status === "FETCH_ERROR")
+    return "Can't reach the server. Check your internet connection and try again.";
+  if (status === "TIMEOUT_ERROR")
+    return "The server took too long to respond. Please try again.";
+  if (status === "PARSING_ERROR")
+    return "We received an unexpected response from the server. Please try again.";
+  if (typeof status === "number") {
+    if (status === 401 || status === 403) return "Invalid email or password.";
+    if (status === 429) return "Too many attempts. Please wait a moment and try again.";
+    if (status >= 500) return "Something went wrong on our end. Please try again shortly.";
+  }
+  return "Something went wrong. Please try again.";
+}
