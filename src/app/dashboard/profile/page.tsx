@@ -307,7 +307,7 @@ export default function ProfilePage() {
       </div>
 
 
-      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
         {isAgency ? (
           <>
             <Field label="Company Name" value={org.name} />
@@ -526,7 +526,7 @@ export default function ProfilePage() {
 
 function Field({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className={`flex flex-col ${className ?? ""}`} style={{ gap: "8px" }}>
+    <div className={`flex flex-col min-w-0 ${className ?? ""}`} style={{ gap: "8px" }}>
       <span
         style={{
           fontSize: "12px",
@@ -539,6 +539,7 @@ function Field({ label, value, className }: { label: string; value: string; clas
         {label}
       </span>
       <span
+        className="break-words"
         style={{
           fontSize: "14px",
           lineHeight: "24px",
@@ -567,7 +568,7 @@ function PropertyPreferencesSection({ prefs }: { prefs?: SeekerPreferencesRespon
         Property Preferences
       </h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3" style={{ gap: "24px" }}>
         <Field label="Looking for" value={lookingFor} />
         <Field label="Property Type" value={propertyType} />
         <Field label="Bedroom" value={bedrooms} />
