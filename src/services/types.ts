@@ -78,15 +78,24 @@ export const NEW_DEVICE_REQUIRES_OTP = "NEW_DEVICE_REQUIRES_OTP";
 
 export type Page<T> = {
   content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number; // current page (0-based)
-  size: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-  numberOfElements: number;
+  totalElements?: number;
+  totalPages?: number;
+  number?: number; // current page (0-based)
+  size?: number;
+  first?: boolean;
+  last?: boolean;
+  empty?: boolean;
+  numberOfElements?: number;
+  // Newer Spring nests pagination under `page`; older responses keep it flat.
+  page?: { size: number; number: number; totalElements: number; totalPages: number };
 };
+
+/** Total item count regardless of whether Spring nests it under `page`. */
+export function pageTotal(
+  p?: { content?: unknown[]; totalElements?: number; page?: { totalElements?: number } } | null
+): number {
+  return p?.totalElements ?? p?.page?.totalElements ?? p?.content?.length ?? 0;
+}
 
 // --- Properties ---
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { pageTotal } from "@/services/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -143,7 +144,7 @@ function AgencyDashboardHome() {
 
   const totals = analytics?.totals;
   const viewsDelta = analytics?.deltas?.viewsThisWeekChange?.trim();
-  const totalListings = summary?.propertyCount ?? myProps?.totalElements ?? 0;
+  const totalListings = summary?.propertyCount ?? pageTotal(myProps);
   const totalAgents = summary?.agentCount ?? 0;
   const upcomingAppointments = (inspections ?? []).filter(
     (i) => i.status === "PENDING" || i.status === "CONFIRMED"
@@ -209,7 +210,7 @@ function AgentDashboardHome() {
   const leads = conversations?.length ?? 0;
 
   const metrics: Metric[] = AGENT_METRICS.map((m) => {
-    if (m.label === "Total Listings") return { ...m, value: String(myProps?.totalElements ?? 0) };
+    if (m.label === "Total Listings") return { ...m, value: String(pageTotal(myProps)) };
     if (m.label === "Total Leads") return { ...m, value: String(leads) };
     if (m.label === "Total Views") return { ...m, value: (totals?.views ?? 0).toLocaleString() };
     if (m.label === "Revenue") return { ...m, value: formatRevenue(totals?.revenue ?? 0) };
@@ -255,7 +256,7 @@ function SeekerDashboardPlaceholder() {
 
   // Real counts; no fabricated trend deltas.
   const metrics: SeekerMetric[] = [
-    { icon: "/icons/dash/nav-saved.svg", label: "Saved Properties", value: String(savedPage?.totalElements ?? 0) },
+    { icon: "/icons/dash/nav-saved.svg", label: "Saved Properties", value: String(pageTotal(savedPage)) },
     { icon: "/icons/dash/nav-messages.svg", label: "Unread Messages", value: String(unreadMessages) },
     { icon: "/icons/dash/nav-calendar.svg", label: "Upcoming Appointments", value: String(upcoming) },
   ];
@@ -407,7 +408,7 @@ function OwnerDashboardHome() {
     : baseMetrics.map((m) => {
         switch (m.label) {
           case "Total Listings":
-            return { ...m, value: String(myProps?.totalElements ?? 0), trend: neutral("Listed properties") };
+            return { ...m, value: String(pageTotal(myProps)), trend: neutral("Listed properties") };
           case "Total Views":
             return {
               ...m,

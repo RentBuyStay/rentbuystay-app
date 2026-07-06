@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { pageTotal } from "@/services/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -50,7 +51,7 @@ export default function TransactionsPage() {
 
   // Real where available; "Total Deals" proxied by sold/rented (Archived) listings,
   // "Additional Earnings" has no backend source yet so it shows ₦0.
-  const totalListings = myProps?.totalElements ?? rows.length;
+  const totalListings = (pageTotal(myProps) || rows.length);
   const totalDeals = rows.filter((r) => r.vm.status === "Archived").length;
   const revenue = analytics?.totals?.revenue ?? 0;
   const additionalEarnings = 0;

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useGetAgenciesQuery } from "@/services/agentApi";
 import { useOpenDirectConversationMutation } from "@/services/conversationApi";
 import type { AgencyListItem } from "@/services/types";
+import { pageTotal } from "@/services/types";
 
 type AgencyVM = {
   id: string;
@@ -62,7 +63,7 @@ export default function AllAgenciesPage() {
     return true;
   });
 
-  const total = data?.totalElements ?? 0;
+  const total = pageTotal(data);
   const totalPages = data?.totalPages ?? 0;
 
   function runSearch() {

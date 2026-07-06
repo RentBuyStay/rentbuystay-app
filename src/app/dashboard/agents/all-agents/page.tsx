@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useGetAgentsQuery } from "@/services/agentApi";
 import { useOpenDirectConversationMutation } from "@/services/conversationApi";
 import type { AgentListItem } from "@/services/types";
+import { pageTotal } from "@/services/types";
 
 type AgentVM = {
   userId: string;
@@ -67,7 +68,7 @@ export default function AllAgentsPage() {
     return true;
   });
 
-  const total = data?.totalElements ?? 0;
+  const total = pageTotal(data);
   const totalPages = data?.totalPages ?? 0;
 
   function runSearch() {
