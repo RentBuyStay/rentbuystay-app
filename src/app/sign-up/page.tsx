@@ -35,10 +35,13 @@ export default function PropertyOwnerSignUpPage() {
   const [error, setError] = useState<string | null>(null);
 
   const isAgency = accountType === "Real Estate Agency or Developer";
+  const isSeeker = accountType === "Property Seeker";
+  // Property seekers don't provide a phone number at signup.
+  const phoneOk = isSeeker || Boolean(phone);
 
   const canProceed = isAgency
-    ? Boolean(companyName && email && phone && agreed && !isLoading)
-    : Boolean(firstName && lastName && email && phone && agreed && !isLoading);
+    ? Boolean(companyName && email && phoneOk && agreed && !isLoading)
+    : Boolean(firstName && lastName && email && phoneOk && agreed && !isLoading);
 
   async function handleSignup() {
     if (!canProceed) return;
@@ -54,7 +57,7 @@ export default function PropertyOwnerSignUpPage() {
         email: email.trim(),
         firstName: firstNamePayload,
         lastName: lastNamePayload,
-        phoneNumber: `${country.dial}${phone.replace(/\D/g, "")}`,
+        phoneNumber: isSeeker ? undefined : `${country.dial}${phone.replace(/\D/g, "")}`,
         userType,
       }).unwrap();
       setOnboarding({ email: email.trim(), userType, flow: "signup" });
@@ -221,27 +224,29 @@ export default function PropertyOwnerSignUpPage() {
               />
             </FieldGroup>
 
-            {/* Phone Number — US flag + +1 + chevron + input */}
-            <div className="flex flex-col" style={{ gap: "8px" }}>
-              <label
-                style={{
-                  fontSize: "14px",
-                  lineHeight: "24px",
-                  fontWeight: 500,
-                  color: "#121212",
-                  letterSpacing: "-0.02em",
-                  textAlign: "left",
-                }}
-              >
-                Phone Number
-              </label>
-              <PhoneNumberInput
-                country={country}
-                onCountryChange={setCountry}
-                value={phone}
-                onChange={setPhone}
-              />
-            </div>
+            {/* Phone Number — hidden for property seekers (they don't provide one) */}
+            {!isSeeker && (
+              <div className="flex flex-col" style={{ gap: "8px" }}>
+                <label
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: "24px",
+                    fontWeight: 500,
+                    color: "#121212",
+                    letterSpacing: "-0.02em",
+                    textAlign: "left",
+                  }}
+                >
+                  Phone Number
+                </label>
+                <PhoneNumberInput
+                  country={country}
+                  onCountryChange={setCountry}
+                  value={phone}
+                  onChange={setPhone}
+                />
+              </div>
+            )}
 
             
             <label className="flex items-start cursor-pointer" style={{ gap: "8px" }}>
