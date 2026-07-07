@@ -49,6 +49,12 @@ export default function CreatePasswordPage() {
     setError(null);
     try {
       await setPasswordReq({ email, password }).unwrap();
+      // Property seekers get one more onboarding step (what they're looking for)
+      // before finishing. Everyone else sees the success modal → log in.
+      if (getOnboarding()?.userType === "PROPERTY_SEEKER") {
+        router.push("/preferences");
+        return;
+      }
       // Keep onboarding so the login page can prefill the email; it's cleared
       // on successful login.
       setSubmitted(true);

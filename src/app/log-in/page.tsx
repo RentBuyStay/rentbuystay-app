@@ -11,13 +11,21 @@ import { useAppDispatch } from "@/store/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
 import { unwrapApiError, describeApiError } from "@/services/api";
 import { NEW_DEVICE_REQUIRES_OTP } from "@/services/types";
-import { getOnboarding, setOnboarding, clearOnboarding } from "@/lib/onboarding";
+import {
+  getOnboarding,
+  setOnboarding,
+  clearOnboarding,
+  getPendingPropertyTypeId,
+  clearPendingPropertyTypeId,
+} from "@/lib/onboarding";
+import { useUpdateSeekerPreferencesMutation } from "@/services/seekerApi";
 
 export default function LogInPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [login, { isLoading: loggingIn }] = useLoginMutation();
   const [getMe, { isFetching: fetchingMe }] = useLazyGetMeQuery();
+  const [updatePreferences] = useUpdateSeekerPreferencesMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +52,17 @@ export default function LogInPage() {
       // Ensure the token is in the store before GET /me reads it for its header.
       dispatch(setCredentials(tokens));
       await getMe().unwrap(); // resolves role + user; sets the dashboard role
+      // Apply a property-type preference picked during seeker onboarding (the
+      // user wasn't authenticated when they chose it). Best-effort — never block login.
+      const pendingPref = getPendingPropertyTypeId();
+      if (pendingPref != null) {
+        try {
+          await updatePreferences({ propertyTypeId: pendingPref }).unwrap();
+        } catch {
+          /* non-fatal — they can set it later in profile */
+        }
+        clearPendingPropertyTypeId();
+      }
       clearOnboarding();
       router.push("/dashboard");
     } catch (err) {
