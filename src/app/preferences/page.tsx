@@ -119,7 +119,7 @@ export default function PreferencesPage() {
       <button
         type="button"
         onClick={complete}
-        className="flex items-center justify-center self-stretch text-white hover:opacity-90 transition-opacity"
+        className="flex items-center justify-center self-stretch text-white hover:opacity-90 transition-opacity mt-auto lg:mt-0"
         style={{
           height: "48px",
           padding: "8px 24px",
