@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
 import { useGetMeQuery, useStartBusinessKycMutation } from "@/services/meApi";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
+import { useVerificationPoll } from "@/lib/useVerificationPoll";
 
 // react-dojah touches `window` on mount — load it client-side only.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,6 +52,7 @@ export default function DojahBusinessVerifyButton({ compact = false }: { compact
   const { data: me, refetch: refetchMe } = useGetMeQuery();
   const { toast } = useToast();
   const [startBusinessKyc] = useStartBusinessKycMutation();
+  const { finalizing, poll } = useVerificationPoll(refetchMe);
 
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -98,11 +100,13 @@ export default function DojahBusinessVerifyButton({ compact = false }: { compact
   const handleWidgetResponse = async (type: string, _data: any) => {
     if (starting) setStarting(false);
     if (type === "success") {
-      // Dojah's webhook records the result (spoof-proof); just refresh /me.
-      toast("Business verification submitted! We'll update your status shortly.", "success");
+      // Dojah's webhook records the result (spoof-proof); poll /me until it lands
+      // so the button removes itself without a manual refresh.
       setWidgetOpen(false);
-      refetchMe();
-      setTimeout(() => refetchMe(), 4000); // give the webhook a moment
+      toast("Business verification submitted! Finalizing…", "success");
+      const done = await poll((m) => Boolean(m?.verification?.business?.verified || m?.verification?.complete));
+      if (done) toast("Your business is verified! 🎉", "success");
+      else toast("Almost there — your status will update once verification is confirmed.", "info");
     } else if (type === "error") {
       toast("Verification didn't complete. Please try again.", "error");
       setWidgetOpen(false);
@@ -117,22 +121,23 @@ export default function DojahBusinessVerifyButton({ compact = false }: { compact
         <button
           type="button"
           onClick={openVerify}
-          disabled={starting}
+          disabled={starting || finalizing}
           aria-label="Verify Business"
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 disabled:opacity-80"
-          style={{ width: "40px", height: "40px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", cursor: starting ? "wait" : "pointer" }}
+          style={{ width: "40px", height: "40px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", cursor: starting || finalizing ? "wait" : "pointer" }}
         >
-          <Building2 size={20} />
+          {finalizing ? <Loader2 size={20} className="animate-spin" /> : <Building2 size={20} />}
         </button>
       ) : (
         <button
           type="button"
           onClick={openVerify}
-          disabled={starting}
+          disabled={starting || finalizing}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 whitespace-nowrap h-11 md:h-12 px-4 md:px-6 text-[13px] md:text-[14px] disabled:opacity-80"
-          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: starting ? "wait" : "pointer" }}
+          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: starting || finalizing ? "wait" : "pointer" }}
         >
-          <Building2 size={18} /> {starting ? "Starting…" : "Verify Business"}
+          {finalizing ? <Loader2 size={18} className="animate-spin" /> : <Building2 size={18} />}{" "}
+          {finalizing ? "Finalizing…" : starting ? "Starting…" : "Verify Business"}
         </button>
       )}
 

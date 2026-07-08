@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2 } from "lucide-react";
 import {
   useGetMeQuery,
   useSubmitKycWidgetResultMutation,
@@ -12,6 +12,7 @@ import {
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 import { getRole } from "@/lib/role";
+import { useVerificationPoll } from "@/lib/useVerificationPoll";
 import DojahBusinessVerifyButton from "@/components/DojahBusinessVerifyButton";
 import type { BusinessVerificationType } from "@/services/types";
 
@@ -70,6 +71,7 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
   const { data: me, refetch: refetchMe } = useGetMeQuery();
   const { toast } = useToast();
   const isAgency = getRole() === "Real Estate Agency or Developer";
+  const { finalizing, poll } = useVerificationPoll(refetchMe);
 
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -143,10 +145,13 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
       if (TRUST_CLIENT) {
         try { await submitWidget({ verified: true, referenceId }).unwrap(); } catch { /* webhook still records it */ }
       }
-      toast("Verification submitted! Your badge will update shortly.", "success");
       setWidgetOpen(false);
-      refetchMe();
-      setTimeout(() => { refetchMe(); }, 4000); // give the webhook a moment
+      toast("Verification submitted! Finalizing…", "success");
+      // Poll /me until the webhook records the result — the button then removes
+      // itself automatically, no manual refresh needed.
+      const done = await poll((m) => Boolean(m?.verification?.identity?.verified || m?.verification?.complete));
+      if (done) toast("You're verified! 🎉", "success");
+      else toast("Almost there — your badge will update once verification is confirmed.", "info");
     } else if (type === "error") {
       toast("Verification didn't complete. Please try again.", "error");
       setWidgetOpen(false);
@@ -180,21 +185,23 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
         <button
           type="button"
           onClick={openVerify}
+          disabled={finalizing}
           aria-label="Verify Identity"
-          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0"
-          style={{ width: "40px", height: "40px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", cursor: "pointer" }}
+          className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 disabled:opacity-80"
+          style={{ width: "40px", height: "40px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", cursor: finalizing ? "wait" : "pointer" }}
         >
-          <ShieldCheck size={20} />
+          {finalizing ? <Loader2 size={20} className="animate-spin" /> : <ShieldCheck size={20} />}
         </button>
       ) : (
         <button
           type="button"
           onClick={openVerify}
-          disabled={starting}
+          disabled={starting || finalizing}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 whitespace-nowrap h-11 md:h-12 px-4 md:px-6 text-[13px] md:text-[14px] disabled:opacity-80"
-          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: starting ? "wait" : "pointer" }}
+          style={{ gap: "8px", background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)", border: "none", borderRadius: "12px", fontWeight: 600, cursor: starting || finalizing ? "wait" : "pointer" }}
         >
-          <ShieldCheck size={18} /> {starting ? "Starting…" : "Verify Identity"}
+          {finalizing ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}{" "}
+          {finalizing ? "Finalizing…" : starting ? "Starting…" : "Verify Identity"}
         </button>
       )}
 
