@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { emailFromParam } from "@/lib/email";
 import OnboardingShell from "@/components/OnboardingShell";
 import { useConfirmPasswordResetMutation } from "@/services/authApi";
 import { unwrapApiError } from "@/services/api";
@@ -26,7 +27,7 @@ const HINTS = [
 
 function ResetPasswordInner() {
   const sp = useSearchParams();
-  const email = (sp.get("email") ?? "").trim();
+  const email = emailFromParam(sp.get("email"));
   const code = (sp.get("code") ?? "").trim();
 
   const [confirmReset, { isLoading }] = useConfirmPasswordResetMutation();
