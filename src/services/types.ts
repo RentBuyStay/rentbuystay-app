@@ -229,7 +229,8 @@ export type SeekerPreferencesResponse = {
 /** Body for PUT /me/preferences. preferredLocations are location IDs (max 3). */
 export type UpdateSeekerPreferencesRequest = {
   lookingFor?: "RENT" | "BUY" | "SHORTLET";
-  propertyTypeId?: number;
+  propertyTypeId?: number; // legacy single-select (kept for back-compat)
+  propertyTypeIds?: number[]; // multi-select property types
   bedrooms?: number;
   minPrice?: number;
   maxPrice?: number;

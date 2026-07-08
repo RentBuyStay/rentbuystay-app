@@ -8,8 +8,8 @@ import OnboardingShell from "@/components/OnboardingShell";
 import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import {
   getOnboarding,
-  setPendingPropertyTypeId,
-  clearPendingPropertyTypeId,
+  setPendingPropertyTypeIds,
+  clearPendingPropertyTypeIds,
 } from "@/lib/onboarding";
 
 /**
@@ -39,10 +39,10 @@ export default function PreferencesPage() {
     });
 
   const complete = () => {
-    // Backend preferences hold a single property type — stash the first pick.
-    const first = [...selected][0];
-    if (first != null) setPendingPropertyTypeId(first);
-    else clearPendingPropertyTypeId();
+    // Stash all picked property types; applied to /me/preferences on first login.
+    const ids = [...selected];
+    if (ids.length) setPendingPropertyTypeIds(ids);
+    else clearPendingPropertyTypeIds();
     router.push("/log-in");
   };
 

@@ -45,19 +45,26 @@ export function clearOnboarding(): void {
  */
 const PENDING_PREF_KEY = "rbs-pending-pref";
 
-export function setPendingPropertyTypeId(id: number): void {
+export function setPendingPropertyTypeIds(ids: number[]): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(PENDING_PREF_KEY, String(id));
+  sessionStorage.setItem(PENDING_PREF_KEY, JSON.stringify(ids));
 }
 
-export function getPendingPropertyTypeId(): number | null {
-  if (typeof window === "undefined") return null;
+export function getPendingPropertyTypeIds(): number[] {
+  if (typeof window === "undefined") return [];
   const raw = sessionStorage.getItem(PENDING_PREF_KEY);
-  const n = raw ? Number(raw) : NaN;
-  return Number.isFinite(n) ? n : null;
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((n) => Number.isFinite(n)) : [];
+  } catch {
+    // Back-compat with the old single-id string form.
+    const n = Number(raw);
+    return Number.isFinite(n) ? [n] : [];
+  }
 }
 
-export function clearPendingPropertyTypeId(): void {
+export function clearPendingPropertyTypeIds(): void {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(PENDING_PREF_KEY);
 }

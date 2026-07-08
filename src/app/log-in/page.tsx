@@ -16,8 +16,8 @@ import {
   getOnboarding,
   setOnboarding,
   clearOnboarding,
-  getPendingPropertyTypeId,
-  clearPendingPropertyTypeId,
+  getPendingPropertyTypeIds,
+  clearPendingPropertyTypeIds,
 } from "@/lib/onboarding";
 import { useUpdateSeekerPreferencesMutation } from "@/services/seekerApi";
 
@@ -63,14 +63,14 @@ export default function LogInPage() {
       }
       // Apply a property-type preference picked during seeker onboarding (the
       // user wasn't authenticated when they chose it). Best-effort — never block login.
-      const pendingPref = getPendingPropertyTypeId();
-      if (pendingPref != null) {
+      const pendingPrefs = getPendingPropertyTypeIds();
+      if (pendingPrefs.length) {
         try {
-          await updatePreferences({ propertyTypeId: pendingPref }).unwrap();
+          await updatePreferences({ propertyTypeIds: pendingPrefs }).unwrap();
         } catch {
           /* non-fatal — they can set it later in profile */
         }
-        clearPendingPropertyTypeId();
+        clearPendingPropertyTypeIds();
       }
       clearOnboarding();
       router.push("/dashboard");
