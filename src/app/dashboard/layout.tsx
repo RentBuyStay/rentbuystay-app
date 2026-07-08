@@ -7,7 +7,7 @@ import DashboardTopbar from "@/components/DashboardTopbar";
 import ToastProvider from "@/components/Toast";
 import GlobalSocket from "@/components/GlobalSocket";
 import { getRole, setRole as persistRole, type AccountRole } from "@/lib/role";
-import { userTypeToRole } from "@/lib/userType";
+import { userTypeToRole, isAdminType } from "@/lib/userType";
 import { useGetMeQuery } from "@/services/meApi";
 
 const USER_NAME_BY_ROLE: Partial<Record<AccountRole, string>> = {
@@ -32,6 +32,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: me, isError: meError } = useGetMeQuery();
 
   useEffect(() => {
+    // Administrators belong to the admin portal, never the user dashboard —
+    // even if they arrive via the shared auth cookie. Bounce them out.
+    if (me && isAdminType(me.userType)) {
+      router.replace("/log-in");
+      return;
+    }
     // Existing same-app session — role already in localStorage.
     const r = getRole();
     if (r) {

@@ -8,7 +8,8 @@ import OnboardingShell from "@/components/OnboardingShell";
 import { useLoginMutation } from "@/services/authApi";
 import { useLazyGetMeQuery } from "@/services/meApi";
 import { useAppDispatch } from "@/store/hooks";
-import { setCredentials } from "@/features/auth/authSlice";
+import { setCredentials, logOut } from "@/features/auth/authSlice";
+import { isAdminType } from "@/lib/userType";
 import { unwrapApiError, describeApiError } from "@/services/api";
 import { NEW_DEVICE_REQUIRES_OTP } from "@/services/types";
 import {
@@ -51,7 +52,15 @@ export default function LogInPage() {
       const tokens = await login({ email: trimmedEmail, password }).unwrap();
       // Ensure the token is in the store before GET /me reads it for its header.
       dispatch(setCredentials(tokens));
-      await getMe().unwrap(); // resolves role + user; sets the dashboard role
+      const me = await getMe().unwrap(); // resolves role + user; sets the dashboard role
+      // This is the user app — administrators belong in the admin portal. Reject
+      // admin/super-admin accounts even with valid credentials (the backend keeps
+      // them out of user endpoints anyway).
+      if (isAdminType(me.userType)) {
+        dispatch(logOut());
+        setError("This is an administrator account. Please sign in from the admin portal.");
+        return;
+      }
       // Apply a property-type preference picked during seeker onboarding (the
       // user wasn't authenticated when they chose it). Best-effort — never block login.
       const pendingPref = getPendingPropertyTypeId();

@@ -34,6 +34,11 @@ export function userTypeToRole(t: UserType): AccountRole {
   return TYPE_TO_ROLE[t];
 }
 
+/** Admin/super-admin accounts belong to the admin portal, not this user app. */
+export function isAdminType(t: UserType | undefined | null): boolean {
+  return t === "ADMIN" || t === "SUPER_ADMIN";
+}
+
 export function roleToUserType(r: AccountRole): UserType {
   return ROLE_TO_TYPE[r];
 }
