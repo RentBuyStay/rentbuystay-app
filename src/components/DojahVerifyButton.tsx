@@ -12,6 +12,7 @@ import {
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 import { getRole } from "@/lib/role";
+import DojahBusinessVerifyButton from "@/components/DojahBusinessVerifyButton";
 import type { BusinessVerificationType } from "@/services/types";
 
 // react-dojah touches `window` on mount — load it client-side only.
@@ -61,7 +62,9 @@ const BIZ_DOCS: { value: BusinessVerificationType; label: string; hint: string }
  * Identity verification entry point.
  *  - Individuals (seeker/owner/agent) → Dojah Web widget (NIN/BVN + selfie + ID),
  *    verified client-side; the result is posted to the backend on success.
- *  - Agencies → CAC/TIN direct submit (the widget doesn't cover business KYC).
+ *  - Agencies → a separate Dojah business (KYB/CAC) widget (see
+ *    DojahBusinessVerifyButton). The manual CAC/TIN form below is kept only as a
+ *    fallback and is no longer the default agency path.
  */
 export default function DojahVerifyButton({ compact = false }: { compact?: boolean }) {
   const { data: me, refetch: refetchMe } = useGetMeQuery();
@@ -99,6 +102,9 @@ export default function DojahVerifyButton({ compact = false }: { compact?: boole
   }, [isAgency]);
 
   if (me?.verification?.complete) return null;
+
+  // Agencies verify their business on Dojah's KYB flow, not the individual widget.
+  if (isAgency) return <DojahBusinessVerifyButton compact={compact} />;
 
   const openVerify = () => {
     if (isAgency) {

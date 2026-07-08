@@ -12,6 +12,7 @@ import type {
   SubmitBusinessKycRequest,
   SubmitIdentitySelfieRequest,
   SubmitWidgetResultRequest,
+  KycSdkInitResponse,
 } from "./types";
 
 export const meApi = api.injectEndpoints({
@@ -97,6 +98,13 @@ export const meApi = api.injectEndpoints({
       invalidatesTags: ["Me"],
     }),
 
+    // Starts a Dojah business (KYB) workflow — returns a customerReference to
+    // pass to the Dojah widget as metadata; the outcome arrives via the webhook.
+    startBusinessKyc: builder.mutation<KycSdkInitResponse, void>({
+      query: () => ({ url: endpoints.kycBusinessStart, method: "POST" }),
+      transformResponse: (res: ApiEnvelope<KycSdkInitResponse>) => res.data,
+    }),
+
     // Self-service account deactivation (POST /me/deactivate, no body).
     deactivateAccount: builder.mutation<null, void>({
       query: () => ({ url: endpoints.meDeactivate, method: "POST" }),
@@ -115,5 +123,6 @@ export const {
   useSubmitKycIdentitySelfieMutation,
   useSubmitKycWidgetResultMutation,
   useSubmitKycBusinessMutation,
+  useStartBusinessKycMutation,
   useDeactivateAccountMutation,
 } = meApi;

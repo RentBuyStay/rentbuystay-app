@@ -100,6 +100,9 @@ export const endpoints = {
   // KYC / Identity verification (Dojah — direct submit, verified server-side)
   kycIndividual: "/me/kyc/individual",
   kycBusiness: "/me/kyc/business",
+  // Starts a Dojah business (KYB) workflow — returns a customerReference to pass
+  // to the Dojah widget; the result comes back via the Dojah webhook.
+  kycBusinessStart: "/me/kyc/business/start",
   // ID types that support a selfie/face check (Tier 2).
   kycNin: "/me/kyc/identity/nin",
   kycBvn: "/me/kyc/identity/bvn",
