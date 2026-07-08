@@ -6,6 +6,7 @@ import { useState } from "react";
 import VerifyPhoneModal from "@/components/VerifyPhoneModal";
 import DojahVerifyButton from "@/components/DojahVerifyButton";
 import { useGetMeQuery } from "@/services/meApi";
+import { getRole } from "@/lib/role";
 import type { MeResponse } from "@/services/types";
 
 type StepStatus = "completed" | "pending";
@@ -23,14 +24,17 @@ type Step = {
   action?: StepAction;
 };
 
-function buildSteps(me?: MeResponse): Step[] {
+function buildSteps(me?: MeResponse, isAgency = false): Step[] {
   const emailVerified = me?.verification?.email?.verified ?? true;
   const email = me?.email || "";
-  
+
   const phoneVerified = me?.verification?.phone?.verified ?? false;
   const phoneNumber = me?.profile?.phoneNumber || "";
 
-  const identityVerified = me?.verification?.identity?.verified ?? false;
+  // Agencies verify their business (CAC/MEMART); everyone else verifies identity.
+  const identityVerified = isAgency
+    ? (me?.verification?.business?.verified ?? false)
+    : (me?.verification?.identity?.verified ?? false);
 
   return [
     {
@@ -69,9 +73,11 @@ function buildSteps(me?: MeResponse): Step[] {
     },
     {
       number: 3,
-      title: "Identity Verification",
+      title: isAgency ? "Business Verification" : "Identity Verification",
       status: identityVerified ? "completed" : "pending",
-      body: <>Verify your ID with a valid government-issued ID, powered by Dojah.</>,
+      body: isAgency
+        ? <>Verify your business (CAC/MEMART registration), powered by Dojah.</>
+        : <>Verify your ID with a valid government-issued ID, powered by Dojah.</>,
       action: identityVerified
         ? undefined
         : { kind: "custom", component: <DojahVerifyButton /> },
@@ -91,7 +97,8 @@ export default function VerificationPage() {
     );
   }
 
-  const steps = buildSteps(me);
+  const isAgency = me?.userType === "PROPERTY_AGENCY" || getRole() === "Real Estate Agency or Developer";
+  const steps = buildSteps(me, isAgency);
   const phoneNumber = me?.profile?.phoneNumber;
 
   // Overall status reflects the steps: all completed → Verified, else In Progress.
