@@ -265,7 +265,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
 
-      <PropertyGallery images={property.images} alt={property.title} className="h-[300px] md:h-[450px]" />
+      <PropertyGallery media={property.media} images={property.images} alt={property.title} className="h-[300px] md:h-[450px]" />
 
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" style={{ padding: "16px 0", borderBottom: "1px solid #F6F6F6" }}>

@@ -74,7 +74,7 @@ export type PropertyFormInitial = {
   parking?: number;
   totalArea?: number;
   yearBuilt?: string;
-  existingPhotos?: { id: string; url: string }[];
+  existingPhotos?: { id: string; url: string; contentType?: string | null }[];
   charges?: Charge[];
   assignedAgentId?: string;
 };
@@ -116,7 +116,7 @@ export default function PropertyForm({
   const [totalArea, setTotalArea] = useState(initial.totalArea ?? 0);
   const [yearBuilt, setYearBuilt] = useState(initial.yearBuilt ?? "");
   const [photos, setPhotos] = useState<File[]>([]);
-  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>(initial.existingPhotos ?? []);
+  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string; contentType?: string | null }[]>(initial.existingPhotos ?? []);
   const [assignedAgentId, setAssignedAgentId] = useState(initial.assignedAgentId ?? "");
   const [isAgency, setIsAgency] = useState(false);
   useEffect(() => {
@@ -180,14 +180,24 @@ export default function PropertyForm({
     setCharges((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.id !== id)));
   }
 
-  // A property can carry 3–20 photos. Cap on the TOTAL (already-saved photos on
-  // an edit + newly picked files), so selecting more just keeps the first that fit.
+  // A property can carry 3–20 items. Cap on the TOTAL (already-saved media on an
+  // edit + newly picked files), so selecting more just keeps the first that fit.
   const MAX_PHOTOS = 20;
+  const IMG_LIMIT = 10 * 1024 * 1024; // 10MB
+  const VIDEO_LIMIT = 50 * 1024 * 1024; // 50MB
   function onPhotoSelect(files: FileList | null) {
     if (!files) return;
+    const picked = Array.from(files);
+    // Reject oversized files up-front so the user isn't left waiting on an upload
+    // the backend will reject anyway.
+    const tooBig = picked.filter((f) => f.size > (f.type.startsWith("video/") ? VIDEO_LIMIT : IMG_LIMIT));
+    if (tooBig.length) {
+      setError(`Some files are too large (photos max 10MB, videos max 50MB): ${tooBig.map((f) => f.name).join(", ")}`);
+    }
+    const ok = picked.filter((f) => f.size <= (f.type.startsWith("video/") ? VIDEO_LIMIT : IMG_LIMIT));
     setPhotos((prev) => {
       const remaining = Math.max(0, MAX_PHOTOS - existingPhotos.length - prev.length);
-      return [...prev, ...Array.from(files).slice(0, remaining)];
+      return [...prev, ...ok.slice(0, remaining)];
     });
   }
 
@@ -591,12 +601,12 @@ export default function PropertyForm({
             <span style={{ color: "#305E82", textDecoration: "underline" }}>click to upload</span>
           </p>
           <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E", textAlign: "center", maxWidth: "440px" }}>
-            To ensure best quality, please upload PNG, JPG up to 5MB each with high resolution. Upload 3 to 20 photos.
+            Upload 3 to 20 items. Photos: PNG/JPG up to 5MB. Videos: MP4/MOV/WEBM up to 50MB.
           </p>
           <input
             id="property-photos"
             type="file"
-            accept="image/png,image/jpeg"
+            accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
             multiple
             className="sr-only"
             onChange={(e) => onPhotoSelect(e.target.files)}
@@ -609,12 +619,14 @@ export default function PropertyForm({
               <PhotoThumb
                 key={`e-${i}`}
                 src={photo.url}
+                isVideo={photo.contentType?.startsWith("video/")}
                 onRemove={() => setExistingPhotos((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
             {photos.map((p, i) => (
               <PhotoThumb
                 key={`n-${i}`}
+                isVideo={p.type.startsWith("video/")}
                 src={URL.createObjectURL(p)}
                 unoptimized
                 onRemove={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
@@ -953,17 +965,28 @@ function PhotoThumb({
   src,
   onRemove,
   unoptimized,
+  isVideo,
 }: {
   src: string;
   onRemove: () => void;
   unoptimized?: boolean;
+  isVideo?: boolean;
 }) {
   return (
     <div
       className="relative overflow-hidden shrink-0"
       style={{ width: "160px", height: "160px", background: "#F6F6F6", borderRadius: "15px" }}
     >
-      <Image src={src} alt="" fill style={{ objectFit: "cover" }} unoptimized={unoptimized} />
+      {isVideo ? (
+        <>
+          <video src={src} muted playsInline preload="metadata" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          <span className="absolute inline-flex items-center justify-center" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 36, height: 36, borderRadius: 999, background: "rgba(18,18,18,0.5)", border: "1px solid rgba(255,255,255,0.6)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+          </span>
+        </>
+      ) : (
+        <Image src={src} alt="" fill style={{ objectFit: "cover" }} unoptimized={unoptimized} />
+      )}
       <button
         type="button"
         onClick={onRemove}

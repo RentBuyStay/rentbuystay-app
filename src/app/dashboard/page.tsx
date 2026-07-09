@@ -1012,7 +1012,7 @@ function MiniPropertyCard({
       style={{ height: "414px", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}
     >
       <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
-        <PropertyCardImage images={property.images ?? [property.image]} alt={property.title} sizes="100vw" />
+        <PropertyCardImage media={property.media} images={property.images ?? [property.image]} alt={property.title} sizes="100vw" />
         <span
           className="absolute"
           style={{

@@ -266,7 +266,7 @@ function PropertyCard({ property }: { property: PropertyVM }) {
     >
 
       <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
-        <PropertyCardImage images={property.images ?? [property.image]} alt={property.title} sizes="352px" />
+        <PropertyCardImage media={property.media} images={property.images ?? [property.image]} alt={property.title} sizes="352px" />
 
         <span
           className="absolute"

@@ -5,6 +5,7 @@ import type {
   PropertyStatus,
 } from "@/services/types";
 import type { SeekerListing, SeekerListingTag } from "@/components/SeekerPropertyCard";
+import type { MediaItem } from "@/components/PropertyGallery";
 
 /** UI-facing view model the property cards/pages render. */
 export type PropertyTag = "For Rent" | "For Sale" | "Shortlet";
@@ -30,6 +31,7 @@ export type PropertyVM = {
   baths: number;
   image: string;
   images?: string[];
+  media?: MediaItem[];
   viewCount: number;
 };
 
@@ -76,20 +78,34 @@ export function primaryPhoto(p: PropertyResponse): string {
   return primary.url || PLACEHOLDER_IMAGE;
 }
 
+/** Photos ordered primary-first, then by sortOrder. */
+function orderedPhotos(p: PropertyResponse) {
+  return [...(p.photos ?? [])].sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (b.isPrimary && !a.isPrimary) return 1;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  });
+}
+
 /**
  * All photo URLs for a property, primary first, then by sortOrder — the full
  * set a card/gallery cycles through. Falls back to a single placeholder so
  * consumers can always render at least one image.
  */
 export function photoUrls(p: PropertyResponse): string[] {
-  if (!p.photos?.length) return [PLACEHOLDER_IMAGE];
-  const ordered = [...p.photos].sort((a, b) => {
-    if (a.isPrimary && !b.isPrimary) return -1;
-    if (b.isPrimary && !a.isPrimary) return 1;
-    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-  });
-  const urls = ordered.map((ph) => ph.url).filter(Boolean);
+  const urls = orderedPhotos(p).map((ph) => ph.url).filter(Boolean);
   return urls.length ? urls : [PLACEHOLDER_IMAGE];
+}
+
+/** Ordered media items (image | video) for a property, for the gallery. */
+export function mediaItems(p: PropertyResponse): MediaItem[] {
+  const items = orderedPhotos(p)
+    .filter((ph) => ph.url)
+    .map((ph) => ({
+      url: ph.url,
+      type: (ph.contentType?.startsWith("video/") ? "video" : "image") as MediaItem["type"],
+    }));
+  return items.length ? items : [{ url: PLACEHOLDER_IMAGE, type: "image" }];
 }
 
 // --- Detail view model (property details page) ---
@@ -168,6 +184,7 @@ export function toPropertyVM(p: PropertyResponse): PropertyVM {
     baths: p.bathrooms ?? 0,
     image: primaryPhoto(p),
     images: photoUrls(p),
+    media: mediaItems(p),
     viewCount: p.viewCount ?? 0,
   };
 }
@@ -194,6 +211,7 @@ export function toSeekerListing(p: PropertyResponse): SeekerListing {
     baths: p.bathrooms ?? 0,
     image: primaryPhoto(p),
     images: photoUrls(p),
+    media: mediaItems(p),
     amenities: (p.amenities ?? []).map((a) => a.name),
     seller: sellerFrom(p),
     ownerUserId: p.assignedAgentUserId ?? p.ownerUserId,

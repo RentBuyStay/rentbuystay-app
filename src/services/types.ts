@@ -114,7 +114,7 @@ export type PropertyStatus =
   | "REJECTED"
   | "LIMIT_EXCEEDED";
 
-export type PhotoRef = { id?: string; url: string; sortOrder?: number; isPrimary?: boolean };
+export type PhotoRef = { id?: string; url: string; contentType?: string | null; sortOrder?: number; isPrimary?: boolean };
 export type ChargeRef = {
   id?: string;
   title: string;

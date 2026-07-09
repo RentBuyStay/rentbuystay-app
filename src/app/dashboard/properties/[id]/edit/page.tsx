@@ -123,8 +123,8 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
     totalArea: property.totalAreaSqm ?? 0,
     yearBuilt: property.yearBuilt ? String(property.yearBuilt) : "",
     existingPhotos: (property.photos ?? [])
-      .filter((p): p is { id: string; url: string } => typeof p.id === "string")
-      .map((p) => ({ id: p.id, url: p.url })),
+      .filter((p): p is { id: string; url: string; contentType?: string | null } => typeof p.id === "string")
+      .map((p) => ({ id: p.id, url: p.url, contentType: p.contentType })),
     charges: (property.charges ?? []).map((c, i) => ({
       id: c.id ?? `c${i}`,
       title: c.title,

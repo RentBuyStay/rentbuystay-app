@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOpenDirectConversationMutation } from "@/services/conversationApi";
-import { PropertyCardImage } from "@/components/PropertyGallery";
+import { PropertyCardImage, type MediaItem } from "@/components/PropertyGallery";
 
 export type SeekerListingTag = "FOR SALE" | "FOR RENT" | "SHORTLET";
 
@@ -20,6 +20,7 @@ export type SeekerListing = {
   baths: number;
   image: string;
   images?: string[];
+  media?: MediaItem[];
   amenities: string[];
   seller: { name: string; initials: string; verified: boolean; avatarUrl?: string };
   ownerUserId?: string; // host to contact (agent if assigned, else owner)
@@ -73,7 +74,7 @@ export default function SeekerPropertyCard({
       }}
     >
       <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
-        <PropertyCardImage images={listing.images ?? [listing.image]} alt={listing.title} sizes="352px" />
+        <PropertyCardImage media={listing.media} images={listing.images ?? [listing.image]} alt={listing.title} sizes="352px" />
         <span
           className="absolute inline-flex items-center justify-center"
           style={{

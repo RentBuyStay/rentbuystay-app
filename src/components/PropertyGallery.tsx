@@ -4,23 +4,45 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Shared property image gallery. Two entry points, one behaviour contract:
+ * Shared property media gallery. Two entry points, one behaviour contract:
  *
  *  - <PropertyCardImage> — compact, for grid/list cards. Auto-advances through
- *    the photos (pauses on hover), tiny dot indicators, arrows on hover.
+ *    the media (pauses on hover), tiny dot indicators, arrows on hover.
  *  - <PropertyGallery>   — full, for detail pages. Arrows, dots, counter,
  *    keyboard (←/→), touch swipe, optional auto-play until the user interacts.
  *
- * Both collapse gracefully: with a single photo they render a plain image with
- * NO arrows, dots, or counter.
+ * Both handle images AND videos, and collapse gracefully: with a single item
+ * they render it plain with NO arrows, dots, or counter.
  */
 
 const PLACEHOLDER = "/images/prop1.jpg";
 
+export type MediaItem = { url: string; type: "image" | "video" };
+
+/** Build media items from a backend photos[] array (contentType → image/video). */
+export function toMediaItems(
+  photos?: { url: string; contentType?: string | null }[],
+  fallback: string[] = [PLACEHOLDER],
+): MediaItem[] {
+  if (!photos?.length) return fallback.map((url) => ({ url, type: "image" }));
+  const items = photos
+    .filter((p) => p.url)
+    .map((p) => ({
+      url: p.url,
+      type: (p.contentType?.startsWith("video/") ? "video" : "image") as MediaItem["type"],
+    }));
+  return items.length ? items : fallback.map((url) => ({ url, type: "image" }));
+}
+
+/** Normalize the two accepted prop shapes (media items, or plain image URLs). */
+function resolveMedia(media?: MediaItem[], images?: string[]): MediaItem[] {
+  if (media?.length) return media;
+  if (images?.length) return images.map((url) => ({ url, type: "image" }));
+  return [{ url: PLACEHOLDER, type: "image" }];
+}
+
 function useCarousel(count: number) {
   const [rawIndex, setIndex] = useState(0);
-  // Clamp at read time so a shrinking photo set never points out of range
-  // (avoids a setState-in-effect just to correct the index).
   const index = count > 0 ? ((rawIndex % count) + count) % count : 0;
   const clamp = useCallback((n: number) => (count > 0 ? ((n % count) + count) % count : 0), [count]);
   const go = useCallback((n: number) => setIndex(clamp(n)), [clamp]);
@@ -43,7 +65,88 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-/** Dot indicators — the active dot widens into a pill. */
+/** Centered play glyph overlaid on video slides. */
+function PlayBadge({ small = false }: { small?: boolean }) {
+  const d = small ? 28 : 56;
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+      aria-hidden
+    >
+      <div
+        className="flex items-center justify-center"
+        style={{
+          width: d,
+          height: d,
+          borderRadius: 999,
+          background: "rgba(18,18,18,0.5)",
+          border: "1px solid rgba(255,255,255,0.6)",
+          backdropFilter: "blur(2px)",
+        }}
+      >
+        <svg width={small ? 12 : 20} height={small ? 12 : 20} viewBox="0 0 24 24" fill="#fff">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+/** One slide — an image or a video, sized to cover its container. */
+function Slide({
+  item,
+  active,
+  alt,
+  sizes,
+  controls,
+  priority,
+}: {
+  item: MediaItem;
+  active: boolean;
+  alt: string;
+  sizes?: string;
+  controls?: boolean; // true on detail (real player), false on cards (poster frame)
+  priority?: boolean;
+}) {
+  const common = {
+    position: "absolute" as const,
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover" as const,
+    opacity: active ? 1 : 0,
+    transition: "opacity 0.5s ease",
+  };
+
+  if (item.type === "video") {
+    return (
+      <>
+        <video
+          src={item.url}
+          muted
+          playsInline
+          controls={controls}
+          preload="metadata"
+          style={common}
+        />
+        {/* Show the play affordance only on non-interactive (card) posters. */}
+        {!controls && active && <PlayBadge small />}
+      </>
+    );
+  }
+
+  return (
+    <Image
+      src={item.url}
+      alt={active ? alt : ""}
+      fill
+      sizes={sizes}
+      style={{ objectFit: "cover", opacity: active ? 1 : 0, transition: "opacity 0.5s ease" }}
+      priority={priority}
+    />
+  );
+}
+
 function Dots({
   count,
   index,
@@ -63,7 +166,7 @@ function Dots({
           <button
             key={i}
             type="button"
-            aria-label={`Go to photo ${i + 1}`}
+            aria-label={`Go to item ${i + 1}`}
             onClick={
               onDot
                 ? (e) => {
@@ -96,7 +199,6 @@ function Dots({
   );
 }
 
-/** A round, glassy arrow control used on both surfaces. */
 function ArrowButton({
   dir,
   onClick,
@@ -111,7 +213,7 @@ function ArrowButton({
   return (
     <button
       type="button"
-      aria-label={dir === "left" ? "Previous photo" : "Next photo"}
+      aria-label={dir === "left" ? "Previous item" : "Next item"}
       className={className}
       onClick={(e) => {
         e.preventDefault();
@@ -139,24 +241,26 @@ function ArrowButton({
 }
 
 // ---------------------------------------------------------------------------
-// Card image — auto-advancing, minimal chrome.
+// Card media — auto-advancing, minimal chrome.
 // ---------------------------------------------------------------------------
 export function PropertyCardImage({
+  media,
   images,
   alt,
   sizes,
   intervalMs = 4000,
   className,
 }: {
-  images: string[];
+  media?: MediaItem[];
+  images?: string[];
   alt: string;
   sizes?: string;
   intervalMs?: number;
   className?: string;
 }) {
-  const imgs = images.length ? images : [PLACEHOLDER];
-  const single = imgs.length <= 1;
-  const { index, go, next, prev } = useCarousel(imgs.length);
+  const items = resolveMedia(media, images);
+  const single = items.length <= 1;
+  const { index, go, next, prev } = useCarousel(items.length);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -171,26 +275,12 @@ export function PropertyCardImage({
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Stacked layers crossfade so the change reads as one continuous image. */}
-      {imgs.map((src, i) => (
-        <Image
-          key={`${src}-${i}`}
-          src={src}
-          alt={i === index ? alt : ""}
-          fill
-          sizes={sizes}
-          style={{
-            objectFit: "cover",
-            opacity: i === index ? 1 : 0,
-            transition: "opacity 0.6s ease",
-          }}
-          priority={i === 0}
-        />
+      {items.map((item, i) => (
+        <Slide key={`${item.url}-${i}`} item={item} active={i === index} alt={alt} sizes={sizes} priority={i === 0} />
       ))}
 
       {!single && (
         <>
-          {/* Arrows — revealed on hover so the card stays clean at rest. */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             <span className="pointer-events-auto">
               <ArrowButton dir="left" size={30} onClick={prev} />
@@ -199,9 +289,8 @@ export function PropertyCardImage({
               <ArrowButton dir="right" size={30} onClick={next} />
             </span>
           </div>
-          {/* Dots — always visible so users know there's more than one photo. */}
           <div className="absolute inset-x-0 bottom-2 flex justify-center">
-            <Dots count={imgs.length} index={index} onDot={go} />
+            <Dots count={items.length} index={index} onDot={go} />
           </div>
         </>
       )}
@@ -213,6 +302,7 @@ export function PropertyCardImage({
 // Full gallery — for detail pages.
 // ---------------------------------------------------------------------------
 export function PropertyGallery({
+  media,
   images,
   alt,
   radius = 20,
@@ -220,25 +310,28 @@ export function PropertyGallery({
   intervalMs = 5000,
   className,
 }: {
-  images: string[];
+  media?: MediaItem[];
+  images?: string[];
   alt: string;
   radius?: number;
   autoPlay?: boolean;
   intervalMs?: number;
   className?: string;
 }) {
-  const imgs = images.length ? images : [PLACEHOLDER];
-  const single = imgs.length <= 1;
-  const { index, go, next, prev } = useCarousel(imgs.length);
+  const items = resolveMedia(media, images);
+  const single = items.length <= 1;
+  const hasVideo = items.some((m) => m.type === "video");
+  const { index, go, next, prev } = useCarousel(items.length);
   const [interacted, setInteracted] = useState(false);
   const touchX = useRef<number | null>(null);
 
-  // Auto-play only until the first manual interaction, then hand over control.
+  // Auto-play only for image-only sets, until the first manual interaction —
+  // we never auto-advance past a video the user might be watching.
   useEffect(() => {
-    if (single || !autoPlay || interacted) return;
+    if (single || hasVideo || !autoPlay || interacted) return;
     const t = setInterval(next, intervalMs);
     return () => clearInterval(t);
-  }, [single, autoPlay, interacted, next, intervalMs]);
+  }, [single, hasVideo, autoPlay, interacted, next, intervalMs]);
 
   const stop = () => setInteracted(true);
   const onPrev = () => {
@@ -250,7 +343,6 @@ export function PropertyGallery({
     next();
   };
 
-  // Keyboard arrows when the gallery is focused.
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (single) return;
     if (e.key === "ArrowLeft") onPrev();
@@ -283,18 +375,14 @@ export function PropertyGallery({
       aria-roledescription={single ? undefined : "carousel"}
     >
       <div className="relative h-full w-full">
-        {imgs.map((src, i) => (
-          <Image
-            key={`${src}-${i}`}
-            src={src}
-            alt={i === index ? alt : ""}
-            fill
+        {items.map((item, i) => (
+          <Slide
+            key={`${item.url}-${i}`}
+            item={item}
+            active={i === index}
+            alt={alt}
             sizes="(max-width: 768px) 100vw, 800px"
-            style={{
-              objectFit: "cover",
-              opacity: i === index ? 1 : 0,
-              transition: "opacity 0.5s ease",
-            }}
+            controls
             priority={i === 0}
           />
         ))}
@@ -302,12 +390,15 @@ export function PropertyGallery({
 
       {!single && (
         <>
-          <div className="absolute inset-0 flex items-center justify-between px-3 md:px-4">
-            <ArrowButton dir="left" onClick={onPrev} />
-            <ArrowButton dir="right" onClick={onNext} />
+          <div className="absolute inset-0 flex items-center justify-between px-3 md:px-4" style={{ pointerEvents: "none" }}>
+            <span style={{ pointerEvents: "auto" }}>
+              <ArrowButton dir="left" onClick={onPrev} />
+            </span>
+            <span style={{ pointerEvents: "auto" }}>
+              <ArrowButton dir="right" onClick={onNext} />
+            </span>
           </div>
 
-          {/* Counter pill */}
           <div
             className="absolute right-3 top-3 md:right-4 md:top-4 inline-flex items-center"
             style={{
@@ -321,12 +412,12 @@ export function PropertyGallery({
               WebkitBackdropFilter: "blur(4px)",
             }}
           >
-            {index + 1}/{imgs.length}
+            {index + 1}/{items.length}
           </div>
 
           <div className="absolute inset-x-0 bottom-3 md:bottom-4 flex justify-center">
             <Dots
-              count={imgs.length}
+              count={items.length}
               index={index}
               onDot={(i) => {
                 stop();
