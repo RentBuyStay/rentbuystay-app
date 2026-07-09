@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useCreatePropertyMutation,
   useUpdatePropertyMutation,
@@ -185,14 +185,17 @@ export default function PropertyForm({
   const MAX_PHOTOS = 20;
   const IMG_LIMIT = 10 * 1024 * 1024; // 10MB
   const VIDEO_LIMIT = 50 * 1024 * 1024; // 50MB
-  function onPhotoSelect(files: FileList | null) {
+  const isMedia = (f: File) => f.type.startsWith("image/") || f.type.startsWith("video/");
+  function onPhotoSelect(files: FileList | File[] | null) {
     if (!files) return;
-    const picked = Array.from(files);
+    // Keep only images/videos (matters for paste/drag, which can carry anything).
+    const picked = Array.from(files).filter(isMedia);
+    if (!picked.length) return;
     // Reject oversized files up-front so the user isn't left waiting on an upload
     // the backend will reject anyway.
     const tooBig = picked.filter((f) => f.size > (f.type.startsWith("video/") ? VIDEO_LIMIT : IMG_LIMIT));
     if (tooBig.length) {
-      setError(`Some files are too large (photos max 10MB, videos max 50MB): ${tooBig.map((f) => f.name).join(", ")}`);
+      setError(`Some files are too large (photos max 10MB, videos max 50MB): ${tooBig.map((f) => f.name || "pasted item").join(", ")}`);
     }
     const ok = picked.filter((f) => f.size <= (f.type.startsWith("video/") ? VIDEO_LIMIT : IMG_LIMIT));
     setPhotos((prev) => {
@@ -200,6 +203,27 @@ export default function PropertyForm({
       return [...prev, ...ok.slice(0, remaining)];
     });
   }
+
+  // Paste-to-upload: Cmd/Ctrl+V a screenshot or copied image anywhere on the form.
+  // A ref keeps the listener bound once while always calling the latest handler.
+  const onSelectRef = useRef(onPhotoSelect);
+  useEffect(() => {
+    onSelectRef.current = onPhotoSelect;
+  });
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      const files = e.clipboardData?.files;
+      if (!files?.length) return;
+      const media = Array.from(files).filter(isMedia);
+      if (!media.length) return;
+      e.preventDefault();
+      onSelectRef.current(media);
+    };
+    window.addEventListener("paste", handler);
+    return () => window.removeEventListener("paste", handler);
+  }, []);
+
+  const [dragOver, setDragOver] = useState(false);
 
   const editing = mode === "edit";
   const headerTitle = editing ? "Edit Property Details" : "Property Details";
@@ -587,17 +611,28 @@ export default function PropertyForm({
         <label
           htmlFor="property-photos"
           className="flex flex-col items-center justify-center cursor-pointer"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            onPhotoSelect(e.dataTransfer.files);
+          }}
           style={{
-            background: "#FAFAFA",
-            border: "2px dashed #EDEDED",
+            background: dragOver ? "#EEF4F9" : "#FAFAFA",
+            border: `2px dashed ${dragOver ? "#305E82" : "#EDEDED"}`,
             borderRadius: "12px",
             padding: "40px",
             gap: "12px",
+            transition: "background 0.15s, border-color 0.15s",
           }}
         >
           <Image src="/icons/dash/gallery-upload.svg" alt="" width={64} height={64} />
           <p style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 500, color: "#121212" }}>
-            <span style={{ color: "#807E7E", fontWeight: 400 }}>Drag &amp; drop photos or </span>
+            <span style={{ color: "#807E7E", fontWeight: 400 }}>Drag &amp; drop, paste (Ctrl/⌘+V), or </span>
             <span style={{ color: "#305E82", textDecoration: "underline" }}>click to upload</span>
           </p>
           <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E", textAlign: "center", maxWidth: "440px" }}>
