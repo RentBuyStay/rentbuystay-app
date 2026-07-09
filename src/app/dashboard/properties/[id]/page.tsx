@@ -7,6 +7,7 @@ import { useGetMyPropertiesQuery, useDeletePropertyMutation } from "@/services/p
 import { toPropertyDetailVM, type PropertyDetailVM } from "@/lib/property";
 import { getProperty as getLocalProperty, type Property as LocalProperty } from "@/lib/properties";
 import { getRole, type AccountRole } from "@/lib/role";
+import { PropertyGallery } from "@/components/PropertyGallery";
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -264,7 +265,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
 
-      <ImageSlider images={property.images} title={property.title} />
+      <PropertyGallery images={property.images} alt={property.title} className="h-[300px] md:h-[450px]" />
 
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" style={{ padding: "16px 0", borderBottom: "1px solid #F6F6F6" }}>
@@ -376,129 +377,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
   );
 }
 
-
-function ImageSlider({ images, title }: { images: string[]; title: string }) {
-  const [index, setIndex] = useState(0);
-  const total = images.length;
-
-  function prev() {
-    setIndex((i) => (i - 1 + total) % total);
-  }
-  function next() {
-    setIndex((i) => (i + 1) % total);
-  }
-
-  return (
-    <div
-      className="relative w-full h-[300px] md:h-[450px]"
-      style={{
-        background: "#F6F6F6",
-        borderRadius: "20px",
-        overflow: "hidden",
-      }}
-    >
-      <Image
-        key={index}
-        src={images[index]}
-        alt={`${title} — photo ${index + 1}`}
-        fill
-        unoptimized
-        style={{ objectFit: "cover" }}
-        priority
-      />
-
-
-      <button
-        type="button"
-        onClick={prev}
-        aria-label="Previous photo"
-        className="absolute flex items-center justify-center hover:opacity-90"
-        style={{
-          left: "16px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "34px",
-          height: "34px",
-          borderRadius: "10px",
-          background: "rgba(18,18,18,0.25)",
-          border: "none",
-          color: "#FFFFFF",
-          cursor: "pointer",
-        }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={next}
-        aria-label="Next photo"
-        className="absolute flex items-center justify-center hover:opacity-90"
-        style={{
-          right: "16px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "34px",
-          height: "34px",
-          borderRadius: "10px",
-          background: "rgba(18,18,18,0.25)",
-          border: "none",
-          color: "#FFFFFF",
-          cursor: "pointer",
-        }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-
-
-      <div
-        className="absolute flex items-center justify-center"
-        style={{
-          left: "16px",
-          bottom: "16px",
-          height: "32px",
-          padding: "0 12px",
-          background: "rgba(18,18,18,0.5)",
-          borderRadius: "8px",
-          gap: "5px",
-        }}
-      >
-        <Image src="/icons/dash/detail-gallery.svg" alt="" width={16} height={16} />
-        <span style={{ fontSize: "15px", lineHeight: "1", color: "#FFFFFF", fontWeight: 400 }}>
-          {index + 1}/{total}
-        </span>
-      </div>
-
-
-      <div
-        className="absolute hidden md:flex items-center"
-        style={{ left: "50%", bottom: "24px", transform: "translateX(-50%)", gap: "6px" }}
-      >
-        {images.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setIndex(i)}
-            aria-label={`Go to photo ${i + 1}`}
-            style={{
-              width: i === index ? "20px" : "8px",
-              height: "8px",
-              borderRadius: "4px",
-              background: i === index ? "#FFFFFF" : "rgba(255,255,255,0.5)",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              transition: "width 0.15s",
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function SpecItem({ icon, label }: { icon: string; label: string }) {
   return (

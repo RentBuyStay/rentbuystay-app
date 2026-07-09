@@ -29,6 +29,7 @@ export type PropertyVM = {
   beds: number;
   baths: number;
   image: string;
+  images?: string[];
   viewCount: number;
 };
 
@@ -73,6 +74,22 @@ export function primaryPhoto(p: PropertyResponse): string {
   if (!p.photos?.length) return PLACEHOLDER_IMAGE;
   const primary = p.photos.find((ph) => ph.isPrimary) ?? p.photos[0];
   return primary.url || PLACEHOLDER_IMAGE;
+}
+
+/**
+ * All photo URLs for a property, primary first, then by sortOrder — the full
+ * set a card/gallery cycles through. Falls back to a single placeholder so
+ * consumers can always render at least one image.
+ */
+export function photoUrls(p: PropertyResponse): string[] {
+  if (!p.photos?.length) return [PLACEHOLDER_IMAGE];
+  const ordered = [...p.photos].sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (b.isPrimary && !a.isPrimary) return 1;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  });
+  const urls = ordered.map((ph) => ph.url).filter(Boolean);
+  return urls.length ? urls : [PLACEHOLDER_IMAGE];
 }
 
 // --- Detail view model (property details page) ---
@@ -150,6 +167,7 @@ export function toPropertyVM(p: PropertyResponse): PropertyVM {
     beds: p.bedrooms ?? 0,
     baths: p.bathrooms ?? 0,
     image: primaryPhoto(p),
+    images: photoUrls(p),
     viewCount: p.viewCount ?? 0,
   };
 }
@@ -175,6 +193,7 @@ export function toSeekerListing(p: PropertyResponse): SeekerListing {
     beds: p.bedrooms ?? 0,
     baths: p.bathrooms ?? 0,
     image: primaryPhoto(p),
+    images: photoUrls(p),
     amenities: (p.amenities ?? []).map((a) => a.name),
     seller: sellerFrom(p),
     ownerUserId: p.assignedAgentUserId ?? p.ownerUserId,

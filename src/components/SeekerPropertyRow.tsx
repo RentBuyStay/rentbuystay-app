@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { SeekerListing, SeekerListingTag } from "./SeekerPropertyCard";
+import { PropertyCardImage } from "@/components/PropertyGallery";
 
 const TAG_COLORS: Record<SeekerListingTag, string> = {
   "FOR SALE": "#FFAE00",
@@ -35,7 +36,7 @@ export default function SeekerPropertyRow({ listing }: { listing: SeekerListing 
           borderRadius: "15px",
         }}
       >
-        <Image src={listing.image} alt={listing.title} fill style={{ objectFit: "cover" }} sizes="184px" />
+        <PropertyCardImage images={listing.images ?? [listing.image]} alt={listing.title} sizes="184px" intervalMs={4600} />
         <span
           className="absolute inline-flex items-center justify-center"
           style={{

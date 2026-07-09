@@ -18,14 +18,7 @@ import { toSeekerListing } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
-
-const FALLBACK_GALLERY = [
-  "/images/prop1.jpg",
-  "/images/prop2.jpg",
-  "/images/prop3.jpg",
-  "/images/prop4.jpg",
-  "/images/prop5.jpg",
-];
+import { PropertyGallery } from "@/components/PropertyGallery";
 
 export default function BrowsePropertyDetailPage({
   params,
@@ -90,7 +83,6 @@ export default function BrowsePropertyDetailPage({
 
   const listing = toSeekerListing(data);
   const isSaved = (savedPage?.content ?? []).some((p) => p.id === id);
-  const galleryImages = data.photos?.length ? data.photos.map((ph) => ph.url) : undefined;
 
   const tagLabel =
     listing.tag === "FOR SALE"
@@ -197,9 +189,10 @@ export default function BrowsePropertyDetailPage({
         </div>
       </div>
 
-      <PhotoGallery
-        title={listing.title}
-        images={galleryImages ?? [listing.image, ...FALLBACK_GALLERY.filter((i) => i !== listing.image)]}
+      <PropertyGallery
+        images={listing.images ?? [listing.image]}
+        alt={listing.title}
+        className="h-[300px] md:h-[482px]"
       />
 
       <PriceSpecsRow listing={listing} />
@@ -736,100 +729,3 @@ function SpecSeparator() {
   return <div style={{ width: "1px", height: "14px", background: "#F4F4F4" }} />;
 }
 
-function PhotoGallery({ title, images }: { title: string; images: string[] }) {
-  const [index, setIndex] = useState(0);
-  const total = images.length;
-
-  function prev() {
-    setIndex((i) => (i - 1 + total) % total);
-  }
-  function next() {
-    setIndex((i) => (i + 1) % total);
-  }
-
-  return (
-    <div
-      className="relative w-full h-[300px] md:h-[482px]"
-      style={{
-        background: "#F6F6F6",
-        borderRadius: "20px",
-        overflow: "hidden",
-      }}
-    >
-      <Image
-        key={index}
-        src={images[index]}
-        alt={`${title} — photo ${index + 1}`}
-        fill
-        style={{ objectFit: "cover" }}
-        sizes="1088px"
-        priority
-      />
-
-      <button
-        type="button"
-        onClick={prev}
-        aria-label="Previous photo"
-        className="absolute inline-flex items-center justify-center hover:opacity-90 left-4 md:left-6"
-        style={{
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "34px",
-          height: "34px",
-          padding: "5px",
-          borderRadius: "10px",
-          background: "rgba(18,18,18,0.25)",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <Image src="/icons/dash/gallery-arrow.svg" alt="" width={24} height={24} />
-      </button>
-
-      <button
-        type="button"
-        onClick={next}
-        aria-label="Next photo"
-        className="absolute inline-flex items-center justify-center hover:opacity-90 right-4 md:right-6"
-        style={{
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "34px",
-          height: "34px",
-          padding: "5px",
-          borderRadius: "10px",
-          background: "rgba(18,18,18,0.25)",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        <Image
-          src="/icons/dash/gallery-arrow.svg"
-          alt=""
-          width={24}
-          height={24}
-          style={{ transform: "scaleX(-1)" }}
-        />
-      </button>
-
-      <div
-        className="absolute inline-flex items-center justify-center"
-        style={{
-          left: "24px",
-          bottom: "24px",
-          height: "32px",
-          padding: "0 12px",
-          gap: "5px",
-          background: "rgba(18,18,18,0.5)",
-          borderRadius: "8px",
-          color: "#FFFFFF",
-        }}
-      >
-        <Image src="/icons/dash/detail-gallery.svg" alt="" width={16} height={16} />
-        <span style={{ fontSize: "15px", lineHeight: 1, fontWeight: 400 }}>
-          {index + 1}/{total}
-        </span>
-      </div>
-    </div>
-  );
-}

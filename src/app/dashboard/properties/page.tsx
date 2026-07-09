@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PropertyCardImage } from "@/components/PropertyGallery";
 import { useEffect, useRef, useState } from "react";
 import {
   useGetMyPropertiesQuery,
@@ -265,8 +266,8 @@ function PropertyCard({ property }: { property: PropertyVM }) {
     >
 
       <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
-        <Image src={property.image} alt={property.title} fill style={{ objectFit: "cover" }} sizes="352px" />
-        
+        <PropertyCardImage images={property.images ?? [property.image]} alt={property.title} sizes="352px" />
+
         <span
           className="absolute"
           style={{

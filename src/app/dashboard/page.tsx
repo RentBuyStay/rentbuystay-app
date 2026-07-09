@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { PropertyCardImage } from "@/components/PropertyGallery";
 import { pageTotal } from "@/services/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -1011,7 +1012,7 @@ function MiniPropertyCard({
       style={{ height: "414px", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}
     >
       <div className="relative" style={{ width: "100%", height: "218px", background: "#EDEDED" }}>
-        <Image src={property.image} alt={property.title} fill style={{ objectFit: "cover" }} sizes="100vw" />
+        <PropertyCardImage images={property.images ?? [property.image]} alt={property.title} sizes="100vw" />
         <span
           className="absolute"
           style={{
