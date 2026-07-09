@@ -180,9 +180,15 @@ export default function PropertyForm({
     setCharges((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.id !== id)));
   }
 
+  // A property can carry 3–20 photos. Cap on the TOTAL (already-saved photos on
+  // an edit + newly picked files), so selecting more just keeps the first that fit.
+  const MAX_PHOTOS = 20;
   function onPhotoSelect(files: FileList | null) {
     if (!files) return;
-    setPhotos((prev) => [...prev, ...Array.from(files)].slice(0, 12));
+    setPhotos((prev) => {
+      const remaining = Math.max(0, MAX_PHOTOS - existingPhotos.length - prev.length);
+      return [...prev, ...Array.from(files).slice(0, remaining)];
+    });
   }
 
   const editing = mode === "edit";
@@ -217,6 +223,13 @@ export default function PropertyForm({
       setError(
         "Please fill in the required fields: title, property type, listing type, price, frequency, state, city, and address."
       );
+      return;
+    }
+
+    // A property must carry 3–20 photos (existing + newly selected).
+    const totalPhotos = existingPhotos.length + photos.length;
+    if (totalPhotos < 3) {
+      setError(`Please upload at least 3 photos (you have ${totalPhotos}).`);
       return;
     }
 
@@ -578,7 +591,7 @@ export default function PropertyForm({
             <span style={{ color: "#305E82", textDecoration: "underline" }}>click to upload</span>
           </p>
           <p style={{ fontSize: "12px", lineHeight: "20px", color: "#807E7E", textAlign: "center", maxWidth: "440px" }}>
-            To ensure best quality, please upload PNG, JPG up to 5MB each with high resolution. Min. 3 photos required.
+            To ensure best quality, please upload PNG, JPG up to 5MB each with high resolution. Upload 3 to 20 photos.
           </p>
           <input
             id="property-photos"
