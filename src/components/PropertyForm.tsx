@@ -270,10 +270,17 @@ export default function PropertyForm({
     try {
       let uploadedPhotos: { uploadedFileId: string; isPrimary: boolean }[] = [];
       if (photos.length > 0) {
-        const formData = new FormData();
-        photos.forEach((file) => formData.append("files", file));
-        const res = await uploadFilesBatch(formData).unwrap();
-        uploadedPhotos = res.map((r, i) => ({ uploadedFileId: r.id, isPrimary: existingPhotos.length === 0 && i === 0 }));
+        // Upload one file per request (not one giant batch) so a single request
+        // body stays small — a large multi-photo/video batch would otherwise trip
+        // the reverse proxy's body-size limit (413).
+        const uploaded: { id: string }[] = [];
+        for (const file of photos) {
+          const formData = new FormData();
+          formData.append("files", file);
+          const res = await uploadFilesBatch(formData).unwrap();
+          if (res[0]) uploaded.push(res[0]);
+        }
+        uploadedPhotos = uploaded.map((r, i) => ({ uploadedFileId: r.id, isPrimary: existingPhotos.length === 0 && i === 0 }));
       }
 
       const allPhotos = [
