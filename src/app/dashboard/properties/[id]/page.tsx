@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { useGetMyPropertiesQuery, useDeletePropertyMutation } from "@/services/propertyApi";
+import { useGetMyPropertiesQuery, useGetPropertyQuery, useDeletePropertyMutation } from "@/services/propertyApi";
 import { toPropertyDetailVM, type PropertyDetailVM } from "@/lib/property";
 import { getProperty as getLocalProperty, type Property as LocalProperty } from "@/lib/properties";
 import { getRole, type AccountRole } from "@/lib/role";
@@ -64,9 +64,12 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       router.push(`/dashboard/browse/${id}`);
     }
   }, [role, router, id]);
-  // The public GET /properties/{id} only returns APPROVED listings, so source
-  // from the owner's own list (all statuses) and pick this one out.
-  const { data, isLoading, isError } = useGetMyPropertiesQuery(
+  // The owner's list (all statuses) is the reliable source for metadata, but it's
+  // a summary response that only carries the primary photo. The single-property
+  // detail endpoint returns ALL photos — prefer it so the gallery shows every
+  // image, and fall back to the list item (e.g. a pending listing the public
+  // detail endpoint won't return yet).
+  const { data: listData, isLoading, isError } = useGetMyPropertiesQuery(
     { page: 0, size: 100 },
     {
       selectFromResult: ({ data, isLoading, isError }) => ({
@@ -76,6 +79,8 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
       }),
     }
   );
+  const { data: detailData } = useGetPropertyQuery(id);
+  const data = detailData ?? listData;
   const [deleteProperty, { isLoading: deleting }] = useDeletePropertyMutation();
 
   if (isLoading) {
