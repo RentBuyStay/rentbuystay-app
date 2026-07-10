@@ -10,7 +10,7 @@ import {
 import { useGetMeQuery } from "@/services/meApi";
 import { useGetPropertyTypesQuery } from "@/services/referenceApi";
 import { useGetAgencyStaffQuery } from "@/services/organizationApi";
-import { useUploadFilesBatchMutation } from "@/services/fileApi";
+import { useUploadFileMutation } from "@/services/fileApi";
 import { unwrapApiError } from "@/services/api";
 import { getRole } from "@/lib/role";
 import type {
@@ -94,7 +94,7 @@ export default function PropertyForm({
   const { data: propertyTypes } = useGetPropertyTypesQuery();
   const [createProperty, { isLoading: creating }] = useCreatePropertyMutation();
   const [updateProperty, { isLoading: updating }] = useUpdatePropertyMutation();
-  const [uploadFilesBatch, { isLoading: uploading }] = useUploadFilesBatchMutation();
+  const [uploadFile, { isLoading: uploading }] = useUploadFileMutation();
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [title, setTitle] = useState(initial.title ?? "");
@@ -270,15 +270,15 @@ export default function PropertyForm({
     try {
       let uploadedPhotos: { uploadedFileId: string; isPrimary: boolean }[] = [];
       if (photos.length > 0) {
-        // Upload one file per request (not one giant batch) so a single request
-        // body stays small — a large multi-photo/video batch would otherwise trip
-        // the reverse proxy's body-size limit (413).
+        // Upload one file per request via the single-file endpoint (same path as
+        // profile pictures) so each request body stays small — a multi-file batch
+        // would otherwise trip the reverse proxy's body-size limit (413).
         const uploaded: { id: string }[] = [];
         for (const file of photos) {
           const formData = new FormData();
-          formData.append("files", file);
-          const res = await uploadFilesBatch(formData).unwrap();
-          if (res[0]) uploaded.push(res[0]);
+          formData.append("file", file);
+          const res = await uploadFile(formData).unwrap();
+          uploaded.push(res);
         }
         uploadedPhotos = uploaded.map((r, i) => ({ uploadedFileId: r.id, isPrimary: existingPhotos.length === 0 && i === 0 }));
       }
