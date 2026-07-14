@@ -1051,16 +1051,24 @@ function NumberStepper({ value, onChange }: { value: number; onChange: (v: numbe
     >
       <input
         type="number"
-        value={value}
-        onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
-        className="outline-none bg-transparent flex-1"
+        inputMode="numeric"
+        // Show 0 as an empty field (with a 0 placeholder) so the user can just
+        // type over it instead of ending up with "01".
+        value={value === 0 ? "" : value}
+        placeholder="0"
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw === "") return onChange(0);
+          const n = Math.max(0, Number(raw));
+          if (!Number.isNaN(n)) onChange(n);
+        }}
+        className="outline-none bg-transparent flex-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         style={{
           fontSize: "14px",
           lineHeight: "24px",
           fontWeight: 400,
           color: "#121212",
           letterSpacing: "-0.02em",
-          MozAppearance: "textfield",
         }}
       />
 
