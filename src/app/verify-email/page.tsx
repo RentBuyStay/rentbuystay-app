@@ -57,6 +57,23 @@ export default function VerifyEmailPage() {
     return () => clearTimeout(t);
   }, [secondsLeft]);
 
+  // Send the first code automatically. The sign-up flow already emails the OTP as
+  // part of registration, but the login-device flow does NOT — the login only
+  // returns NEW_DEVICE_REQUIRES_OTP, so without this the user gets no code until
+  // they wait out the timer and click "Resend OTP". Fire once on mount.
+  const initialSent = useRef(false);
+  useEffect(() => {
+    if (!onboarding || initialSent.current) return;
+    if (onboarding.flow !== "login-device") return;
+    initialSent.current = true;
+    resendOtp({ email: onboarding.email, purpose: "NEW_DEVICE" })
+      .unwrap()
+      .then(() => setSecondsLeft(RESEND_SECONDS))
+      .catch(() => {
+        /* delivery failed — they can still use the Resend button */
+      });
+  }, [onboarding, resendOtp]);
+
   const isLoading = verifyingEmail || verifyingDevice;
   const canVerify = code.length === OTP_LENGTH && !isLoading && !!onboarding;
   const timer = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
