@@ -59,10 +59,15 @@ export const analyticsApi = api.injectEndpoints({
         };
       },
     }),
-    // Agent analytics — daily view breakdown for properties assigned to the agent.
-    getAssignedPropertyAnalytics: builder.query<MyPropertyAnalytics, void>({
-      query: () => ({ url: endpoints.propertiesAnalyticsAssigned, method: "GET" }),
-      transformResponse: (res: ApiEnvelope<MyPropertyAnalytics>) => res.data,
+    // Role-aware daily view breakdown (ISO date -> views) for the current user's
+    // properties — drives the "Views this month" chart for every role.
+    getDashboardDaily: builder.query<Record<string, number>, number | void>({
+      query: (days) => ({
+        url: endpoints.propertiesAnalyticsMineDaily,
+        method: "GET",
+        params: days ? { days } : undefined,
+      }),
+      transformResponse: (res: ApiEnvelope<Record<string, number> | null>) => res.data ?? {},
     }),
   }),
   overrideExisting: false,
@@ -70,5 +75,5 @@ export const analyticsApi = api.injectEndpoints({
 
 export const {
   useGetDashboardMetricsQuery,
-  useGetAssignedPropertyAnalyticsQuery,
+  useGetDashboardDailyQuery,
 } = analyticsApi;

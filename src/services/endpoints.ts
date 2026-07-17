@@ -40,6 +40,7 @@ export const endpoints = {
   propertyTypes: "/property-types",
   propertiesDiscoveryAll: "/properties/discovery/all",
   propertiesAnalyticsMine: "/properties/analytics/mine",
+  propertiesAnalyticsMineDaily: "/properties/analytics/mine/daily",
   propertiesAnalyticsAssigned: "/properties/analytics/assigned",
   propertiesRevenueTotal: "/properties/revenue/total",
 

@@ -30,8 +30,7 @@ import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery, useGetMessagesQuery } from "@/services/conversationApi";
 import {
   useGetDashboardMetricsQuery,
-  useGetAssignedPropertyAnalyticsQuery,
-  type MyPropertyAnalytics,
+  useGetDashboardDailyQuery,
   type DashboardMetric,
 } from "@/services/analyticsApi";
 
@@ -160,6 +159,7 @@ function AgencyDashboardHome() {
   // render (listings, views, revenue, agents, appointments, inquiries) — values,
   // deltas and labels all resolved server-side for the caller's role.
   const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
+  const { data: daily } = useGetDashboardDailyQuery(undefined, { skip: !verified });
 
   const metrics: Metric[] =
     verified && dash?.cards.length ? dash.cards.map(cardToMetric) : AGENCY_METRICS_UNVERIFIED;
@@ -171,7 +171,7 @@ function AgencyDashboardHome() {
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard daily={daily} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -184,10 +184,10 @@ function AgentDashboardHome() {
   const verified = Boolean(me?.verification?.complete) || localVerified;
 
   // analytics/mine resolves the agent's own cards (listings, views, inquiries,
-  // earnings, appointments). The daily view breakdown behind the chart still
-  // comes from analytics/assigned — the listings assigned to this agent.
+  // earnings, appointments); analytics/mine/daily gives the role-aware daily
+  // view breakdown behind the chart.
   const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
-  const { data: analytics } = useGetAssignedPropertyAnalyticsQuery(undefined, { skip: !verified });
+  const { data: daily } = useGetDashboardDailyQuery(undefined, { skip: !verified });
 
   const metrics: Metric[] =
     verified && dash?.cards.length ? dash.cards.map(cardToMetric) : AGENT_METRICS;
@@ -199,7 +199,7 @@ function AgentDashboardHome() {
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard daily={daily} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -370,8 +370,9 @@ function OwnerDashboardHome() {
   const verified = Boolean(me?.verification?.complete) || localVerified;
 
   // analytics/mine returns the owner's cards (listed properties, views + delta,
-  // inquiries, earnings) already resolved for this role.
+  // inquiries, earnings) already resolved for this role; mine/daily feeds the chart.
   const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
+  const { data: daily } = useGetDashboardDailyQuery(undefined, { skip: !verified });
 
   const metrics: Metric[] =
     verified && dash?.cards.length ? dash.cards.map(cardToMetric) : UNVERIFIED_METRICS;
@@ -385,7 +386,7 @@ function OwnerDashboardHome() {
         ))}
       </div>
 
-      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard daily={daily} /> : <UnverifiedDashboard />}
     </div>
   );
 }
@@ -494,11 +495,11 @@ function UnverifiedDashboard() {
 }
 
 
-function VerifiedDashboard({ analytics }: { analytics?: MyPropertyAnalytics }) {
+function VerifiedDashboard({ daily }: { daily?: Record<string, number> }) {
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "16px" }}>
-        <ViewsChart analytics={analytics} />
+        <ViewsChart daily={daily} />
         <RecentInquiries />
       </div>
 
@@ -553,8 +554,8 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
   );
 }
 
-function ViewsChart({ analytics }: { analytics?: MyPropertyAnalytics }) {
-  const data = buildWeekViews(analytics?.dailyBreakdown);
+function ViewsChart({ daily }: { daily?: Record<string, number> }) {
+  const data = buildWeekViews(daily);
   // Mark the peak day (only when there are any views) like the Figma.
   const peak = data.reduce((a, b) => (b.views >= a.views ? b : a), data[0]);
   const hasViews = data.some((d) => d.views > 0);
