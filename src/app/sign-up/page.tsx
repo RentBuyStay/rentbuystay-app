@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 import PhoneNumberInput from "@/components/PhoneNumberInput";
 import { useSignupMutation } from "@/services/authApi";
@@ -20,6 +20,15 @@ const ACCOUNT_TYPES: AccountRole[] = [
   "Real Estate Agency or Developer",
 ];
 
+// The marketing site's "Get Started Free" flow picks the account type and hands
+// off here as /sign-up?type=<slug>, so the choice carries across the two apps.
+const TYPE_PARAM_TO_ROLE: Record<string, AccountRole> = {
+  seeker: "Property Seeker",
+  agent: "Real Estate Agent",
+  owner: "Property Owner",
+  agency: "Real Estate Agency or Developer",
+};
+
 export default function PropertyOwnerSignUpPage() {
   const router = useRouter();
   const [signup, { isLoading }] = useSignupMutation();
@@ -33,6 +42,16 @@ export default function PropertyOwnerSignUpPage() {
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Preselect the account type chosen on the marketing site (?type=agency…).
+  // Read from window on mount — searchParams during SSR would need a Suspense
+  // boundary, and this is a one-time sync of external state.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("type");
+    const role = t ? TYPE_PARAM_TO_ROLE[t.toLowerCase()] : undefined;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (role) setAccountType(role);
+  }, []);
 
   const isAgency = accountType === "Real Estate Agency or Developer";
   const isSeeker = accountType === "Property Seeker";
