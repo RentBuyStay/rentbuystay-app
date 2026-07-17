@@ -5,11 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { roleBadgeLabel, type AccountRole } from "@/lib/role";
 import { useLogoutMutation } from "@/services/authApi";
+import { useGetConversationsQuery } from "@/services/conversationApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logOut, selectRefreshToken } from "@/features/auth/authSlice";
 import { config } from "@/lib/config";
 
 type NavItem = { label: string; href: string; icon: string };
+
+/** Nav row that carries the unread-messages count (present in every role's nav). */
+const MESSAGES_HREF = "/dashboard/messages";
 type NavGroup = { label: string; items: NavItem[] };
 
 const ownerGroups: NavGroup[] = [
@@ -181,6 +185,16 @@ export default function DashboardSidebar({
   const dispatch = useAppDispatch();
   const refreshToken = useAppSelector(selectRefreshToken);
   const [logout] = useLogoutMutation();
+
+  // Unread badge on Inquiries/Messages. Polled on the same 60s cadence as the
+  // notification bell so the count stays fresh without a socket.
+  const { data: conversations } = useGetConversationsQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const unreadMessages = (conversations ?? []).reduce(
+    (sum, c) => sum + (c.unreadCount ?? 0),
+    0,
+  );
   const groups = GROUPS_BY_ROLE[role] ?? [];
 
   async function handleLogout() {
@@ -299,6 +313,25 @@ export default function DashboardSidebar({
                 >
                   <Image src={item.icon} alt="" width={20} height={20} />
                   <span style={{ flex: 1 }}>{item.label}</span>
+                  {item.href === MESSAGES_HREF && unreadMessages > 0 && (
+                    <span
+                      aria-label={`${unreadMessages} unread`}
+                      className="flex items-center justify-center shrink-0"
+                      style={{
+                        minWidth: "18px",
+                        height: "18px",
+                        padding: "0 5px",
+                        borderRadius: "9px",
+                        background: "#E11900",
+                        color: "#FFFFFF",
+                        fontSize: "10px",
+                        lineHeight: "13px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {unreadMessages > 99 ? "99+" : unreadMessages}
+                    </span>
+                  )}
                 </Link>
               );
             })}
