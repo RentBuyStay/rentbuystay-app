@@ -28,22 +28,13 @@ import {
 } from "@/services/propertyApi";
 import { useGetMyInspectionsQuery } from "@/services/inspectionApi";
 import { useGetConversationsQuery, useGetMessagesQuery } from "@/services/conversationApi";
-import { useGetAgencySummaryQuery } from "@/services/agentApi";
 import {
-  useGetMyPropertyAnalyticsQuery,
+  useGetDashboardMetricsQuery,
   useGetAssignedPropertyAnalyticsQuery,
   type MyPropertyAnalytics,
+  type DashboardMetric,
 } from "@/services/analyticsApi";
 
-/** Compact Naira for metric tiles: 0 → "₦0", 840000 → "₦840k", 1.2m → "₦1.2m". */
-function formatRevenue(n: number): string {
-  if (n >= 1_000_000) {
-    const m = n / 1_000_000;
-    return `₦${m % 1 === 0 ? m : m.toFixed(1)}m`;
-  }
-  if (n >= 1_000) return `₦${Math.round(n / 1000)}k`;
-  return `₦${(n ?? 0).toLocaleString()}`;
-}
 import { toSeekerListing, toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { unwrapApiError } from "@/services/api";
 import { useToast } from "@/components/Toast";
@@ -51,9 +42,40 @@ import { useToast } from "@/components/Toast";
 type Metric = {
   label: string;
   value: string;
-  trend: { prefix: string; suffix: string; direction: "up" | "down" };
+  trend?: { prefix: string; suffix: string; direction: "up" | "down" };
   icon: string;
 };
+
+// Pick a tile icon from the metric label (the backend sends free-text labels like
+// "Total Views" / "Listed properties" / "New Inquiries").
+const METRIC_ICONS: Array<[RegExp, string]> = [
+  [/view/i, "/icons/dash/metric-eye.svg"],
+  [/agent/i, "/icons/dash/metric-people.svg"],
+  [/appointment/i, "/icons/dash/nav-calendar.svg"],
+  [/inquir|lead|conversation|message/i, "/icons/dash/metric-messages.svg"],
+  [/revenue|earn/i, "/icons/dash/metric-dollar.svg"],
+  [/listing|listed|propert/i, "/icons/dash/metric-home.svg"],
+];
+function iconForMetric(label: string, value: string): string {
+  for (const [re, icon] of METRIC_ICONS) if (re.test(label)) return icon;
+  if (value.includes("₦")) return "/icons/dash/metric-dollar.svg";
+  return "/icons/dash/metric-home.svg";
+}
+
+// Map a backend dashboard card to a tile. `delta` (e.g. "+13% this week", "-5%")
+// drives the trend line: leading "-" → down/red, otherwise up/green. No delta →
+// no trend line at all.
+function cardToMetric(c: DashboardMetric): Metric {
+  const delta = c.delta?.trim();
+  return {
+    label: c.label,
+    value: c.value,
+    icon: iconForMetric(c.label, c.value),
+    trend: delta
+      ? { prefix: delta, suffix: "", direction: delta.startsWith("-") ? "down" : "up" }
+      : undefined,
+  };
+}
 
 const VERIFIED_METRICS: Metric[] = [
   { label: "Total Listings", value: "3", trend: { prefix: "+1", suffix: "this month", direction: "up" }, icon: "/icons/dash/metric-home.svg" },
@@ -134,52 +156,13 @@ function AgencyDashboardHome() {
   const localVerified = useLocalVerified();
   const verified = Boolean(me?.verification?.complete) || localVerified;
 
-  // Real values from the backend: org summary (agent + property counts),
-  // analytics/mine (views, inquiries, revenue + views delta), inspections
-  // (appointments). No fabricated trend % — only the real views delta is shown.
-  const orgId = me?.organizationId;
-  const { data: summary } = useGetAgencySummaryQuery(orgId as string, { skip: !orgId });
-  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 100 });
-  const { data: inspections } = useGetMyInspectionsQuery();
-  const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
+  // GET /properties/analytics/mine now returns the agency's six cards ready to
+  // render (listings, views, revenue, agents, appointments, inquiries) — values,
+  // deltas and labels all resolved server-side for the caller's role.
+  const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
 
-  const totals = analytics?.totals;
-  const viewsDelta = analytics?.deltas?.viewsThisWeekChange?.trim();
-  const totalListings = summary?.propertyCount ?? pageTotal(myProps);
-  const totalAgents = summary?.agentCount ?? 0;
-  const upcomingAppointments = (inspections ?? []).filter(
-    (i) => i.status === "PENDING" || i.status === "CONFIRMED"
-  ).length;
-
-  const base = verified ? AGENCY_METRICS_VERIFIED : AGENCY_METRICS_UNVERIFIED;
-  const neutral = (prefix: string) =>
-    ({ prefix, suffix: "", direction: "up" } as Metric["trend"]);
-  const metrics: Metric[] = !verified
-    ? base
-    : base.map((m) => {
-        switch (m.label) {
-          case "Total Listings":
-            return { ...m, value: String(totalListings), trend: neutral("Listed properties") };
-          case "Total Views":
-            return {
-              ...m,
-              value: (totals?.views ?? 0).toLocaleString(),
-              trend: viewsDelta
-                ? { prefix: viewsDelta, suffix: "this week", direction: viewsDelta.startsWith("-") ? "down" : "up" }
-                : neutral("Across your listings"),
-            };
-          case "Revenue":
-            return { ...m, value: formatRevenue(totals?.revenue ?? 0), trend: neutral("Total earned") };
-          case "Total Agents":
-            return { ...m, value: String(totalAgents), trend: neutral("Active agents") };
-          case "Upcoming Appointments":
-            return { ...m, value: String(upcomingAppointments), trend: neutral("Confirmed & pending") };
-          case "New Inquiries":
-            return { ...m, value: String(totals?.inquiries ?? 0), trend: neutral("Total inquiries") };
-          default:
-            return m;
-        }
-      });
+  const metrics: Metric[] =
+    verified && dash?.cards.length ? dash.cards.map(cardToMetric) : AGENCY_METRICS_UNVERIFIED;
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -188,39 +171,30 @@ function AgencyDashboardHome() {
           <MetricTile key={m.label} metric={m} />
         ))}
       </div>
-      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
     </div>
   );
 }
 
 function AgentDashboardHome() {
   const { data: me } = useGetMeQuery();
-  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
-  const { data: conversations } = useGetConversationsQuery();
 
   // Verification gating is driven by the real KYC status from GET /me.
   const localVerified = useLocalVerified();
   const verified = Boolean(me?.verification?.complete) || localVerified;
-  // Agents don't own properties — their views/revenue come from the listings
-  // ASSIGNED to them (analytics/assigned), not analytics/mine.
+
+  // analytics/mine resolves the agent's own cards (listings, views, inquiries,
+  // earnings, appointments). The daily view breakdown behind the chart still
+  // comes from analytics/assigned — the listings assigned to this agent.
+  const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
   const { data: analytics } = useGetAssignedPropertyAnalyticsQuery(undefined, { skip: !verified });
 
-  // Real values: listings count from /me/properties, views/revenue from
-  // assigned analytics, leads from active conversations.
-  const totals = analytics?.totals;
-  const leads = conversations?.length ?? 0;
-
-  const metrics: Metric[] = AGENT_METRICS.map((m) => {
-    if (m.label === "Total Listings") return { ...m, value: String(pageTotal(myProps)) };
-    if (m.label === "Total Leads") return { ...m, value: String(leads) };
-    if (m.label === "Total Views") return { ...m, value: (totals?.views ?? 0).toLocaleString() };
-    if (m.label === "Revenue") return { ...m, value: formatRevenue(totals?.revenue ?? 0) };
-    return m;
-  });
+  const metrics: Metric[] =
+    verified && dash?.cards.length ? dash.cards.map(cardToMetric) : AGENT_METRICS;
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
-      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: "16px" }}>
+      <div className="grid grid-cols-2 md:grid-cols-3" style={{ gap: "16px" }}>
         {metrics.map((m) => (
           <MetricTile key={m.label} metric={m} />
         ))}
@@ -390,42 +364,17 @@ function SeekerMetricTile({ metric }: { metric: SeekerMetric }) {
 
 function OwnerDashboardHome() {
   const { data: me } = useGetMeQuery();
-  const { data: myProps } = useGetMyPropertiesQuery({ page: 0, size: 1 });
 
   // Verification gating is driven by the real KYC status from GET /me.
   const localVerified = useLocalVerified();
   const verified = Boolean(me?.verification?.complete) || localVerified;
-  const { data: analytics } = useGetMyPropertyAnalyticsQuery(undefined, { skip: !verified });
 
-  // Real values: listing count from /me/properties; views/inquiries/revenue +
-  // the real views delta from analytics/mine. No fabricated trend %.
-  const totals = analytics?.totals;
-  const viewsDelta = analytics?.deltas?.viewsThisWeekChange?.trim();
-  const neutral = (prefix: string) =>
-    ({ prefix, suffix: "", direction: "up" } as Metric["trend"]);
-  const baseMetrics = verified ? VERIFIED_METRICS : UNVERIFIED_METRICS;
-  const metrics: Metric[] = !verified
-    ? baseMetrics
-    : baseMetrics.map((m) => {
-        switch (m.label) {
-          case "Total Listings":
-            return { ...m, value: String(pageTotal(myProps)), trend: neutral("Listed properties") };
-          case "Total Views":
-            return {
-              ...m,
-              value: (totals?.views ?? 0).toLocaleString(),
-              trend: viewsDelta
-                ? { prefix: viewsDelta, suffix: "this week", direction: viewsDelta.startsWith("-") ? "down" : "up" }
-                : neutral("Across your listings"),
-            };
-          case "New Inquiries":
-            return { ...m, value: String(totals?.inquiries ?? 0), trend: neutral("Total inquiries") };
-          case "Revenue":
-            return { ...m, value: formatRevenue(totals?.revenue ?? 0), trend: neutral("Total earned") };
-          default:
-            return m;
-        }
-      });
+  // analytics/mine returns the owner's cards (listed properties, views + delta,
+  // inquiries, earnings) already resolved for this role.
+  const { data: dash } = useGetDashboardMetricsQuery(undefined, { skip: !verified });
+
+  const metrics: Metric[] =
+    verified && dash?.cards.length ? dash.cards.map(cardToMetric) : UNVERIFIED_METRICS;
 
   return (
     <div className="flex flex-col" style={{ gap: "24px" }}>
@@ -436,14 +385,14 @@ function OwnerDashboardHome() {
         ))}
       </div>
 
-      {verified ? <VerifiedDashboard analytics={analytics} /> : <UnverifiedDashboard />}
+      {verified ? <VerifiedDashboard /> : <UnverifiedDashboard />}
     </div>
   );
 }
 
 
 function MetricTile({ metric }: { metric: Metric }) {
-  const up = metric.trend.direction === "up";
+  const up = metric.trend?.direction !== "down";
   return (
     <div
       className="bg-white flex flex-col"
@@ -471,27 +420,29 @@ function MetricTile({ metric }: { metric: Metric }) {
         >
           {metric.value}
         </span>
-        <div className="flex items-center" style={{ gap: "4px" }}>
-          <Image
-            src={up ? "/icons/dash/arrow-up.svg" : "/icons/dash/arrow-down-red.svg"}
-            alt=""
-            width={16}
-            height={16}
-          />
-          <span
-            style={{
-              fontSize: "12px",
-              lineHeight: "24px",
-              fontWeight: 400,
-              color: up ? "#027B2A" : "#CF3801",
-            }}
-          >
-            {metric.trend.prefix}
-          </span>
-          <span style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>
-            {metric.trend.suffix}
-          </span>
-        </div>
+        {metric.trend && (
+          <div className="flex items-center" style={{ gap: "4px" }}>
+            <Image
+              src={up ? "/icons/dash/arrow-up.svg" : "/icons/dash/arrow-down-red.svg"}
+              alt=""
+              width={16}
+              height={16}
+            />
+            <span
+              style={{
+                fontSize: "12px",
+                lineHeight: "24px",
+                fontWeight: 400,
+                color: up ? "#027B2A" : "#CF3801",
+              }}
+            >
+              {metric.trend.prefix}
+            </span>
+            <span style={{ fontSize: "12px", lineHeight: "24px", fontWeight: 400, color: "#807E7E" }}>
+              {metric.trend.suffix}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

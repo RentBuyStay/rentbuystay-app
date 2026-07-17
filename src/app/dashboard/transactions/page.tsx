@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGetMyPropertiesQuery } from "@/services/propertyApi";
-import { useGetMyPropertyAnalyticsQuery } from "@/services/analyticsApi";
+import { useGetDashboardMetricsQuery } from "@/services/analyticsApi";
 import { toPropertyVM, formatPrice, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 
 const STATUS_STYLES: Record<PropertyStatusLabel, { bg: string; color: string }> = {
@@ -41,7 +41,7 @@ type Row = { vm: PropertyVM; type: string; date: string };
 export default function TransactionsPage() {
   const router = useRouter();
   const { data: myProps, isLoading, isError } = useGetMyPropertiesQuery({ page: 0, size: 100 });
-  const { data: analytics } = useGetMyPropertyAnalyticsQuery();
+  const { data: dash } = useGetDashboardMetricsQuery();
 
   const rows: Row[] = (myProps?.content ?? []).map((p) => ({
     vm: toPropertyVM(p),
@@ -53,13 +53,15 @@ export default function TransactionsPage() {
   // "Additional Earnings" has no backend source yet so it shows ₦0.
   const totalListings = (pageTotal(myProps) || rows.length);
   const totalDeals = rows.filter((r) => r.vm.status === "Archived").length;
-  const revenue = analytics?.totals?.revenue ?? 0;
+  // Revenue comes pre-formatted from the role-aware dashboard cards
+  // ("Revenue" for an agency, "Total earned" for an owner/agent).
+  const revenue = dash?.cards.find((c) => /revenue|earn/i.test(c.label))?.value;
   const additionalEarnings = 0;
 
   const metrics = [
     { label: "Total Listings", value: String(totalListings), icon: "/icons/dash/metric-home.svg" },
     { label: "Total Deals", value: String(totalDeals), icon: "/icons/dash/metric-coin.svg" },
-    { label: "Revenue", value: formatPrice(revenue), icon: "/icons/dash/metric-dollar.svg" },
+    { label: "Revenue", value: revenue ?? formatPrice(0), icon: "/icons/dash/metric-dollar.svg" },
     { label: "Additional Earnings", value: formatPrice(additionalEarnings), icon: "/icons/dash/metric-dollar.svg" },
   ];
 
