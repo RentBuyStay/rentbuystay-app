@@ -39,12 +39,18 @@ export type OtpPurpose =
   | "NEW_DEVICE"
   | "REACTIVATION";
 
+/**
+ * POST /auth/signup. Personal and company details are nested: `userDetails` is
+ * required for every type except PROPERTY_AGENCY, which requires
+ * `companyDetails.companyName` instead (the backend derives the display name
+ * from the company name when no first/last name is given).
+ */
 export type SignupRequest = {
   email: string;
-  firstName: string;
-  lastName: string;
   phoneNumber?: string;
   userType: UserType;
+  userDetails?: { firstName?: string; lastName?: string };
+  companyDetails?: { companyName?: string };
 };
 
 export type SignupResponse = { userId: string; email: string };

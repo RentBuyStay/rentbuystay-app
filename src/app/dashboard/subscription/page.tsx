@@ -68,9 +68,17 @@ export default function SubscriptionPage() {
     }
   }, [me, router, toast]);
 
+  // Agency staff may SEE their agency's plan (the backend resolves their
+  // subscription to the parent agency's), but the billing/payment endpoints are
+  // closed to them — so skip that call and offer no purchase actions.
+  const isStaff = me?.userType === "AGENCY_STAFF";
+
   const { data: plans = [] } = useGetSubscriptionPlansQuery();
   const { data: mySub } = useGetMySubscriptionQuery();
-  const { data: billingPage, isLoading: billingLoading } = useGetBillingQuery({ page: 0, size: 20 });
+  const { data: billingPage, isLoading: billingLoading } = useGetBillingQuery(
+    { page: 0, size: 20 },
+    { skip: isStaff },
+  );
   const { data: providers = [], isLoading: providersLoading } = useGetPaymentProvidersQuery();
   const [initiate] = useInitiateSubscriptionMutation();
   const [verify] = useVerifySubscriptionMutation();
@@ -183,17 +191,26 @@ export default function SubscriptionPage() {
               highlighted={i === 1}
               isCurrent={p.id === mySub?.planId}
               busy={pendingPlanId === p.id}
+              readOnly={isStaff}
               onSubscribe={() => handleSubscribe(p.id)}
             />
           ))}
         </div>
       )}
 
-      <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>
-        Billing History
-      </h2>
+      {isStaff && (
+        <p style={{ fontSize: "14px", lineHeight: "24px", color: "#807E7E" }}>
+          Your agency manages this subscription. Contact an agency admin to change the plan or view billing.
+        </p>
+      )}
 
-      <div className="hidden md:block" style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
+      {!isStaff && (
+        <h2 style={{ fontSize: "16px", lineHeight: "32px", fontWeight: 500, color: "#121212" }}>
+          Billing History
+        </h2>
+      )}
+
+      <div className={isStaff ? "hidden" : "hidden md:block"} style={{ width: "100%", border: "1px solid #F6F6F6", borderRadius: "20px", overflow: "hidden" }}>
         <div className="flex" style={{ background: "#FFFFFF", borderBottom: "1px solid #F6F6F6" }}>
           {BILLING_COLS.map((c) => (
             <div
@@ -237,7 +254,7 @@ export default function SubscriptionPage() {
       </div>
 
       {/* Mobile: billing cards */}
-      <div className="md:hidden flex flex-col" style={{ gap: "12px" }}>
+      <div className={isStaff ? "hidden" : "md:hidden flex flex-col"} style={{ gap: "12px" }}>
         {billingLoading ? (
           <div className="bg-white text-center" style={{ border: "1px solid #F6F6F6", borderRadius: "16px", padding: "40px", fontSize: "14px", color: "#807E7E" }}>Loading billing history…</div>
         ) : billingRows.length === 0 ? (
@@ -343,12 +360,15 @@ function PricingCard({
   highlighted,
   isCurrent,
   busy,
+  readOnly,
   onSubscribe,
 }: {
   plan: SubscriptionPlan;
   highlighted?: boolean;
   isCurrent?: boolean;
   busy?: boolean;
+  /** Viewer can see plans but can't buy (agency staff). */
+  readOnly?: boolean;
   onSubscribe: () => void;
 }) {
   const textPrimary = highlighted ? "#FFFFFF" : "#121212";
@@ -429,16 +449,28 @@ function PricingCard({
       </div>
 
       {isCurrent ? (
-        <Link href="/dashboard/subscription/manage" className="flex items-center justify-center text-white hover:opacity-90 transition-opacity" style={ctaStyle}>
-          View Details
-        </Link>
+        // Managing a plan (auto-renew, cards) is closed to agency staff, so they
+        // see a plain marker instead of a link into the manage screen.
+        readOnly ? (
+          <div className="flex items-center justify-center text-white" style={{ ...ctaStyle, opacity: 0.6 }}>
+            Current Plan
+          </div>
+        ) : (
+          <Link href="/dashboard/subscription/manage" className="flex items-center justify-center text-white hover:opacity-90 transition-opacity" style={ctaStyle}>
+            View Details
+          </Link>
+        )
       ) : (
         <button
           type="button"
           onClick={onSubscribe}
-          disabled={busy}
+          disabled={busy || readOnly}
           className="flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-          style={{ ...ctaStyle, cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1 }}
+          style={{
+            ...ctaStyle,
+            cursor: busy || readOnly ? "not-allowed" : "pointer",
+            opacity: busy || readOnly ? 0.6 : 1,
+          }}
         >
           {busy ? "Redirecting…" : ctaLabel}
         </button>

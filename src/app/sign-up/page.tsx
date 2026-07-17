@@ -47,18 +47,16 @@ export default function PropertyOwnerSignUpPage() {
     if (!canProceed) return;
     setError(null);
     const userType = roleToUserType(accountType);
-    // Agency signup carries the org name through `firstName` (lastName is a
-    // placeholder space): the backend reads the company name off the signup
-    // payload — see UpdateOrganizationRequest's "set at signup" note.
-    const firstNamePayload = isAgency ? companyName.trim() : firstName.trim();
-    const lastNamePayload = isAgency ? " " : lastName.trim();
     try {
       await signup({
         email: email.trim(),
-        firstName: firstNamePayload,
-        lastName: lastNamePayload,
         phoneNumber: isSeeker ? undefined : `${country.dial}${phone.replace(/\D/g, "")}`,
         userType,
+        // An agency registers with its company name; everyone else with a
+        // personal name. The backend validates whichever applies to the type.
+        ...(isAgency
+          ? { companyDetails: { companyName: companyName.trim() } }
+          : { userDetails: { firstName: firstName.trim(), lastName: lastName.trim() } }),
       }).unwrap();
       setOnboarding({ email: email.trim(), userType, flow: "signup" });
       router.push("/verify-email");
