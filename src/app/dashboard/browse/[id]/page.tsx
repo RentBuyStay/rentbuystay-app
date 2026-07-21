@@ -228,7 +228,7 @@ export default function BrowsePropertyDetailPage({
           </div>
           {/* Agent card sits right under the Interested card on mobile (like the site) */}
           <div className="order-2 lg:order-none">
-            <ListedByCard listing={listing} autoContact={action === "message" || action === "call"} />
+            <ListedByCard listing={listing} autoAction={action} />
           </div>
         </div>
       </div>
@@ -540,10 +540,11 @@ function InterestedCard({ saved, onToggleSave, hostUserId, autoInspect }: { save
   );
 }
 
-function ListedByCard({ listing, autoContact }: { listing: SeekerListing; autoContact?: boolean }) {
+function ListedByCard({ listing, autoAction }: { listing: SeekerListing; autoAction?: string | null }) {
   const router = useRouter();
   const [openDirect] = useOpenDirectConversationMutation();
 
+  // Message → open the direct conversation.
   function contactOwner() {
     if (!listing.ownerUserId) return;
     openDirect(listing.ownerUserId)
@@ -552,15 +553,31 @@ function ListedByCard({ listing, autoContact }: { listing: SeekerListing; autoCo
       .catch(() => {});
   }
 
-  // autoContact: arrived from a "Message"/"Call" deep-link → open the chat once.
-  const contacted = useRef(false);
+  // Call → dial the owner's number (same as the chat header's Call). The phone
+  // rides on the conversation participant, so open the direct conversation, read
+  // the owner's number and dial it; if there's none, fall back to the chat.
+  function callOwner() {
+    if (!listing.ownerUserId) return;
+    openDirect(listing.ownerUserId)
+      .unwrap()
+      .then((conv) => {
+        const phone = conv.participants
+          ?.find((p) => p.userId === listing.ownerUserId)
+          ?.phoneNumber?.trim();
+        if (phone) window.location.href = `tel:${phone}`;
+        else router.push(`/dashboard/messages?c=${conv.id}`);
+      })
+      .catch(() => {});
+  }
+
+  // Deep-link from the site: run the intended action once on arrival.
+  const fired = useRef(false);
   useEffect(() => {
-    if (autoContact && !contacted.current) {
-      contacted.current = true;
-      contactOwner();
-    }
+    if (fired.current) return;
+    if (autoAction === "call") { fired.current = true; callOwner(); }
+    else if (autoAction === "message") { fired.current = true; contactOwner(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoContact]);
+  }, [autoAction]);
 
   return (
     <div className="bg-white w-full flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}>
@@ -628,7 +645,7 @@ function ListedByCard({ listing, autoContact }: { listing: SeekerListing; autoCo
       <div className="flex items-center" style={{ padding: "16px 24px", gap: "16px" }}>
         <button
           type="button"
-          onClick={contactOwner}
+          onClick={callOwner}
           className="flex-1 inline-flex items-center justify-center hover:opacity-80"
           style={{ height: "48px", padding: "8px 24px", gap: "8px", background: "#FFFFFF", border: "1px solid #F6F6F6", borderRadius: "12px", fontSize: "14px", fontWeight: 500, color: "#121212", cursor: "pointer" }}
         >
