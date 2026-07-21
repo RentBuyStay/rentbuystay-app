@@ -246,6 +246,24 @@ export type UpdateSeekerPreferencesRequest = {
 
 // --- Agents & agencies (Discover) ---
 
+/** GET /professionals — public directory row; carries a phoneNumber (unlike /agents). */
+export type ProfessionalListItem = {
+  id: string; // userId (individual) or organizationId
+  type?: string; // "INDIVIDUAL" | "ORGANIZATION"
+  name?: string;
+  avatarUrl?: string;
+  email?: string;
+  phoneNumber?: string;
+  organizationId?: string;
+  organizationName?: string;
+  verified?: boolean;
+  averageRating?: number;
+  reviewCount?: number;
+  online?: boolean;
+  lastSeenAt?: string;
+  createdAt?: string;
+};
+
 export type AgentListItem = {
   userId: string;
   firstName?: string;

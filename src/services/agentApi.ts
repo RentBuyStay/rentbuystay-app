@@ -6,6 +6,7 @@ import type {
   ApiEnvelope,
   OrganizationSummary,
   Page,
+  ProfessionalListItem,
 } from "./types";
 
 type ListParams = { q?: string; state?: string; page?: number; size?: number };
@@ -40,6 +41,12 @@ export const agentApi = api.injectEndpoints({
       }),
       transformResponse: (res: ApiEnvelope<Page<AgentListItem>>) => res.data,
     }),
+    // Public professional directory — the only list carrying a phoneNumber, used
+    // to resolve a chat counterpart's number for the Call/WhatsApp buttons.
+    getProfessionals: builder.query<Page<ProfessionalListItem>, { q?: string; page?: number; size?: number } | void>({
+      query: (params) => ({ url: `${endpoints.professionals}?${toQuery(params ?? {})}`, method: "GET" }),
+      transformResponse: (res: ApiEnvelope<Page<ProfessionalListItem>>) => res.data,
+    }),
   }),
   overrideExisting: false,
 });
@@ -49,4 +56,5 @@ export const {
   useGetAgenciesQuery,
   useGetAgencySummaryQuery,
   useGetAgencyAgentsQuery,
+  useGetProfessionalsQuery,
 } = agentApi;

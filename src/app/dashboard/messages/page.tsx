@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
+import { useGetProfessionalsQuery } from "@/services/agentApi";
 import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
 import { useUploadFilesBatchMutation } from "@/services/fileApi";
 import { sendTypingEvent } from "@/hooks/useChatSocket";
@@ -260,6 +261,24 @@ function ConversationView({
   const otherPartyParticipant = conversation.participants?.find((p) => p.userId !== myId);
   const otherUserId = otherPartyParticipant?.userId;
   const otherReadAt = otherPartyParticipant?.lastReadAt;
+
+  // The chat participant carries no phone, so resolve it from the public
+  // professional directory by an EXACT userId match (safe — never a name guess).
+  // Found only when the other party is a listed agent/agency; otherwise the
+  // Call/WhatsApp buttons stay disabled rather than dial the wrong person.
+  const { data: profPage } = useGetProfessionalsQuery(
+    { q: name, size: 20 },
+    { skip: !otherUserId || !name },
+  );
+  const counterpartPhone = profPage?.content?.find((p) => p.id === otherUserId)?.phoneNumber?.trim();
+  // WhatsApp needs the international number without "+"; normalise a Nigerian
+  // local number (leading 0) to the 234 country code.
+  const waNumber = counterpartPhone
+    ? (() => {
+        const d = counterpartPhone.replace(/\D/g, "");
+        return d.startsWith("0") ? `234${d.slice(1)}` : d;
+      })()
+    : "";
   const typingStatus = useAppSelector(selectTypingStatus(conversation.id));
   const isOtherTyping = otherUserId ? typingStatus[otherUserId] : false;
 
@@ -383,12 +402,24 @@ function ConversationView({
           </div>
         </div>
         <div className="flex items-center" style={{ gap: "24px" }}>
-          <button type="button" aria-label="Call" className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-            <Image src="/icons/dash/call-blue.svg" alt="" width={24} height={24} />
-          </button>
-          <button type="button" aria-label="WhatsApp" className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-            <Image src="/icons/dash/whatsapp.svg" alt="" width={24} height={24} />
-          </button>
+          {counterpartPhone ? (
+            <a href={`tel:${counterpartPhone}`} aria-label={`Call ${name}`} title={`Call ${counterpartPhone}`} className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px" }}>
+              <Image src="/icons/dash/call-blue.svg" alt="" width={24} height={24} />
+            </a>
+          ) : (
+            <button type="button" aria-label="Call" disabled title="Phone number not available" className="shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "not-allowed", opacity: 0.4 }}>
+              <Image src="/icons/dash/call-blue.svg" alt="" width={24} height={24} />
+            </button>
+          )}
+          {waNumber ? (
+            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${name}`} title={`WhatsApp ${name}`} className="hover:opacity-80 shrink-0" style={{ width: "24px", height: "24px" }}>
+              <Image src="/icons/dash/whatsapp.svg" alt="" width={24} height={24} />
+            </a>
+          ) : (
+            <button type="button" aria-label="WhatsApp" disabled title="Phone number not available" className="shrink-0" style={{ width: "24px", height: "24px", background: "none", border: "none", padding: 0, cursor: "not-allowed", opacity: 0.4 }}>
+              <Image src="/icons/dash/whatsapp.svg" alt="" width={24} height={24} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -79,6 +79,7 @@ export const endpoints = {
   // Agents & agencies (Discover)
   agents: "/agents",
   agencies: "/agencies",
+  professionals: "/professionals",
   agencyAgents: (id: string) => `/agencies/${id}/agents`,
   agencySummary: (id: string) => `/agencies/${id}/summary`,
 
