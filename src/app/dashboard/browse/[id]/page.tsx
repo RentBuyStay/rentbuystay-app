@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
 import SeekerPropertyCard from "@/components/SeekerPropertyCard";
 import type { SeekerListing } from "@/components/SeekerPropertyCard";
 import {
@@ -32,6 +32,22 @@ export default function BrowsePropertyDetailPage({
   const [saveProperty] = useSavePropertyMutation();
   const [unsaveProperty] = useUnsavePropertyMutation();
   const { toast } = useToast();
+
+  // Deep-link action from the marketing site (…?action=inspect|message|call|save),
+  // so a user who tapped e.g. Request Inspection there lands straight on it.
+  const searchParams = useSearchParams();
+  const action = searchParams?.get("action") ?? null;
+  const savedIds = savedPage?.content ?? [];
+  const alreadySaved = savedIds.some((p) => p.id === id);
+  const saveActionFired = useRef(false);
+  useEffect(() => {
+    if (action === "save" && data && !alreadySaved && !saveActionFired.current) {
+      saveActionFired.current = true;
+      saveProperty(id).unwrap()
+        .then(() => toast("Saved to your list", "success"))
+        .catch(() => {});
+    }
+  }, [action, data, alreadySaved, id, saveProperty, toast]);
 
   async function toggleSave(currentlySaved: boolean) {
     try {
@@ -208,11 +224,11 @@ export default function BrowsePropertyDetailPage({
 
         <div className="contents lg:flex lg:flex-col lg:gap-6">
           <div className="order-1 lg:order-none">
-            <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} />
+            <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} autoInspect={action === "inspect"} />
           </div>
           {/* Agent card sits right under the Interested card on mobile (like the site) */}
           <div className="order-2 lg:order-none">
-            <ListedByCard listing={listing} />
+            <ListedByCard listing={listing} autoContact={action === "message" || action === "call"} />
           </div>
         </div>
       </div>
@@ -488,8 +504,9 @@ function ViewMapBlock({ listing }: { listing: SeekerListing }) {
   );
 }
 
-function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; onToggleSave: () => void; hostUserId?: string }) {
-  const [scheduleOpen, setScheduleOpen] = useState(false);
+function InterestedCard({ saved, onToggleSave, hostUserId, autoInspect }: { saved: boolean; onToggleSave: () => void; hostUserId?: string; autoInspect?: boolean }) {
+  // autoInspect: arrived here from a "Request Inspection" deep-link → open the modal.
+  const [scheduleOpen, setScheduleOpen] = useState(!!autoInspect);
   return (
     <div className="bg-white w-full flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "20px", padding: "24px", gap: "24px" }}>
       <h3 style={{ fontSize: "16px", lineHeight: "24px", fontWeight: 600, color: "#121212" }}>
@@ -523,7 +540,7 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
   );
 }
 
-function ListedByCard({ listing }: { listing: SeekerListing }) {
+function ListedByCard({ listing, autoContact }: { listing: SeekerListing; autoContact?: boolean }) {
   const router = useRouter();
   const [openDirect] = useOpenDirectConversationMutation();
 
@@ -534,6 +551,16 @@ function ListedByCard({ listing }: { listing: SeekerListing }) {
       .then((conv) => router.push(`/dashboard/messages?c=${conv.id}`))
       .catch(() => {});
   }
+
+  // autoContact: arrived from a "Message"/"Call" deep-link → open the chat once.
+  const contacted = useRef(false);
+  useEffect(() => {
+    if (autoContact && !contacted.current) {
+      contacted.current = true;
+      contactOwner();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoContact]);
 
   return (
     <div className="bg-white w-full flex flex-col" style={{ border: "1px solid #F6F6F6", borderRadius: "20px" }}>
