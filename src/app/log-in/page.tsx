@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import OnboardingShell from "@/components/OnboardingShell";
 import { useLoginMutation } from "@/services/authApi";
 import { useLazyGetMeQuery } from "@/services/meApi";
-import { useAppDispatch } from "@/store/hooks";
-import { setCredentials, logOut } from "@/features/auth/authSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setCredentials, logOut, selectIsAuthenticated } from "@/features/auth/authSlice";
 import { isAdminType } from "@/lib/userType";
 import { unwrapApiError, describeApiError } from "@/services/api";
 import { NEW_DEVICE_REQUIRES_OTP } from "@/services/types";
@@ -21,8 +21,9 @@ import {
 } from "@/lib/onboarding";
 import { useUpdateSeekerPreferencesMutation } from "@/services/seekerApi";
 
-export default function LogInPage() {
+function LogInInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const [login, { isLoading: loggingIn }] = useLoginMutation();
   const [getMe, { isFetching: fetchingMe }] = useLazyGetMeQuery();
@@ -32,14 +33,27 @@ export default function LogInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
-  // Prefill the email if we just came from the sign-up wizard.
+  // Where to land after login. Only honour a same-origin path (starts with "/")
+  // to avoid open redirects / cross-domain loops; default to the dashboard.
+  const rawReturn = searchParams?.get("returnTo") ?? "";
+  const returnTo = rawReturn.startsWith("/") ? rawReturn : "/dashboard";
+  const emailParam = searchParams?.get("email") ?? "";
+
+  // Already signed in (e.g. arrived here from the marketing site's Message/Contact
+  // button while a session exists) → don't show the form, go straight on.
+  useEffect(() => {
+    if (isAuthenticated) router.replace(returnTo);
+  }, [isAuthenticated, returnTo, router]);
+
+  // Prefill the email from the sign-up wizard or a ?email= hand-off.
   useEffect(() => {
     // Read once on mount (sessionStorage is client-only).
-    const o = getOnboarding();
+    const seed = getOnboarding()?.email || emailParam;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (o?.email) setEmail(o.email);
-  }, []);
+    if (seed) setEmail(seed);
+  }, [emailParam]);
 
   const isLoading = loggingIn || fetchingMe;
   const canSignIn = !!(email && password) && !isLoading;
@@ -73,7 +87,7 @@ export default function LogInPage() {
         clearPendingPropertyTypeIds();
       }
       clearOnboarding();
-      router.push("/dashboard");
+      router.push(returnTo);
     } catch (err) {
       const code = unwrapApiError(err)?.code;
       if (code === NEW_DEVICE_REQUIRES_OTP) {
@@ -331,5 +345,13 @@ export default function LogInPage() {
         </p>
       </div>
     </OnboardingShell>
+  );
+}
+
+export default function LogInPage() {
+  return (
+    <Suspense>
+      <LogInInner />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopbar from "@/components/DashboardTopbar";
@@ -28,6 +28,7 @@ function initialsFrom(first?: string, last?: string): string {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [role, setRole] = useState<AccountRole | null>(null);
   const [checked, setChecked] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -64,11 +65,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Only bounce to log-in when genuinely unauthenticated. A rehydrated
       // access token means the session is real, so a transient /me failure must
       // not flash log-in — the reauth flow (services/api.ts) clears the token
-      // and redirects on its own if the session is truly dead.
-      router.replace("/log-in");
+      // and redirects on its own if the session is truly dead. Carry a returnTo
+      // so a cross-app arrival (e.g. a listing from the marketing site) lands
+      // back on that page after logging in.
+      router.replace(`/log-in?returnTo=${encodeURIComponent(pathname)}`);
     }
     // else: /me still loading (or authenticated + retrying) — wait.
-  }, [router, me, meError, isAuthenticated]);
+  }, [router, pathname, me, meError, isAuthenticated]);
 
   if (!checked || !role) return null;
 
