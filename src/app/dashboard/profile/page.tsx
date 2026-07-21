@@ -92,7 +92,7 @@ export default function ProfilePage() {
         await updateMyProfile({ avatarFileId: res.id }).unwrap();
       }
       toast("Profile photo updated successfully!", "success");
-    } catch (err) {
+    } catch {
       toast("Failed to update profile photo.", "error");
     }
   };
@@ -239,7 +239,7 @@ export default function ProfilePage() {
               className="absolute flex items-center justify-center hover:opacity-90 w-5 h-5 md:w-8 md:h-8 rounded-[10px] md:rounded-[20px]"
               style={{ bottom: 0, right: 0, background: "#305E82", border: "none", cursor: uploadingAvatar ? "wait" : "pointer", opacity: uploadingAvatar ? 0.7 : 1 }}
             >
-              <img src="/icons/dash/camera.svg" alt="" className="w-[11px] h-[11px] md:w-4 md:h-4" />
+              <Image src="/icons/dash/camera.svg" alt="" width={16} height={16} className="w-[11px] h-[11px] md:w-4 md:h-4" />
             </button>
           </div>
 

@@ -107,6 +107,8 @@ export default function DashboardTopbar({
               }}
             >
               {userAvatar ? (
+                // Dynamic remote avatar URL of unknown intrinsic size, cover-filling a fixed 40x40 container; a plain img avoids next/image fill/host constraints here.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={userAvatar} alt={userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
                 userInitials

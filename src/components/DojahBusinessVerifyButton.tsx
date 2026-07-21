@@ -96,8 +96,7 @@ export default function DojahBusinessVerifyButton({ compact = false }: { compact
     ? { widget_id: BUSINESS_WIDGET_ID }
     : { pages: [{ page: "business-data", config: { cac: true } }] };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleWidgetResponse = async (type: string, _data: any) => {
+  const handleWidgetResponse = async (type: string) => {
     if (starting) setStarting(false);
     if (type === "success") {
       // Dojah's webhook records the result (spoof-proof); poll /me until it lands

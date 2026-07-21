@@ -10,7 +10,6 @@ import {
   useGetBillingQuery,
   useGetPaymentProvidersQuery,
   useInitiateSubscriptionMutation,
-  useVerifySubscriptionMutation,
 } from "@/services/subscriptionApi";
 import {
   planFeatures,
@@ -79,9 +78,8 @@ export default function SubscriptionPage() {
     { page: 0, size: 20 },
     { skip: isStaff },
   );
-  const { data: providers = [], isLoading: providersLoading } = useGetPaymentProvidersQuery();
+  const { data: providers = [] } = useGetPaymentProvidersQuery();
   const [initiate] = useInitiateSubscriptionMutation();
-  const [verify] = useVerifySubscriptionMutation();
   // Track which specific plan is being initiated so only its button shows busy.
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

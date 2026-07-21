@@ -463,6 +463,8 @@ function ConversationView({
                 >
                   {m.attachments?.map((attachment) => (
                     attachment.type?.startsWith("image/") ? (
+                      // Remote user-uploaded attachment of unknown intrinsic size, rendered fluid at max-width:100%; next/image needs fixed width/height, so a plain img is correct here.
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img key={attachment.id} src={attachment.url} alt={attachment.name || "Attached Image"} style={{ maxWidth: "100%", borderRadius: "8px", marginBottom: "4px" }} />
                     ) : (
                       <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", color: "inherit", fontWeight: 500, display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
