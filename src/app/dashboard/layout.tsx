@@ -45,9 +45,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/log-in");
       return;
     }
-    // Existing same-app session — role already in localStorage.
+    // Existing same-app session — role in localStorage AND a live token. Never
+    // trust the role alone: after logout the token is gone, so requiring both
+    // means a logged-out user can't slip back in on a stale role.
     const r = getRole();
-    if (r) {
+    if (r && isAuthenticated) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole(r);
       setChecked(true);
@@ -72,6 +74,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     // else: /me still loading (or authenticated + retrying) — wait.
   }, [router, pathname, me, meError, isAuthenticated]);
+
+  // Back/forward cache guard: pressing Back after logout can restore a frozen,
+  // still-rendered dashboard from bfcache without re-running the effect above. On
+  // such a restore, if the persisted session is gone, reload so the guard runs
+  // fresh and redirects to log-in — you can't "return" to the dashboard.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && typeof window !== "undefined" && !localStorage.getItem("rbs-access-token")) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   if (!checked || !role) return null;
 
