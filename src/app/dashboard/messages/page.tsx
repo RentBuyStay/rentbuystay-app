@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
-import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
+import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery, useOpenDirectConversationMutation } from "@/services/conversationApi";
 import { useUploadFilesBatchMutation } from "@/services/fileApi";
 import { sendTypingEvent } from "@/hooks/useChatSocket";
 import { useAppSelector } from "@/store/hooks";
@@ -47,6 +47,36 @@ export default function MessagesPage() {
   const [sort, setSort] = useState("Newest");
 
   const { data: me } = useGetMeQuery();
+  const [openDirect] = useOpenDirectConversationMutation();
+
+  // Deep-link from browse/agents (the shared Message/Call convention):
+  //   ?contact=<userId>          → open a DIRECT conversation with that user and select it
+  //   ?contact=<userId>&do=call  → …then dial their number (same as the chat-header Call)
+  // ?c=<conversationId> takes precedence — if it's present we leave that selection alone.
+  const contactId = searchParams?.get("contact");
+  const wantCall = searchParams?.get("do") === "call";
+  const contactFired = useRef(false);
+  useEffect(() => {
+    if (contactFired.current) return;
+    if (searchParams?.get("c")) return; // a conversation is already selected via ?c=
+    if (!contactId) return;
+    contactFired.current = true;
+    openDirect(contactId)
+      .unwrap()
+      .then((conv) => {
+        setSelected(conv.id);
+        if (wantCall) {
+          // Phone rides on the conversation participant; dial it, or just leave
+          // the chat open when the other party has no number.
+          const phone = conv.participants
+            ?.find((p) => p.userId === contactId)
+            ?.phoneNumber?.trim();
+          if (phone) window.location.href = `tel:${phone}`;
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contactId, wantCall]);
   const { data: conversations = [], isLoading, isError } = useGetConversationsQuery(undefined, {
     pollingInterval: 30_000,
   });
