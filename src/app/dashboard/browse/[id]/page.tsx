@@ -512,7 +512,7 @@ function InterestedCard({ saved, onToggleSave, hostUserId }: { saved: boolean; o
           className="w-full inline-flex items-center justify-center hover:opacity-80"
           style={{ height: "56px", padding: "16px 24px", gap: "8px", background: saved ? "rgba(120,158,187,0.08)" : "transparent", border: "1px solid #F6F6F6", borderRadius: "12px", fontSize: "14px", fontWeight: 500, color: "#305E82", cursor: "pointer" }}
         >
-          <Image src="/icons/dash/detail-heart.svg" alt="" width={24} height={24} />
+          <Image src={saved ? "/icons/dash/detail-heart.svg" : "/icons/dash/detail-heart-outline.svg"} alt="" width={24} height={24} />
           {saved ? "Remove from Saved" : "Save Property"}
         </button>
       </div>
