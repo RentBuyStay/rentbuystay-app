@@ -785,6 +785,11 @@ export default function PropertyForm({
 
       {/* Mobile: full-width stacked actions (desktop shows them in the header) */}
       <div className="md:hidden flex flex-col" style={{ gap: "16px" }}>
+        {error && (
+          <p role="alert" style={{ fontSize: "14px", lineHeight: "20px", fontWeight: 500, color: "#E30045", margin: 0 }}>
+            {error}
+          </p>
+        )}
         <button
           type="button"
           onClick={handleSubmit}

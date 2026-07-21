@@ -187,7 +187,7 @@ export default function MessagesPage() {
         )}
       </aside>
 
-      <div className={`flex-col flex-1 min-w-0 ${selected ? "flex" : "hidden md:flex"}`}>
+      <div className={`flex-col flex-1 min-w-0 min-h-0 overflow-hidden ${selected ? "flex" : "hidden md:flex"}`}>
         {!activeConv ? (
           <div className="flex flex-col items-center justify-center" style={{ flex: 1, gap: "24px" }}>
             <div className="flex items-center justify-center rounded-full" style={{ width: "180px", height: "180px", background: "#F4F8FB" }}>
@@ -392,7 +392,7 @@ function ConversationView({
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex flex-col" style={{ flex: 1, padding: "24px", gap: "12px", overflowY: "auto" }}>
+      <div ref={scrollRef} className="flex flex-col" style={{ flex: 1, minHeight: 0, padding: "24px", gap: "12px", overflowY: "auto" }}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center flex-1" style={{ color: "#807E7E", fontSize: "14px" }}>
             No messages yet. Send the first one below.

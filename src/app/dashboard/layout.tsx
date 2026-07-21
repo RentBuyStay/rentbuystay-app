@@ -9,6 +9,8 @@ import GlobalSocket from "@/components/GlobalSocket";
 import { getRole, setRole as persistRole, type AccountRole } from "@/lib/role";
 import { userTypeToRole, isAdminType } from "@/lib/userType";
 import { useGetMeQuery } from "@/services/meApi";
+import { useAppSelector } from "@/store/hooks";
+import { selectIsAuthenticated } from "@/features/auth/authSlice";
 
 const USER_NAME_BY_ROLE: Partial<Record<AccountRole, string>> = {
   "Real Estate Agency or Developer": "Urban Nest Realty",
@@ -30,6 +32,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [checked, setChecked] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { data: me, isError: meError } = useGetMeQuery();
+  // Rehydrated from localStorage by hydrateAuth (see providers.tsx) before the
+  // first client render, so a returning signed-in user reads as authenticated
+  // immediately — no brief "logged-out" window that would flash /log-in.
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   useEffect(() => {
     // Administrators belong to the admin portal, never the user dashboard —
@@ -52,14 +58,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (me) {
       const derived = userTypeToRole(me.userType);
       persistRole(derived);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole(derived);
       setChecked(true);
-    } else if (meError) {
+    } else if (meError && !isAuthenticated) {
+      // Only bounce to log-in when genuinely unauthenticated. A rehydrated
+      // access token means the session is real, so a transient /me failure must
+      // not flash log-in — the reauth flow (services/api.ts) clears the token
+      // and redirects on its own if the session is truly dead.
       router.replace("/log-in");
     }
-    // else: /me still loading — wait (render nothing below).
-  }, [router, me, meError]);
+    // else: /me still loading (or authenticated + retrying) — wait.
+  }, [router, me, meError, isAuthenticated]);
 
   if (!checked || !role) return null;
 
