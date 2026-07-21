@@ -52,6 +52,20 @@ export default function MessagesPage() {
     pollingInterval: 30_000,
   });
 
+  // Lock the page to the viewport while the chat is open so ONLY the message
+  // list scrolls (WhatsApp-style) — the header and composer stay put. Without
+  // this the whole panel scrolls with the page on mobile.
+  useEffect(() => {
+    const { body, documentElement: html } = document;
+    const prev = { body: body.style.overflow, html: html.style.overflow };
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    return () => {
+      body.style.overflow = prev.body;
+      html.style.overflow = prev.html;
+    };
+  }, []);
+
   const visible = useMemo(() => {
     let list = [...conversations];
     if (search) {
@@ -76,7 +90,11 @@ export default function MessagesPage() {
     <div
       className="flex bg-white -m-4 md:-m-8 lg:-mx-10 lg:-my-8"
       style={{
-        height: "calc(100vh - 80px)",
+        // dvh tracks the *visible* viewport on any mobile screen (accounts for
+        // the browser's collapsing toolbars), so the chat fits exactly and only
+        // the message list scrolls. 80px = the dashboard top bar.
+        height: "calc(100dvh - 80px)",
+        overflow: "hidden",
         border: "1px solid #F6F6F6",
       }}
     >
