@@ -200,17 +200,18 @@ export default function BrowsePropertyDetailPage({
 
       <div className="flex flex-col gap-10 lg:grid lg:gap-8 lg:grid-cols-[minmax(0,1fr)_393px] lg:items-start">
         <div className="contents lg:flex lg:flex-col lg:gap-10">
-          <div className="order-2 lg:order-none"><DescriptionBlock listing={listing} /></div>
-          <div className="order-3 lg:order-none"><AmenitiesBlock listing={listing} /></div>
-          <div className="order-4 lg:order-none"><PropertyDetailsBlock listing={listing} /></div>
-          <div className="order-5 lg:order-none"><ViewMapBlock listing={listing} /></div>
+          <div className="order-3 lg:order-none"><DescriptionBlock listing={listing} /></div>
+          <div className="order-4 lg:order-none"><AmenitiesBlock listing={listing} /></div>
+          <div className="order-5 lg:order-none"><PropertyDetailsBlock listing={listing} /></div>
+          <div className="order-6 lg:order-none"><ViewMapBlock listing={listing} /></div>
         </div>
 
         <div className="contents lg:flex lg:flex-col lg:gap-6">
           <div className="order-1 lg:order-none">
             <InterestedCard saved={isSaved} onToggleSave={() => toggleSave(isSaved)} hostUserId={data.assignedAgentUserId ?? data.ownerUserId} />
           </div>
-          <div className="order-6 lg:order-none">
+          {/* Agent card sits right under the Interested card on mobile (like the site) */}
+          <div className="order-2 lg:order-none">
             <ListedByCard listing={listing} />
           </div>
         </div>
