@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ScheduleInspectionModal from "@/components/ScheduleInspectionModal";
 import { useGetMeQuery } from "@/services/meApi";
-import { useGetProfessionalsQuery } from "@/services/agentApi";
 import { useSendMessageMutation, useMarkConversationReadMutation, useGetMessagesQuery, useGetConversationsQuery } from "@/services/conversationApi";
 import { useUploadFilesBatchMutation } from "@/services/fileApi";
 import { sendTypingEvent } from "@/hooks/useChatSocket";
@@ -280,15 +279,10 @@ function ConversationView({
   const otherUserId = otherPartyParticipant?.userId;
   const otherReadAt = otherPartyParticipant?.lastReadAt;
 
-  // The chat participant carries no phone, so resolve it from the public
-  // professional directory by an EXACT userId match (safe — never a name guess).
-  // Found only when the other party is a listed agent/agency; otherwise the
-  // Call/WhatsApp buttons stay disabled rather than dial the wrong person.
-  const { data: profPage } = useGetProfessionalsQuery(
-    { q: name, size: 20 },
-    { skip: !otherUserId || !name },
-  );
-  const counterpartPhone = profPage?.content?.find((p) => p.id === otherUserId)?.phoneNumber?.trim();
+  // The backend now returns the counterpart's phone on the participant, so the
+  // Call/WhatsApp buttons use it directly (null when the other party has no
+  // number — e.g. a seeker — in which case the buttons disable).
+  const counterpartPhone = otherPartyParticipant?.phoneNumber?.trim();
   // WhatsApp needs the international number without "+"; normalise a Nigerian
   // local number (leading 0) to the 234 country code.
   const waNumber = counterpartPhone

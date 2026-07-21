@@ -430,6 +430,8 @@ export type ConversationParticipant = {
   role?: string;
   firstName?: string;
   lastName?: string;
+  /** The counterpart's contact for the chat Call/WhatsApp buttons; null for self & SUPPORT. */
+  phoneNumber?: string;
   lastDeliveredAt?: string;
   lastReadAt?: string;
   online?: boolean;
