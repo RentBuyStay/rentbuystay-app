@@ -213,11 +213,14 @@ export default function DashboardSidebar({
       className="flex flex-col text-white shrink-0 fixed md:sticky top-0 left-0 z-10 md:z-auto w-[242px] md:w-[272px]"
       style={{
         background: "#305E82",
-        height: "100vh",
+        // dvh tracks the visible mobile viewport (accounts for the browser bars),
+        // so the sidebar fits exactly — only the nav list scrolls and the logout
+        // stays pinned at the bottom instead of falling below the fold.
+        height: "100dvh",
       }}
     >
 
-      <div style={{ paddingTop: "24px" }} className="relative">
+      <div style={{ paddingTop: "24px" }} className="relative shrink-0">
         <Image
           src="/icons/dash/rbs-dash-logo.svg"
           alt="RentBuyStay"
@@ -271,7 +274,7 @@ export default function DashboardSidebar({
       
       <nav
         className="flex flex-col"
-        style={{ padding: "32px 16px 30px", gap: "16px", flex: 1, overflowY: "auto" }}
+        style={{ padding: "32px 16px 30px", gap: "16px", flex: 1, minHeight: 0, overflowY: "auto" }}
       >
         {groups.map((g) => (
           <div key={g.label} className="flex flex-col" style={{ gap: "8px" }}>
@@ -343,7 +346,7 @@ export default function DashboardSidebar({
       <button
         type="button"
         onClick={handleLogout}
-        className="flex items-center justify-between hover:opacity-90 w-full"
+        className="flex items-center justify-between hover:opacity-90 w-full shrink-0"
         style={{
           height: "64px",
           padding: "12px 24px",
