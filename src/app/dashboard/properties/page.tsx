@@ -12,6 +12,7 @@ import {
 } from "@/services/propertyApi";
 import { toPropertyVM, type PropertyVM, type PropertyStatusLabel } from "@/lib/property";
 import { getRole } from "@/lib/role";
+import PostPropertyButton from "@/components/PostPropertyButton";
 
 const TABS = ["All", "Active", "Awaiting Approval", "Archived", "Rejected"] as const;
 type Tab = (typeof TABS)[number];
@@ -126,23 +127,7 @@ export default function MyPropertiesPage() {
           </div>
 
           {/* Add — icon-only on mobile, "+ Add Property" on desktop */}
-          <Link
-            href="/dashboard/properties/new"
-            aria-label="Add Property"
-            className="flex items-center justify-center text-white hover:opacity-90 transition-opacity shrink-0 gap-0 md:gap-2 px-3 md:px-5"
-            style={{
-              height: "44px",
-              background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
-              border: "1px solid rgba(120,158,187,0.5)",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ fontSize: "18px", lineHeight: 1 }}>+</span>
-            <span className="hidden md:inline">Add Property</span>
-          </Link>
+          <PostPropertyButton label="Add Property" compactOnMobile />
         </div>
       </div>
 

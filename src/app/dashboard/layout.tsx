@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import PostPropertyFab from "@/components/PostPropertyFab";
 import ToastProvider from "@/components/Toast";
 import GlobalSocket from "@/components/GlobalSocket";
 import { getRole, setRole as persistRole, type AccountRole } from "@/lib/role";
@@ -149,6 +150,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onMenuClick={() => setDrawerOpen(true)}
           />
           <main className="p-4 md:p-8 lg:px-10 lg:py-8" style={{ flex: 1 }}>{children}</main>
+          {/* Persistent create shortcut — fixed to the viewport bottom-right;
+              hidden while the mobile nav drawer is open so it never floats over
+              the menu. */}
+          <PostPropertyFab hidden={drawerOpen} />
         </div>
       </div>
     </ToastProvider>
