@@ -41,10 +41,9 @@ export default function PostPropertyFab({ hidden = false }: { hidden?: boolean }
     <Link
       href="/dashboard/properties/new"
       aria-label="Post a property"
-      className={`${hidden ? "hidden" : "flex"} fixed z-40 items-center justify-center gap-0 md:gap-2 w-14 md:w-auto md:px-6 text-white hover:opacity-95 active:scale-95 transition-[opacity,transform] duration-150 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#305E82]`}
+      className={`${hidden ? "hidden" : "flex"} fixed z-40 bottom-[calc(32px_+_env(safe-area-inset-bottom))] md:bottom-[calc(20px_+_env(safe-area-inset-bottom))] items-center justify-center gap-0 md:gap-2 w-14 md:w-auto md:px-6 text-white hover:opacity-95 active:scale-95 transition-[opacity,transform] duration-150 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#305E82]`}
       style={{
         right: "max(20px, env(safe-area-inset-right))",
-        bottom: "calc(20px + env(safe-area-inset-bottom))",
         height: "56px",
         borderRadius: "9999px",
         background: "linear-gradient(175deg, #75A3C7 0%, #305E82 100%)",
