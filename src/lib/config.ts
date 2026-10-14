@@ -19,5 +19,5 @@ function required(name: string, value: string | undefined): string {
 export const config = {
   apiBaseUrl: required("NEXT_PUBLIC_API_BASE_URL", process.env.NEXT_PUBLIC_API_BASE_URL),
   // Public marketing site — the "back to site" link in the dashboard sidebar.
-  websiteUrl: (process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://frontend-yybh.vercel.app").replace(/\/+$/, ""),
+  websiteUrl: (process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://www.rentbuystay.com").replace(/\/+$/, ""),
 } as const;
